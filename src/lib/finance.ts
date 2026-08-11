@@ -536,6 +536,7 @@ export interface DashboardMetrics {
   activeBudgetCyclePeriods: BudgetPeriod[];
   budgetConversionUnavailableCount: number;
   hasMixedBudgetCycles: boolean;
+  periodNetByAccountId: Map<string, number>;
 }
 
 export interface HistoricalReportConvertedMetric {
@@ -3400,6 +3401,17 @@ export async function getDashboardMetrics(args?: {
     addCurrencyAmount(upcomingPaymentsByCurrency, recurring.currency, Number(recurring.amount || 0), defaultCurrency);
   }
 
+  const periodNetByAccountId = new Map<string, number>();
+  for (const transaction of cashFlowTransactions) {
+    if (!shouldIncludeInPersonalCashFlow(transaction, ledgerSummaryByTransactionId, accountInclusionById)) {
+      continue;
+    }
+    if (!transaction.account_id) continue;
+    const amount = Number(transaction.amount || 0);
+    const signed = transaction.transaction_type === 'income' ? amount : -amount;
+    periodNetByAccountId.set(transaction.account_id, (periodNetByAccountId.get(transaction.account_id) || 0) + signed);
+  }
+
   return {
     defaultCurrency,
     totalBalance: buildDashboardConvertedMetric({
@@ -3465,6 +3477,7 @@ export async function getDashboardMetrics(args?: {
     activeBudgetCyclePeriods: dashboardBudgetSummary.activeBudgetCyclePeriods,
     budgetConversionUnavailableCount: dashboardBudgetSummary.conversionUnavailableCount,
     hasMixedBudgetCycles: dashboardBudgetSummary.hasMixedCycles,
+    periodNetByAccountId,
   };
 }
 

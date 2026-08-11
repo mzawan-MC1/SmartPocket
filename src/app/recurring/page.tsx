@@ -131,9 +131,9 @@ export default function RecurringPage() {
     <AppLayout activeRoute="/recurring" hideMobileFooter>
       <div className="page-section max-[480px]:gap-2.5">
         <PageHeader
-          title={t('recurring.title')}
-          description={t('recurring.description')}
-          badge={<StatusBadge status="info" label={t('recurring.badge')} />}
+          title={t('recurring.title', { ns: 'portal', defaultValue: 'Scheduled Payments' })}
+          description={t('recurring.description', { ns: 'portal', defaultValue: 'Manage subscriptions, bills, and automatic payments in one place.' })}
+          badge={<StatusBadge status="info" label={t('recurring.badge', { ns: 'portal', defaultValue: 'Automation' })} />}
           compact
           className="rounded-[24px] border border-border/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,252,0.96)_100%)] px-3.5 py-3 shadow-card-sm max-[480px]:px-3.5 max-[480px]:py-3"
           actionsClassName="w-full sm:w-auto"

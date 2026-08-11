@@ -134,9 +134,9 @@ export default function ManagedPeoplePage() {
       <SubscriptionFeatureGate feature="managed_people">
         <div className="page-section pb-6 max-[480px]:gap-2.5">
         <PageHeader
-          title={t('people.title')}
-          description={t('people.description')}
-          badge={<StatusBadge status="info" label={t('people.badge')} />}
+          title={t('people.title', { ns: 'portal', defaultValue: 'Beneficiaries' })}
+          description={t('people.description', { ns: 'portal', defaultValue: 'Manage people you send money to, borrow from, or split bills with.' })}
+          badge={<StatusBadge status="info" label={t('people.badge', { ns: 'portal', defaultValue: 'Contacts' })} />}
           compact
           className="rounded-[24px] border border-border/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,252,0.96)_100%)] px-3.5 py-3 shadow-card-sm max-[480px]:px-3.5 max-[480px]:py-3"
           actionsClassName="w-full sm:w-auto"

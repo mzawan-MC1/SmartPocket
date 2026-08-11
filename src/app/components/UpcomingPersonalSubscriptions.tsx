@@ -147,94 +147,94 @@ export default function UpcomingPersonalSubscriptions({
         }];
 
     return (
-      <section className="space-y-2.5">
+      <section className="space-y-2">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-[15px] font-800 tracking-[-0.02em] text-foreground">
+          <h2 className="text-[14px] font-800 tracking-[-0.02em] text-foreground">
             {t('dashboardSections.smartSuggestionsTitle', { ns: 'portal' })}
           </h2>
           {suggestions.length > 0 ? (
-            <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-full border border-blue-200/80 bg-blue-50 px-2 text-[11px] font-800 text-blue-700">
+            <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full border border-blue-200/80 bg-blue-50 px-2 text-[10.5px] font-800 text-blue-700">
               {suggestions.length}
             </span>
           ) : null}
         </div>
 
         {loading ? (
-          <div className="rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,#ffffff,#f8fafc)] p-3 shadow-[0_16px_36px_-28px_rgba(37,99,235,0.18)]">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 animate-pulse rounded-2xl bg-blue-100/70" />
+          <div className="rounded-[20px] border border-slate-200/80 bg-[linear-gradient(180deg,#ffffff,#f8fafc)] p-2.5 shadow-[0_14px_32px_-26px_rgba(37,99,235,0.18)]">
+            <div className="flex items-center gap-2.5">
+              <div className="h-9 w-9 animate-pulse rounded-2xl bg-blue-100/70" />
               <div className="min-w-0 flex-1">
                 <div className="h-3.5 w-32 animate-pulse rounded bg-muted" />
-                <div className="mt-2 h-4 w-48 animate-pulse rounded bg-muted" />
+                <div className="mt-1.5 h-4 w-48 animate-pulse rounded bg-muted" />
               </div>
               <div className="h-6 w-10 animate-pulse rounded-full bg-muted" />
             </div>
-            <div className="mt-3 h-3 w-full animate-pulse rounded bg-muted" />
+            <div className="mt-2.5 h-3 w-full animate-pulse rounded bg-muted" />
             <div className="mt-2 flex items-center justify-between gap-3">
               <div className="h-3 w-36 animate-pulse rounded bg-muted" />
-              <div className="h-8 w-20 animate-pulse rounded-full bg-muted" />
+              <div className="h-7.5 w-20 animate-pulse rounded-full bg-muted" />
             </div>
           </div>
         ) : loadError ? (
-          <div className="rounded-[24px] border border-slate-200/80 bg-white p-3 shadow-[0_10px_24px_-22px_rgba(15,23,42,0.12)]">
-            <p className="text-[13px] font-700 text-foreground">
+          <div className="rounded-[20px] border border-slate-200/80 bg-white p-2.5 shadow-[0_10px_24px_-22px_rgba(15,23,42,0.12)]">
+            <p className="text-[12.5px] font-700 text-foreground">
               {t('shared.dashboardLoadFailedTitle', { ns: 'portal' })}
             </p>
-            <p className="mt-1 text-[11px] leading-4 text-muted-foreground">
+            <p className="mt-1 text-[10.5px] leading-4 text-muted-foreground">
               {t('personalSubscriptions.widget.dashboardSuggestionEmpty', { ns: 'portal' })}
             </p>
             <button
               type="button"
               onClick={() => void load()}
-              className="mt-3 inline-flex h-9 items-center justify-center rounded-full border border-slate-200 bg-white px-4 text-[12px] font-700 text-foreground shadow-sm transition-colors hover:bg-slate-50"
+              className="mt-2.5 inline-flex h-8.5 items-center justify-center rounded-full border border-slate-200 bg-white px-3.5 text-[11.5px] font-700 text-foreground shadow-sm transition-colors hover:bg-slate-50"
             >
               {t('shared.tryAgain', { ns: 'portal' })}
             </button>
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             {visibleSuggestions.map((suggestion) => (
               <section
                 key={suggestion.id}
-                className="rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] p-3 shadow-[0_12px_28px_-24px_rgba(37,99,235,0.22)]"
+                className="rounded-[20px] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.96))] p-2.5 shadow-[0_10px_24px_-22px_rgba(37,99,235,0.22)]"
               >
-                <div className="flex items-start gap-3">
+                <div className="flex items-start gap-2.5">
                   {suggestion.providerKey !== undefined ? (
                     <PersonalSubscriptionBrandLogo
                       providerKey={suggestion.providerKey}
                       fallbackName={suggestion.name}
                       size="sm"
-                      className="!h-10 !w-10"
+                      className="!h-9 !w-9"
                     />
                   ) : (
-                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl bg-blue-100/90 text-blue-700 shadow-[0_8px_18px_-14px_rgba(37,99,235,0.25)]">
-                      <ShieldCheck size={18} />
+                    <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-2xl bg-blue-100/90 text-blue-700 shadow-[0_8px_18px_-14px_rgba(37,99,235,0.25)]">
+                      <ShieldCheck size={16} />
                     </div>
                   )}
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
-                      <h3 className="truncate text-[13px] font-800 tracking-[-0.02em] text-foreground">
+                      <h3 className="truncate text-[12.5px] font-800 tracking-[-0.02em] text-foreground">
                         {suggestion.title}
                       </h3>
-                      <span className="shrink-0 rounded-full border border-blue-200/80 bg-blue-50 px-2 py-0.5 text-[10px] font-700 text-blue-700">
+                      <span className="shrink-0 rounded-full border border-blue-200/80 bg-blue-50 px-2 py-0.5 text-[9.5px] font-700 text-blue-700">
                         {suggestion.badge}
                       </span>
                     </div>
 
-                    <p className={`mt-1 text-[13px] font-700 text-foreground ${isArabic ? 'leading-5' : 'leading-5'}`}>
+                    <p className={`mt-1 text-[12.5px] font-700 text-foreground ${isArabic ? 'leading-5' : 'leading-5'}`}>
                       {suggestion.message}
                     </p>
 
-                    <div className="mt-2 flex items-end justify-between gap-3">
-                      <p className={`line-clamp-2 min-w-0 text-[11px] text-muted-foreground ${isArabic ? 'leading-5' : 'leading-4'}`}>
+                    <div className="mt-1.5 flex items-end justify-between gap-2.5">
+                      <p className={`line-clamp-2 min-w-0 text-[10.5px] text-muted-foreground ${isArabic ? 'leading-5' : 'leading-4'}`}>
                         {suggestion.helper}
                       </p>
                       <Link
                         href={suggestion.href}
-                        className="inline-flex h-8 shrink-0 items-center justify-center gap-1 rounded-full border border-blue-200/80 bg-white px-3 text-[12px] font-700 text-[#2563eb] shadow-sm transition-colors hover:bg-blue-50"
+                        className="inline-flex h-7.5 shrink-0 items-center justify-center gap-1 rounded-full border border-blue-200/80 bg-white px-2.5 text-[11.5px] font-700 text-[#2563eb] shadow-sm transition-colors hover:bg-blue-50"
                       >
                         {t('personalSubscriptions.widget.dashboardSuggestionReview', { ns: 'portal' })}
-                        <ChevronRight size={14} className={isArabic ? 'rotate-180' : ''} />
+                        <ChevronRight size={13} className={isArabic ? 'rotate-180' : ''} />
                       </Link>
                     </div>
                   </div>
@@ -250,23 +250,22 @@ export default function UpcomingPersonalSubscriptions({
   return (
     <SectionCard
       title={t('personalSubscriptions.widget.title', { ns: 'portal' })}
-      description={compact ? undefined : t('personalSubscriptions.widget.description', { ns: 'portal' })}
-      className={`flex h-full flex-col rounded-[28px] border shadow-card-sm transition-shadow duration-200 hover:shadow-card-md ${
+      className={`flex min-h-0 flex-col rounded-[22px] border shadow-card-sm transition-shadow duration-200 hover:shadow-card-md [&_.section-card-header]:!px-4 [&_.section-card-header]:!pt-3 [&_.section-card-header]:!pb-0 [&_.section-title]:!text-[14px] [&_.section-title]:!font-800 ${
         compact
           ? 'border-violet-200/60 bg-white'
           : 'border-border/80 bg-card'
       }`}
       action={(
-        <Link href="/personal-subscriptions" className={`link-accent ${compact ? 'text-xs' : 'text-sm'}`.trim()}>
+        <Link href="/personal-subscriptions" className={`link-accent ${compact ? 'text-[12px]' : 'text-[12px]'}`.trim()}>
           {t('actions.viewAll', { ns: 'common' })}
         </Link>
       )}
-      bodyClassName={`flex flex-1 flex-col ${compact ? 'p-2.5 pt-2' : 'p-3'}`}
+      bodyClassName={`flex min-h-0 flex-col ${compact ? 'px-4 py-3' : 'px-4 py-3'}`}
     >
       {loading ? (
-        <div className={compact ? 'space-y-1.5' : 'space-y-2'}>
+        <div className="space-y-1.5">
           {Array.from({ length: 3 }).map((_, index) => (
-            <div key={`personal-subscription-widget-skeleton-${index}`} className={`animate-pulse rounded-2xl border px-3.5 py-3 ${
+            <div key={`personal-subscription-widget-skeleton-${index}`} className={`animate-pulse rounded-2xl border px-3.5 py-2.5 ${
               compact ? 'border-violet-100/70 bg-white/75' : 'border-border/60 bg-muted/15'
             }`}>
               <div className="mb-2 h-4 w-36 rounded bg-muted" />
@@ -275,34 +274,30 @@ export default function UpcomingPersonalSubscriptions({
           ))}
         </div>
       ) : loadError ? (
-        <div className={`flex flex-1 flex-col items-center justify-center text-center ${compact ? 'px-4 py-4' : 'px-6 py-6'}`}>
-          <p className="text-sm font-700 text-foreground">{t('shared.dashboardLoadFailedTitle', { ns: 'portal' })}</p>
+        <div className="rounded-xl bg-muted/30 px-3 py-2 text-[12px] font-600 text-muted-foreground">
+          <p className="font-700 text-foreground">{t('shared.dashboardLoadFailedTitle', { ns: 'portal' })}</p>
           <button
             type="button"
             onClick={() => void load()}
-            className="mt-3 inline-flex h-9 items-center justify-center rounded-full border border-slate-200 bg-white px-4 text-[12px] font-700 text-foreground shadow-sm transition-colors hover:bg-slate-50"
+            className="mt-1 inline-flex h-8 items-center justify-center rounded-full border border-slate-200 bg-white px-3 text-[11px] font-700 text-foreground shadow-sm transition-colors hover:bg-slate-50"
           >
             {t('shared.tryAgain', { ns: 'portal' })}
           </button>
         </div>
       ) : subscriptions.length === 0 ? (
-        <EmptyState
-          icon={CalendarClock}
-          title={t('personalSubscriptions.widget.emptyTitle', { ns: 'portal' })}
-          description={t('personalSubscriptions.widget.emptyDescription', { ns: 'portal' })}
-          variant={compact ? 'compact' : 'default'}
-          tone={compact ? 'secondary' : 'accent'}
-          className={`flex flex-1 items-center justify-center ${compact ? 'px-4 py-4' : 'px-6 py-6'}`}
-        />
+        <div className="rounded-xl bg-muted/30 px-3 py-2 text-[12px] font-600 text-muted-foreground flex items-center gap-2">
+          <CalendarClock size={14} />
+          <span>{t('personalSubscriptions.widget.emptyTitle', { ns: 'portal' })}</span>
+        </div>
       ) : (
-        <div className={compact ? 'space-y-1.5' : 'space-y-2'}>
+        <div className="space-y-1.5">
           {subscriptions.map((subscription) => (
-            <div key={subscription.id} className={`flex items-center justify-between gap-3 rounded-2xl border px-3.5 transition-all duration-150 ${
+            <div key={subscription.id} className={`flex items-center justify-between gap-2 rounded-2xl border px-3.5 py-2.5 transition-all duration-150 ${
               compact
-                ? 'border-violet-100/70 bg-white/75 py-2.5 hover:border-violet-200/80 hover:bg-white/90'
-                : 'border-transparent bg-muted/15 py-3 hover:border-border/70 hover:bg-muted/30'
+                ? 'border-violet-100/70 bg-white/75 hover:border-violet-200/80 hover:bg-white/90'
+                : 'border-transparent bg-muted/15 hover:border-border/70 hover:bg-muted/30'
             }`}>
-              <div className="flex min-w-0 flex-1 items-start gap-2.5">
+              <div className="flex min-w-0 flex-1 items-start gap-2">
                 <PersonalSubscriptionBrandLogo
                   providerKey={subscription.provider_key}
                   fallbackName={subscription.name}
@@ -323,7 +318,7 @@ export default function UpcomingPersonalSubscriptions({
                       />
                     ) : null}
                   </div>
-                  <p className={`mt-1 text-muted-foreground ${compact ? (isArabic ? 'text-[12px] leading-5' : 'text-[11px]') : (isArabic ? 'text-[12.5px] leading-5' : 'text-xs')}`}>
+                  <p className={`mt-1 text-muted-foreground ${isArabic ? 'text-[12px] leading-5' : 'text-[11.5px]'}`}>
                     {subscription.next_billing_date || notAvailableLabel}
                   </p>
                 </div>

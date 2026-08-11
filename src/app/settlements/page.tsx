@@ -1033,9 +1033,9 @@ export default function SettlementsPage() {
     <AppLayout activeRoute="/settlements">
       <div className="page-section pb-6 max-[480px]:gap-3">
         <PageHeader
-          title={t('settlements.title')}
-          description={t('settlements.description')}
-          badge={<StatusBadge status="info" label={t('settlements.badge')} />}
+          title={t('settlements.title', { ns: 'portal', defaultValue: 'Bills & Reminders' })}
+          description={t('settlements.description', { ns: 'portal', defaultValue: 'Track upcoming bills, reminders, and split payments.' })}
+          badge={<StatusBadge status="info" label={t('settlements.badge', { ns: 'portal', defaultValue: 'Payables' })} />}
           compact
           hideDescriptionOnMobile
           actionsClassName="w-full sm:w-auto"

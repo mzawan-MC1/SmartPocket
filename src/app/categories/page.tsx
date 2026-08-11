@@ -159,9 +159,9 @@ export default function CategoriesPage() {
     <AppLayout activeRoute="/categories">
       <div className="page-section max-[480px]:gap-3">
         <PageHeader
-          title={t('categories.title')}
-          description={t('categories.description')}
-          badge={<StatusBadge status="info" label={t('categories.badge')} />}
+          title={t('categories.title', { ns: 'portal', defaultValue: 'Tags & Categories' })}
+          description={t('categories.description', { ns: 'portal', defaultValue: 'Organize your spending with categories, tags, and transfer types.' })}
+          badge={<StatusBadge status="info" label={t('categories.badge', { ns: 'portal', defaultValue: 'Organization' })} />}
           compact
           hideDescriptionOnMobile
           actionsClassName="w-full sm:w-auto"

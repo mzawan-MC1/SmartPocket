@@ -146,7 +146,10 @@
       "finance": "Finance",
       "manage": "Manage",
       "reports": "Reports",
-      "support": "Support"
+      "support": "Support",
+      "money": "MONEY",
+      "investGrow": "INVEST & GROW",
+      "tools": "TOOLS"
     },
     "nav": {
       "transfers": "Transfers",
@@ -159,7 +162,25 @@
       "aiHistory": "AI History",
       "personalSubscriptions": "Personal Subscriptions",
       "support": "Support",
-      "faqs": "FAQs"
+      "faqs": "FAQs",
+      "dashboard": "Dashboard",
+      "moneyInOut": "Money In & Out",
+      "accounts": "Accounts",
+      "budgets": "Budgets",
+      "scheduledPayments": "Scheduled Payments",
+      "subscriptions": "Subscriptions",
+      "billsReminders": "Bills & Reminders",
+      "beneficiaries": "Beneficiaries",
+      "tagsCategories": "Tags & Categories",
+      "savings": "Savings",
+      "investments": "Investments",
+      "smartAi": "Smart AI Assistant",
+      "exchangeRates": "Exchange Rates",
+      "calculator": "Calculator",
+      "settings": "Settings",
+      "helpSupport": "Help & Support",
+      "transactions": "Transactions",
+      "dashboardPlural": "Dashboard"
     },
     "lockedTooltip": "{{label}} · {{restriction}}",
     "expand": "Expand sidebar",
@@ -173,10 +194,12 @@
     "quickAdd": "Quick add",
     "closeQuickAdd": "Close quick add",
     "closeMore": "Close more menu",
-    "smartEntry": "Smart Entry",
+    "smartEntry": "Smart AI Entry",
     "voiceEntry": "Voice Entry",
-    "expense": "Expense",
-    "income": "Income",
+    "expense": "Money Out",
+    "income": "Money In",
+    "moneyIn": "Money In",
+    "moneyOut": "Money Out",
     "transfer": "Transfer",
     "account": "Account",
     "person": "Person",
@@ -223,7 +246,11 @@
       "personalSubscriptions": "Add Subscription",
       "recurring": "Add Recurring",
       "reimbursement": "Add Reimbursement",
-      "budget": "Add Budget"
+      "budget": "Add Budget",
+      "moneyIn": "Money In",
+      "moneyOut": "Money Out",
+      "addAccount": "Add Account",
+      "addSubscription": "Add Subscription"
     },
     "quickActionShort": {
       "transaction": "Transaction",
@@ -245,7 +272,29 @@
     "moneyHealthConfigTitle": "Needs attention",
     "moneyHealthReviewAction": "Review",
     "moneyHealthEmptyTitle": "All good",
-    "moneyHealthEmptyDescription": "No urgent items right now."
+    "moneyHealthEmptyDescription": "No urgent items right now.",
+    "smartAiTitle": "Smart AI",
+    "smartAiSubtitle": "Capture expenses, income and more — hands-free.",
+    "smartAiTypeIt": "Type it",
+    "smartAiSayIt": "Say it",
+    "smartAiUpload": "Upload receipt",
+    "smartAiOpenAssistant": "Open AI Assistant",
+    "yourBudgetsTitle": "Your Budgets",
+    "seeAllBudgets": "See all Budgets",
+    "yourAccountsTitle": "Your Accounts",
+    "seeAllAccounts": "See all Accounts",
+    "addAccountTile": "Add Account",
+    "financialOverviewTitle": "Financial Overview",
+    "recentActivityTitle": "Recent Activity",
+    "seeAllTransactions": "See all Money In & Out",
+    "moneyYouOwe": "Money You Owe",
+    "moneyOwedToYou": "Money Owed to You",
+    "comingUp": "Coming Up",
+    "upcomingSubscriptions": "Upcoming Personal Subscriptions",
+    "seeAllScheduledPayments": "See all Scheduled Payments",
+    "seeAllSubscriptions": "See all Subscriptions",
+    "seeAllSettlements": "See all Settlements",
+    "seeAllPeople": "See all Beneficiaries"
   },
   "shared": {
     "loadingPlanningPeriodTitle": "Loading planning period",
@@ -561,16 +610,16 @@
       "includeItemInsights": "Include item insights",
       "includeUpcomingCommitments": "Include upcoming commitments",
       "includeArchivedAccounts": "Include archived or versioned accounts when relevant",
-        "activeFilters": "{{count}} active filters",
-        "moreFilters": "More filters",
-        "moreFiltersDescription": "Category, person, transaction type, currency mode, and report detail options.",
-        "showMoreFilters": "Show more filters",
-        "hideMoreFilters": "Hide filters",
+      "activeFilters": "{{count}} active filters",
+      "moreFilters": "More filters",
+      "moreFiltersDescription": "Category, person, transaction type, currency mode, and report detail options.",
+      "showMoreFilters": "Show more filters",
+      "hideMoreFilters": "Hide filters",
       "preview": "Preview report",
-        "generatePdf": "Generate PDF",
-        "generatePdfLoading": "Generating PDF...",
-        "generatePdfComplete": "Download complete",
-        "exportCsv": "Export CSV",
+      "generatePdf": "Generate PDF",
+      "generatePdfLoading": "Generating PDF...",
+      "generatePdfComplete": "Download complete",
+      "exportCsv": "Export CSV",
       "exportCsvPackage": "Export full report CSV",
       "reset": "Reset",
       "previewPrompt": "Choose your filters and preview the report to build the full financial document.",
@@ -824,31 +873,32 @@
         "budgetAtRisk": "Budget closest to its limit: {{name}}.",
         "busiestDay": "Busiest spending day: {{date}}."
       }
-      },
-      "comparison": {
-        "noChange": "No change",
-        "unavailable": "Comparison unavailable"
-      },
-      "dateBasis": {
-        "activityDuring": "Activity during {{start}} - {{end}}",
-        "balanceAsOf": "Balance as of {{date}}",
-        "commitmentsAfter": "Upcoming commitments after {{date}}",
-        "relationshipHistory": "Relationship history"
-      },
-      "compact": {
-        "pageDescription": "Review balances, activity, trends, and commitments in one compact reporting workspace.",
-        "previewDescription": "The portal shows a compact interactive preview. Generate PDF to open the printable version.",
-        "emptyTitle": "No meaningful report activity was found.",
-        "emptyDescription": "Try a different period, scope, or account to preview a report with activity.",
-        "currencyDescription": "Reporting totals are primary. Original currency breakdowns stay available as secondary details.",
-        "groups": {
-          "overview": "Overview",
-          "periodActivity": "Period Activity",
-          "financialPosition": "Financial Position",
-          "people": "People",
-          "commitments": "Commitments"
-        }
-    }
+    },
+    "comparison": {
+      "noChange": "No change",
+      "unavailable": "Comparison unavailable"
+    },
+    "dateBasis": {
+      "activityDuring": "Activity during {{start}} - {{end}}",
+      "balanceAsOf": "Balance as of {{date}}",
+      "commitmentsAfter": "Upcoming commitments after {{date}}",
+      "relationshipHistory": "Relationship history"
+    },
+    "compact": {
+      "pageDescription": "Review balances, activity, trends, and commitments in one compact reporting workspace.",
+      "previewDescription": "The portal shows a compact interactive preview. Generate PDF to open the printable version.",
+      "emptyTitle": "No meaningful report activity was found.",
+      "emptyDescription": "Try a different period, scope, or account to preview a report with activity.",
+      "currencyDescription": "Reporting totals are primary. Original currency breakdowns stay available as secondary details.",
+      "groups": {
+        "overview": "Overview",
+        "periodActivity": "Period Activity",
+        "financialPosition": "Financial Position",
+        "people": "People",
+        "commitments": "Commitments"
+      }
+    },
+    "itemInsightsTitle": "Items Insights"
   },
   "dashboardMetrics": {
     "monthly": "Monthly",
@@ -931,7 +981,15 @@
       "managedMoney": "Money I Manage for Others",
       "outstandingLoans": "Outstanding Loans",
       "loanRepayments": "Loan Repayments"
-    }
+    },
+    "yourMoney": "Your Money",
+    "personalBalance": "Personal Balance",
+    "moneyIn": "Money In",
+    "moneyOut": "Money Out",
+    "netReceivedMore": "You received {{amount}} more than you spent this month.",
+    "netSpentMore": "You spent {{amount}} more than you received this month.",
+    "netEqual": "Money in and out are equal this month.",
+    "netNoActivity": "No activity recorded for this month yet."
   },
   "dashboardCharts": {
     "title": "Financial Overview",
@@ -1160,7 +1218,8 @@
       "merchantPlaceholder": "e.g. Netflix",
       "nextDueDate": "Next Due Date",
       "creating": "Creating..."
-    }
+    },
+    "pageDescription": "Automate recurring income, expenses, and transfers."
   },
   "accounts": {
     "title": "Financial Accounts",
@@ -1253,7 +1312,9 @@
       "updateAction": "Update Account",
       "typeRequired": "Account type is required.",
       "currency": "Currency"
-    }
+    },
+    "hiddenBalance": "Hidden balance",
+    "pageDescription": "Manage banks, cards, cash, digital wallets, and other accounts."
   },
   "categories": {
     "title": "Categories",
@@ -1337,7 +1398,8 @@
         "arrowLeftRight": "Transfer",
         "zap": "Electric"
       }
-    }
+    },
+    "pageDescription": "Organize income and expenses by category, and manage reusable tags."
   },
   "people": {
     "title": "People",
@@ -1462,7 +1524,8 @@
       "noSettlementsYet": "No settlements yet.",
       "personReport": "Person Report",
       "fullReports": "View Full Reports"
-    }
+    },
+    "pageDescription": "Manage people you lend, borrow, settle, and reimburse with."
   },
   "reimbursements": {
     "title": "Reimbursements",
@@ -1563,7 +1626,8 @@
       "digitalWallet": "Digital Wallet",
       "other": "Other"
     },
-    "account": "Account"
+    "account": "Account",
+    "pageDescription": "Track bills, reminders, loan settlements, and dues."
   },
   "aiHistory": {
     "title": "AI History",
@@ -2103,7 +2167,9 @@
       "quantity": "Qty",
       "unitPrice": "Unit",
       "lineTotal": "Total"
-    }
+    },
+    "title": "Money In & Out",
+    "pageDescription": "Review, filter, and manage income, expenses, and transfers from a single ledger."
   },
   "spaces": {
     "title": "Spaces",
@@ -2878,7 +2944,8 @@
       "manage": "Manage",
       "manageSubscription": "Manage subscription",
       "upgradeAction": "Upgrade"
-    }
+    },
+    "pageDescription": "Preferences, access, billing, and platform options."
   },
   "help": {
     "title": "Help & Support",
@@ -2927,7 +2994,8 @@
     },
     "faqCtaTitle": "Need a quick answer?",
     "faqCtaDescription": "Browse the Smart Pocket FAQ library for setup help, workflow guidance, and support answers.",
-    "openFaqs": "Open FAQs"
+    "openFaqs": "Open FAQs",
+    "pageDescription": "Browse FAQs and contact support."
   },
   "onboarding": {
     "title": "Set up Smart Pocket",
@@ -3871,7 +3939,8 @@
         "notifications": "Reminder coverage",
         "notificationsDescription": "Using {{count}} reminder settings plus warning-based in-app alerts."
       }
-    }
+    },
+    "pageDescription": "Track and manage recurring personal subscriptions and renewals."
   },
   "support": {
     "nav": {
@@ -4450,5 +4519,59 @@
       "delete": "Failed to delete the blog post.",
       "coverUpload": "Failed to upload the cover image."
     }
+  },
+  "budgetPreview": {
+    "emptyTitle": "No budgets yet",
+    "emptyDesc": "Set up a budget to track spending against your targets.",
+    "createBudget": "Create a budget"
+  },
+  "accountPreview": {
+    "emptyTitle": "No accounts yet",
+    "emptyDesc": "Add your first bank, card, or cash account to track balances.",
+    "addAccountCTA": "Add an account",
+    "hiddenBalance": "Hidden balance"
+  },
+  "peoplePreview": {
+    "moneyYouOweGuidance": "Browse Settlements to see individuals and record payments.",
+    "moneyOwedToYouGuidance": "Open Beneficiaries to browse per-person balances and request settlements.",
+    "noMoneyOwedTitle": "Nothing owed right now",
+    "noMoneyOwedDesc": "Great — no recorded dues to others at the moment.",
+    "noMoneyOwedToYouTitle": "Nothing owed to you",
+    "noMoneyOwedToYouDesc": "No one has a recorded balance payable to you yet."
+  },
+  "savings": {
+    "title": "Savings",
+    "description": "Goals, contributions, and progress towards savings targets.",
+    "comingSoonTitle": "Coming Soon",
+    "comingSoonDesc": "A dedicated Savings module is coming soon. Here you will be able to organise savings goals, track contributions, and monitor progress.",
+    "inDevelopment": "Feature in development"
+  },
+  "investments": {
+    "title": "Investments",
+    "description": "Portfolio views, holdings and performance tracking.",
+    "comingSoonTitle": "Coming Soon",
+    "comingSoonDesc": "An Investments module is coming soon. Portfolio views, holdings and performance tracking will appear here.",
+    "inDevelopment": "Feature in development"
+  },
+  "exchangeRates": {
+    "title": "Exchange Rates",
+    "description": "Currency conversion and FX history tools.",
+    "comingSoonTitle": "Coming Soon",
+    "comingSoonDesc": "Exchange rates and currency conversion tools are coming soon.",
+    "inDevelopment": "Feature in development"
+  },
+  "calculator": {
+    "title": "Calculator",
+    "description": "Finance calculator utilities.",
+    "comingSoonTitle": "Coming Soon",
+    "comingSoonDesc": "A built-in finance calculator is coming soon.",
+    "inDevelopment": "Feature in development"
+  },
+  "aiAssistant": {
+    "title": "Smart AI Assistant",
+    "pageDescription": "Use Smart AI to type, speak, or scan receipts into accurate records."
+  },
+  "common": {
+    "seeAll": "See all"
   }
 }

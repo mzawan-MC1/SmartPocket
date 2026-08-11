@@ -3,17 +3,13 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
+  ArrowDown,
+  ArrowUp,
   Calendar,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
-  Ellipsis,
   LogOut,
-  Plus,
-  Repeat,
-  RotateCcw,
   Settings,
-  Target,
   User,
   Wallet,
 } from 'lucide-react';
@@ -36,7 +32,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { getIntlLocale } from '@/lib/locale';
 import { getPreferredPointerDownEventName } from '@/lib/browser-compat';
 
-type QuickActionId = 'transaction' | 'account' | 'personal_subscription' | 'recurring' | 'reimbursement' | 'budget';
+type QuickActionId = 'transaction' | 'money_in' | 'money_out' | 'account' | 'personal_subscription' | 'recurring' | 'reimbursement' | 'budget';
 
 function getFirstName(value?: string | null) {
   const normalized = value?.trim();
@@ -60,7 +56,7 @@ export default function DashboardHeader({
   onViewModeChange: (mode: DashboardPeriodPreference) => void;
   onSelectedMonthChange: (monthKey: string) => void;
   onSelectedPayPeriodChange: (startDate: string) => void;
-  onQuickAction: (action: QuickActionId, trigger: HTMLElement | null) => void;
+  onQuickAction(action: QuickActionId, trigger: HTMLElement | null): void;
   activeQuickAction: QuickActionId | null;
   financialPeriodContext: UserFinancialPeriodContext;
 }) {
@@ -70,9 +66,7 @@ export default function DashboardHeader({
   const router = useRouter();
   const isArabic = language === 'ar';
   const monthInputRef = useRef<HTMLInputElement | null>(null);
-  const moreMenuRef = useRef<HTMLDivElement | null>(null);
   const profileMenuRef = useRef<HTMLDivElement | null>(null);
-  const [moreOpen, setMoreOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const monthContext = useMemo(
     () => getMonthContext(activePeriod.monthKey, financialPeriodContext.timezone, undefined, getIntlLocale(language)),
@@ -118,27 +112,31 @@ export default function DashboardHeader({
     .replace(/!\s*$/, '')
     .trim();
   const quickActions = [
-    { id: 'transaction' as QuickActionId, label: t('dashboardHeader.quickActions.transaction'), icon: Plus },
-    { id: 'account' as QuickActionId, label: t('dashboardHeader.quickActions.account'), icon: Wallet },
+    { id: 'money_in' as QuickActionId, label: t('dashboardHeader.quickActions.moneyIn', { defaultValue: 'Money In' }), icon: ArrowDown },
+    { id: 'money_out' as QuickActionId, label: t('dashboardHeader.quickActions.moneyOut', { defaultValue: 'Money Out' }), icon: ArrowUp },
+    { id: 'account' as QuickActionId, label: t('dashboardHeader.quickActions.addAccount', { ns: 'portal', defaultValue: 'Add Account' }), icon: Wallet },
     {
       id: 'personal_subscription' as QuickActionId,
-      label: t('dashboardHeader.quickActions.personalSubscriptions'),
+      label: t('dashboardHeader.quickActions.addSubscription', { ns: 'portal', defaultValue: 'Add Subscription' }),
       icon: Calendar,
     },
-    { id: 'recurring' as QuickActionId, label: t('dashboardHeader.quickActions.recurring'), icon: Repeat },
-    { id: 'reimbursement' as QuickActionId, label: t('dashboardHeader.quickActions.reimbursement'), icon: RotateCcw },
-    { id: 'budget' as QuickActionId, label: t('dashboardHeader.quickActions.budget'), icon: Target },
   ];
   const quickActionShortLabel = (actionId: QuickActionId) => {
     if (actionId === 'personal_subscription') {
-      return t('dashboardHeader.quickActionShort.personalSubscriptions');
+      return t('dashboardHeader.quickActions.addSubscription', { ns: 'portal', defaultValue: 'Add Subscription' });
+    }
+    if (actionId === 'account') {
+      return t('dashboardHeader.quickActions.addAccount', { ns: 'portal', defaultValue: 'Add Account' });
+    }
+    if (actionId === 'money_in') {
+      return t('dashboardHeader.quickActions.moneyIn', { defaultValue: 'Money In' });
+    }
+    if (actionId === 'money_out') {
+      return t('dashboardHeader.quickActions.moneyOut', { defaultValue: 'Money Out' });
     }
     return t(`dashboardHeader.quickActionShort.${actionId}`);
   };
-  const directActions = quickActions.filter((action) =>
-    action.id === 'transaction' || action.id === 'account' || action.id === 'personal_subscription'
-  );
-  const moreActions = quickActions.filter((action) => action.id === 'recurring' || action.id === 'reimbursement' || action.id === 'budget');
+  const directActions = quickActions;
 
   const handleSignOut = useCallback(async () => {
     try {
@@ -151,9 +149,6 @@ export default function DashboardHeader({
 
   useEffect(() => {
     const handlePointerDown = (event: MouseEvent) => {
-      if (moreMenuRef.current && !moreMenuRef.current.contains(event.target as Node)) {
-        setMoreOpen(false);
-      }
       if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
         setUserMenuOpen(false);
       }
@@ -161,7 +156,6 @@ export default function DashboardHeader({
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        setMoreOpen(false);
         setUserMenuOpen(false);
       }
     };
@@ -262,116 +256,59 @@ export default function DashboardHeader({
         ) : null}
       </div>
 
-      <div className="hidden grid-cols-1 gap-2.5 md:grid md:gap-3 lg:grid-cols-[minmax(0,1.08fr)_minmax(24rem,0.98fr)] lg:items-start xl:grid-cols-[minmax(18rem,1.1fr)_minmax(22rem,0.96fr)_14.75rem] xl:items-start xl:gap-3">
-        <div className="min-w-0 space-y-1.5 rounded-[20px] border border-transparent py-0.5">
-          <h1 className={`flex items-center gap-x-1 gap-y-0 font-800 tracking-[-0.03em] text-foreground lg:text-[1.5rem] xl:flex-nowrap xl:text-[1.6rem] ${
+      <div className="hidden grid-cols-1 gap-1.5 md:grid md:gap-2 lg:grid-cols-[minmax(0,1.08fr)_minmax(24rem,0.98fr)] lg:items-start xl:grid-cols-[auto_minmax(0,1fr)_auto] xl:items-center xl:gap-3">
+        <div className="min-w-0 max-w-[22rem] space-y-1.5 rounded-[20px] border border-transparent py-0.5 xl:flex-none">
+          <h1 className={`flex items-center gap-x-1 gap-y-0 font-800 tracking-[-0.03em] text-foreground lg:text-[1.2rem] xl:flex-nowrap xl:text-[1.3rem] ${
             isArabic
-              ? 'text-[1.08rem] leading-[1.3] max-[480px]:text-[1.06rem] max-[360px]:flex-wrap max-[360px]:text-[1rem]'
-              : 'text-[1.04rem] max-[480px]:text-[0.98rem] max-[360px]:flex-wrap max-[360px]:text-[0.9rem]'
+              ? 'text-[1.02rem] leading-[1.3] max-[480px]:text-[1.06rem] max-[360px]:flex-wrap max-[360px]:text-[1rem]'
+              : 'text-[0.98rem] max-[480px]:text-[0.98rem] max-[360px]:flex-wrap max-[360px]:text-[0.9rem]'
           }`}>
             <span className="min-w-0 whitespace-nowrap max-[360px]:whitespace-normal">{headingText}</span>
           </h1>
-          <p className={`max-w-[34rem] text-muted-foreground ${
+          <p className={`mt-0.5 max-w-[34rem] text-muted-foreground ${
             isArabic
-              ? 'text-[12px] leading-5 md:text-[12.5px] md:leading-5 lg:text-[13px]'
+              ? 'text-[12px] leading-5 md:text-[12.5px] md:leading-5 lg:text-[12.5px]'
               : 'text-[11px] leading-4 md:text-[12px] md:leading-[1.05rem] lg:text-[12.5px]'
           }`}>
             {description}
           </p>
         </div>
 
-        <div className="min-w-0 rounded-[18px] border border-border/70 bg-card/90 px-1 py-1 shadow-card-sm">
-          <div className="grid grid-cols-2 items-stretch gap-0.5 min-[361px]:grid-cols-4">
+        <div className="min-w-0 xl:flex xl:justify-center">
+          <div className="flex flex-wrap items-center gap-1.5 xl:flex-nowrap xl:gap-1.5 xl:justify-center">
             {directActions.map((action) => {
               const Icon = action.icon;
               const isSelected = activeQuickAction === action.id;
+              const isMoneyIn = action.id === 'money_in';
+              const isMoneyOut = action.id === 'money_out';
+              const isColored = isMoneyIn || isMoneyOut;
               return (
                 <button
                   key={action.id}
                   type="button"
                   onClick={(event) => onQuickAction(action.id, event.currentTarget)}
-                  className={`group flex min-w-0 flex-col items-center justify-center gap-0.5 rounded-[12px] border border-transparent px-2 py-2 text-center transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 focus-visible:ring-offset-1 min-[361px]:px-1.5 min-[361px]:py-1.5 ${
-                    isSelected
-                      ? 'border-accent/20 bg-accent/10 text-accent shadow-[0_10px_24px_-20px_rgba(20,184,166,0.8)]'
-                      : 'text-foreground/90 hover:border-border/60 hover:bg-muted/40'
+                  className={`inline-flex h-9 items-center whitespace-nowrap rounded-2xl px-3 text-[12.5px] font-700 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 xl:px-3 ${
+                    isMoneyIn
+                      ? 'border border-positive/30 bg-positive text-white hover:bg-positive/90 active:bg-positive/80 focus-visible:ring-positive/50 shadow-[0_8px_20px_-12px_rgba(34,197,94,0.7)] gap-1.5'
+                      : isMoneyOut
+                        ? 'border border-negative/30 bg-negative text-white hover:bg-negative/90 active:bg-negative/80 focus-visible:ring-negative/50 shadow-[0_8px_20px_-12px_rgba(239,68,68,0.7)] gap-1.5'
+                        : isSelected
+                          ? 'border border-accent/20 bg-accent/10 text-accent shadow-sm shadow-[0_10px_24px_-20px_rgba(20,184,166,0.8)] focus-visible:ring-accent/35 gap-1.5'
+                          : 'border border-border/70 bg-card text-foreground hover:bg-muted/50 focus-visible:ring-accent/35 shadow-sm gap-1.5'
                   }`}
                   aria-label={action.label}
                   aria-pressed={isSelected}
                 >
-                  <span className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg transition-colors max-[480px]:h-5.5 max-[480px]:w-5.5 ${
-                    isSelected ? 'bg-accent/15 text-accent' : 'bg-muted/60 text-muted-foreground group-hover:bg-card group-hover:text-foreground'
-                  }`}>
-                    <Icon size={13} />
-                  </span>
-                  <span className={`line-clamp-2 min-h-[1.4rem] text-center font-700 ${
-                    isArabic
-                      ? 'text-[10.5px] leading-4 max-[480px]:text-[10px] max-[480px]:leading-3.5'
-                      : 'text-[10px] leading-3.5 max-[480px]:text-[9.5px] max-[480px]:leading-3'
-                  }`}>
-                    {quickActionShortLabel(action.id)}
-                  </span>
+                  <Icon size={14.5} className={`${isColored ? 'text-white' : ''} flex-shrink-0`} />
+                  <span className="leading-none whitespace-nowrap">{quickActionShortLabel(action.id)}</span>
                 </button>
               );
             })}
-            <div className="relative" ref={moreMenuRef}>
-              <button
-                type="button"
-                onClick={() => setMoreOpen((value) => !value)}
-                  className={`group flex h-full w-full min-w-0 flex-col items-center justify-center gap-0.5 rounded-[12px] border border-transparent px-2 py-2 text-center transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 focus-visible:ring-offset-1 min-[361px]:px-1.5 min-[361px]:py-1.5 ${
-                  activeQuickAction === 'recurring' || activeQuickAction === 'reimbursement' || activeQuickAction === 'budget' || moreOpen
-                    ? 'border-accent/20 bg-accent/10 text-accent shadow-[0_10px_24px_-20px_rgba(20,184,166,0.8)]'
-                    : 'text-foreground/90 hover:border-border/60 hover:bg-muted/40'
-                }`}
-                aria-haspopup="menu"
-                aria-expanded={moreOpen}
-              >
-                <span className={`flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-lg transition-colors max-[480px]:h-5.5 max-[480px]:w-5.5 ${
-                  activeQuickAction === 'recurring' || activeQuickAction === 'reimbursement' || activeQuickAction === 'budget' || moreOpen
-                    ? 'bg-accent/15 text-accent'
-                    : 'bg-muted/60 text-muted-foreground group-hover:bg-card group-hover:text-foreground'
-                }`}>
-                  <Ellipsis size={13} />
-                </span>
-                <span className={isArabic ? 'text-[10.5px] font-700 leading-4 max-[480px]:text-[10px]' : 'text-[10px] font-700 leading-3.5 max-[480px]:text-[9.5px]'}>
-                  {t('dashboardHeader.more')}
-                </span>
-                <ChevronDown size={12} className={`flex-shrink-0 text-muted-foreground/90 transition-transform ${moreOpen ? 'rotate-180' : ''}`} />
-              </button>
-              {moreOpen ? (
-                <div
-                  role="menu"
-                  aria-label={t('dashboardHeader.moreActions')}
-                  className="absolute end-0 top-full z-20 mt-1.5 flex w-[min(11rem,calc(100vw-2rem))] min-[361px]:w-auto min-[361px]:min-w-[12rem] flex-col overflow-hidden rounded-2xl border border-border bg-card p-1 shadow-card-lg"
-                >
-                  {moreActions.map((action) => {
-                    const Icon = action.icon;
-                    const isSelected = activeQuickAction === action.id;
-                    return (
-                      <button
-                        key={action.id}
-                        type="button"
-                        role="menuitem"
-                        onClick={(event) => {
-                          setMoreOpen(false);
-                          onQuickAction(action.id, event.currentTarget);
-                        }}
-                        className={`inline-flex items-center gap-2 rounded-xl px-2.5 py-2 text-left text-sm font-600 transition-colors ${
-                          isSelected ? 'bg-accent/10 text-accent' : 'text-foreground hover:bg-muted/70'
-                        }`}
-                      >
-                        <Icon size={16} className={isSelected ? 'text-accent' : 'text-muted-foreground'} />
-                        <span>{quickActionShortLabel(action.id)}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : null}
-            </div>
           </div>
         </div>
 
-        <div className="flex w-full flex-col gap-1 rounded-[18px] border border-border/70 bg-card/90 px-1.5 py-1.5 shadow-card-sm">
-          <div className="overflow-hidden">
+        <div className="flex w-fit flex-none flex-col gap-0.5 rounded-[16px] border border-border/70 bg-card/90 px-0.5 py-0.5 shadow-card-sm">
+          <div className="overflow-hidden w-fit px-0.5">
             <Tabs
               items={[
                 { id: 'pay_cycle', label: t('dashboardHeader.payPeriod') },
@@ -379,10 +316,10 @@ export default function DashboardHeader({
               ]}
               activeId={viewMode}
               onChange={onViewModeChange}
-              className="w-full [&_.tabs-root]:w-full [&_.tab-button]:min-h-7 [&_.tab-button]:flex-1 [&_.tab-button]:rounded-xl [&_.tab-button]:px-2 [&_.tab-button]:py-0.5 [&_.tab-button]:text-[10px] [&_.tab-button]:font-700"
+              className="w-fit [&_.tabs-root]:w-fit [&_.tab-button]:min-h-[24px] [&_.tab-button]:rounded-lg [&_.tab-button]:px-2 [&_.tab-button]:py-0.5 [&_.tab-button]:text-[10px] [&_.tab-button]:font-700 [&_.tab-button]:whitespace-nowrap [&_.tab-button]:flex-none"
             />
           </div>
-          <div className="flex items-center gap-0.5 rounded-xl bg-muted/30 p-0.5">
+          <div className="flex items-center justify-center gap-0.5 rounded-lg bg-muted/30 p-0.5 w-fit self-center">
                 <button
                   type="button"
                   onClick={() => {
@@ -392,23 +329,23 @@ export default function DashboardHeader({
                     }
                     onSelectedPayPeriodChange(getPreviousFinancialPeriod(financialPeriodContext.effectiveConfig, activePeriod.startDate).startDate);
                   }}
-                  className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-card"
+                  className="flex h-[24px] w-[24px] flex-shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-card"
                   aria-label={viewMode === 'month' ? t('dashboardHeader.previousMonth') : t('dashboardHeader.previousPayPeriod')}
                 >
-                  <PreviousIcon size={15} />
+                  <PreviousIcon size={13} />
                 </button>
                 {viewMode === 'month' ? (
                   <>
                     <button
                       type="button"
                       onClick={() => monthInputRef.current?.showPicker?.() ?? monthInputRef.current?.click()}
-                    className={`flex h-7 min-w-0 flex-1 items-center gap-1 rounded-lg px-2 font-700 text-foreground transition-colors hover:bg-card ${
-                      isArabic ? 'text-[11.5px] leading-5' : 'text-[11px]'
+                    className={`flex h-6 items-center gap-1.5 rounded-md px-1.5 font-700 text-foreground transition-colors hover:bg-card whitespace-nowrap flex-none ${
+                      isArabic ? 'text-[10.5px] leading-5' : 'text-[10px]'
                     }`}
                       aria-label={t('dashboardHeader.chooseMonth')}
                     >
-                      <Calendar size={14} className="text-accent" />
-                      <span className="truncate whitespace-nowrap">{monthContext.label}</span>
+                      <Calendar size={13} className="text-accent flex-shrink-0" />
+                      <span className="whitespace-nowrap">{monthContext.label}</span>
                     </button>
                     <input
                       ref={monthInputRef}
@@ -421,11 +358,11 @@ export default function DashboardHeader({
                     />
                   </>
                 ) : (
-                  <div className={`flex h-7 min-w-0 flex-1 items-center gap-1 rounded-lg px-2 font-700 text-foreground ${
-                    isArabic ? 'text-[11.5px] leading-5' : 'text-[11px]'
+                  <div className={`flex h-6 items-center gap-1.5 rounded-md px-1.5 font-700 text-foreground whitespace-nowrap flex-none ${
+                    isArabic ? 'text-[10.5px] leading-5' : 'text-[10px]'
                   }`}>
-                    <Calendar size={14} className="text-accent" />
-                    <span className="truncate whitespace-nowrap">{activePeriod.label}</span>
+                    <Calendar size={13} className="text-accent flex-shrink-0" />
+                    <span className="whitespace-nowrap">{activePeriod.label}</span>
                   </div>
                 )}
                 <button
@@ -438,11 +375,11 @@ export default function DashboardHeader({
                     }
                     onSelectedPayPeriodChange(getNextFinancialPeriod(financialPeriodContext.effectiveConfig, activePeriod.startDate).startDate);
                   }}
-                  className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-card disabled:opacity-40"
+                  className="flex h-[24px] w-[24px] flex-shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-card disabled:opacity-40"
                   aria-label={viewMode === 'month' ? t('dashboardHeader.nextMonth') : t('dashboardHeader.nextPayPeriod')}
                   disabled={!canMoveNext}
                 >
-                  <NextIcon size={15} />
+                  <NextIcon size={13} />
                 </button>
           </div>
         </div>

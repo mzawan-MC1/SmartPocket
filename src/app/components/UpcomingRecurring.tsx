@@ -13,7 +13,6 @@ import {
 } from '@/lib/finance';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import { toast } from 'sonner';
-import SectionCard from '@/components/ui/SectionCard';
 import EmptyState from '@/components/ui/EmptyState';
 import StatusBadge from '@/components/ui/StatusBadge';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
@@ -95,27 +94,26 @@ export default function UpcomingRecurring({
   const visibleItems = items.slice(0, 5);
 
   return (
-    <SectionCard
-      title={t('dashboardMetrics.cards.upcomingPayments', { ns: 'portal' })}
-      description={activePeriod.mode === 'month'
-        ? t('recurring.widgetDescriptionMonth', { ns: 'portal', period: activePeriod.label })
-        : t('recurring.widgetDescriptionPeriod', { ns: 'portal', period: activePeriod.label })}
-      className="flex h-full flex-col rounded-[28px] border border-border/80 bg-card shadow-card-sm transition-shadow duration-200 hover:shadow-card-md"
-      action={
-        <div className="flex items-center gap-2">
-          <StatusBadge status="pending" label={activePeriod.label} />
-          <Link href="/recurring" className="text-sm font-700 text-accent transition-colors hover:text-teal-600">
+    <div className={`section-card flex min-h-0 flex-col rounded-[22px] border border-border/80 bg-card shadow-card-sm transition-shadow duration-200 hover:shadow-card-md`}>
+      <div className="section-card-header flex flex-col items-stretch gap-2 px-4 pt-3 pb-2 min-w-0">
+        <div className="flex flex-row items-center justify-between gap-3 min-w-0">
+          <h2 className="section-title text-[14px] font-800 tracking-[-0.02em] text-foreground truncate min-w-0">
+            {t('dashboardMetrics.cards.upcomingPayments', { ns: 'portal' })}
+          </h2>
+          <Link href="/recurring" className="text-[12px] font-700 text-accent transition-colors hover:text-teal-600 flex-shrink-0 whitespace-nowrap">
             {t('actions.viewAll', { ns: 'common' })}
           </Link>
         </div>
-      }
-      bodyClassName="flex flex-1 flex-col p-3"
-    >
+        <div className="flex min-w-0 items-center">
+          <StatusBadge status="pending" label={activePeriod.label} />
+        </div>
+      </div>
+      <div className="section-card-body flex min-h-0 flex-col px-4 pb-3 pt-1">
 
       {loading ? (
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {[...Array(3)].map((_, i) => (
-            <div key={`skel-rec-${i}`} className="flex items-center gap-3 rounded-2xl border border-border/60 bg-muted/15 px-3.5 py-3 animate-pulse">
+            <div key={`skel-rec-${i}`} className="flex items-center gap-1.5 rounded-2xl border border-border/60 bg-muted/15 px-3.5 py-2.5 animate-pulse">
               <div className="flex-1">
                 <div className="h-3 bg-muted rounded w-36 mb-1.5" />
                 <div className="h-2.5 bg-muted rounded w-24" />
@@ -125,19 +123,13 @@ export default function UpcomingRecurring({
           ))}
         </div>
       ) : items.length === 0 ? (
-        <EmptyState
-          icon={CalendarClock}
-          title={t('recurring.noUpcomingTitle', { ns: 'portal' })}
-          description={activePeriod.mode === 'month'
-            ? t('recurring.noUpcomingDescriptionMonth', { ns: 'portal', period: activePeriod.label })
-            : t('recurring.noUpcomingDescriptionPeriod', { ns: 'portal', period: activePeriod.label })}
-          variant="compact"
-          tone="neutral"
-          className="py-6"
-        />
+        <div className="rounded-xl bg-muted/30 px-3 py-2 text-[12px] font-600 text-muted-foreground flex items-center gap-2">
+          <CalendarClock size={14} />
+          <span>{t('recurring.noUpcomingTitle', { ns: 'portal' })}</span>
+        </div>
       ) : (
-        <div className="flex flex-1 flex-col">
-          <div className="space-y-2">
+        <div className="flex min-h-0 flex-col">
+          <div className="space-y-1.5">
             {visibleItems.map((item) => {
               const days = daysUntil(item.next_due_date, activePeriod.timezone);
               const urgent = activePeriod.isCurrent && days <= 3;
@@ -148,13 +140,13 @@ export default function UpcomingRecurring({
                 timeZone: 'UTC',
               });
               return (
-                <div key={item.id} className={`flex items-center gap-3 rounded-2xl border px-3.5 py-3 transition-colors hover:bg-muted/40 ${urgent ? 'border-warning/20 bg-warning-soft/25' : 'border-transparent bg-muted/15 hover:border-border/70'}`}>
+                <div key={item.id} className={`flex items-center gap-1.5 rounded-2xl border px-3.5 py-2.5 transition-colors hover:bg-muted/40 ${urgent ? 'border-warning/20 bg-warning-soft/25' : 'border-transparent bg-muted/15 hover:border-border/70'}`}>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5">
-                      {urgent && <AlertCircle size={12} className="text-warning flex-shrink-0" />}
+                      {urgent && <AlertCircle size={10.5} className="text-warning flex-shrink-0" />}
                       <p className="text-sm font-600 text-foreground truncate">{item.description}</p>
                     </div>
-                    <p className={`mt-0.5 text-muted-foreground ${isArabic ? 'text-[12px] leading-5' : 'text-[11px]'}`}>
+                    <p className={`mt-0.5 text-muted-foreground ${isArabic ? 'text-[12px] leading-5' : 'text-[10.5px]'}`}>
                       {formatRecurringFrequencyLabel(item.frequency, t)} · {dueDate} · {activePeriod.isCurrent
                         ? (days === 0
                           ? t('time.today', { ns: 'common' })
@@ -197,7 +189,7 @@ export default function UpcomingRecurring({
               );
             })}
           </div>
-          <div className="mt-2 rounded-2xl border border-border/70 bg-muted/20 px-4 py-3">
+          <div className="mt-2 rounded-2xl border border-border/70 bg-muted/20 px-4 py-2.5">
             <div className="flex items-center justify-between gap-4 text-xs">
               <span className={`min-w-0 text-muted-foreground ${isArabic ? 'text-[12.5px] leading-5' : ''}`}>
                 {activePeriod.mode === 'month'
@@ -219,6 +211,7 @@ export default function UpcomingRecurring({
           </div>
         </div>
       )}
-    </SectionCard>
+      </div>
+    </div>
   );
 }

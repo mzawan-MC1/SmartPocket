@@ -31,8 +31,10 @@ function shouldOpenRowFromKeyboard(event: React.KeyboardEvent<HTMLDivElement>) {
 
 export default function RecentTransactions({
   variant = 'default',
+  rowDensity = 'default',
 }: {
-  variant?: 'default' | 'mobile-dashboard';
+  variant?: 'default' | 'mobile-dashboard' | 'dashboard-section';
+  rowDensity?: 'default' | 'compact';
 }) {
   const { t } = useTranslation(['portal', 'common']);
   const { language } = useLanguage();
@@ -141,23 +143,111 @@ export default function RecentTransactions({
     ? transactions.slice(0, 4)
     : transactions;
 
-  return (
-    <SectionCard
-      title={variant === 'mobile-dashboard' ? t('recentTransactions.mobileTitle', { ns: 'portal' }) : t('recentTransactions.title', { ns: 'portal' })}
-      description={variant === 'mobile-dashboard' ? undefined : t('recentTransactions.description', { ns: 'portal' })}
-      className={`flex h-full flex-col rounded-[28px] border shadow-card-sm transition-shadow duration-200 hover:shadow-card-md ${
-        variant === 'mobile-dashboard'
-          ? 'border-slate-200/80 bg-[linear-gradient(180deg,#ffffff,#f8fafc)]'
-          : 'border-border/80 bg-card'
-      }`}
-      action={
-        <Link href="/transactions" className={`font-700 ${variant === 'mobile-dashboard' ? 'text-[13px] text-[#2563eb]' : 'link-accent text-sm'}`}>
-          {t('actions.viewAll', { ns: 'common' })}{variant === 'mobile-dashboard' ? null : <ArrowRight size={13} />}
-        </Link>
-      }
-      bodyClassName={`flex flex-1 flex-col ${variant === 'mobile-dashboard' ? 'p-3 pt-2' : 'p-3'}`}
-    >
+  const isDashboardSection = variant === 'dashboard-section';
+  const isCompactDensity = rowDensity === 'compact' && variant !== 'mobile-dashboard';
+  const listDividerClass = variant === 'mobile-dashboard'
+    ? 'divide-y divide-slate-200/70'
+    : isCompactDensity ? 'space-y-1.5' : 'space-y-2';
+  const rowClassBase = variant === 'mobile-dashboard'
+    ? 'border-0 bg-transparent px-2 py-3 hover:bg-slate-50'
+    : isCompactDensity
+      ? 'rounded-2xl border border-transparent bg-muted/15 px-3.5 py-2.5 hover:border-border/70 hover:bg-muted/30'
+      : 'rounded-2xl border border-transparent bg-muted/15 px-3.5 py-3 hover:border-border/70 hover:bg-muted/30';
 
+  const transactionRows = (
+    <>
+      {visibleTransactions.map((txn) => {
+        const isIncome = txn.transaction_type === 'income';
+        const catColor = txn.category?.color || '#6b7280';
+        const { hasDocument, itemCount, title } = getTransactionDocumentMeta(txn);
+        const categoryLabel = txn.category?.name
+          ? translateSystemCategoryName(txn.category.name, (key, options) =>
+              t(key, { ...(options || {}), ns: 'common' })
+            )
+          : t('recentTransactions.uncategorized', { ns: 'portal' });
+        const accountLabel = txn.account?.name || '';
+        const formattedDate = formatDate(
+          txn.transaction_date,
+          language === 'ar' ? 'ar' : language === 'fr' ? 'fr' : language === 'ru' ? 'ru' : 'en-US'
+        );
+        const ariaLabel = t('recentTransactions.openTransactionDetails', {
+          ns: 'portal',
+          defaultValue: 'Open transaction details for {{title}} on {{date}}',
+          title,
+          date: formattedDate,
+        });
+        return (
+          <div
+            key={txn.id}
+            role="button"
+            tabIndex={0}
+            aria-label={ariaLabel}
+            onClick={() => openTransactionDetails(txn.id)}
+            onKeyDown={(event) => {
+              if (!shouldOpenRowFromKeyboard(event)) return;
+              event.preventDefault();
+              openTransactionDetails(txn.id);
+            }}
+            className={`group flex items-start gap-3 transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 focus-visible:ring-offset-2 ${rowClassBase}`}
+          >
+            <div
+              className={`flex ${isCompactDensity ? 'h-9 w-9' : 'h-10 w-10'} flex-shrink-0 items-center justify-center rounded-2xl`}
+              style={{ backgroundColor: catColor + '20' }}
+            >
+              {isIncome
+                ? <TrendingUp size={isCompactDensity ? 14 : 16} style={{ color: catColor }} />
+                : <TrendingDown size={isCompactDensity ? 14 : 16} style={{ color: catColor }} />
+              }
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                <p className={`min-w-0 flex-1 truncate font-700 text-foreground ${isCompactDensity ? 'text-[12.5px]' : 'text-sm'}`}>
+                  {title}
+                </p>
+                {hasDocument ? (
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      openTransactionDetails(txn.id);
+                    }}
+                    onKeyDown={(event) => {
+                      event.stopPropagation();
+                    }}
+                    className={`inline-flex max-w-full flex-shrink-0 items-center gap-1 rounded-full bg-muted px-2 py-0.5 font-600 text-muted-foreground transition-colors hover:bg-muted/80 ${isArabic ? 'text-[11.5px] leading-5' : 'text-[11px] leading-4'}`}
+                  >
+                    <Paperclip size={11} className="text-muted-foreground flex-shrink-0" />
+                    <span className="whitespace-nowrap font-tabular">
+                      {itemCount > 0 ? itemCount : ''}
+                    </span>
+                  </button>
+                ) : null}
+              </div>
+              <p className={`mt-0.5 truncate text-muted-foreground ${isCompactDensity ? (isArabic ? 'text-[12px] leading-5' : 'text-[11.5px]') : (isArabic ? 'text-[12.5px] leading-5' : 'text-xs')}`}>
+                {variant === 'mobile-dashboard' ? categoryLabel : `${categoryLabel} · ${accountLabel}`}
+              </p>
+            </div>
+            <div className="flex flex-shrink-0 flex-col items-end gap-1 text-right">
+              <FormattedCurrencyAmount
+                amount={isIncome ? Math.abs(txn.amount) : -Math.abs(txn.amount)}
+                currencyCode={txn.currency}
+                size="sm"
+                className={`font-700 font-tabular ${variant === 'mobile-dashboard' ? 'text-[13px]' : 'text-sm'} ${isIncome ? 'text-positive' : variant === 'mobile-dashboard' ? 'text-foreground' : 'text-negative'}`}
+              />
+              {variant === 'mobile-dashboard' ? null : (
+                <span className={`text-muted-foreground ${isCompactDensity ? (isArabic ? 'text-[11.5px] leading-5' : 'text-[11.5px]') : (isArabic ? 'text-[12px] leading-5' : 'text-[11px]')}`}>
+                  {formattedDate}
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      })}
+    </>
+  );
+
+  const bodyContent = (
+    <>
       {loading ? (
         <div className="space-y-2">
           {[...Array(5)].map((_, i) => (
@@ -193,99 +283,9 @@ export default function RecentTransactions({
           className="flex flex-1 items-center justify-center px-4 py-6"
         />
       ) : (
-        <div className="flex flex-1 flex-col">
-          <div className={variant === 'mobile-dashboard' ? 'divide-y divide-slate-200/70' : 'space-y-2'}>
-          {visibleTransactions.map((txn) => {
-            const isIncome = txn.transaction_type === 'income';
-            const catColor = txn.category?.color || '#6b7280';
-            const { hasDocument, itemCount, title } = getTransactionDocumentMeta(txn);
-            const categoryLabel = txn.category?.name
-              ? translateSystemCategoryName(txn.category.name, (key, options) =>
-                  t(key, { ...(options || {}), ns: 'common' })
-                )
-              : t('recentTransactions.uncategorized', { ns: 'portal' });
-            const accountLabel = txn.account?.name || '';
-            const formattedDate = formatDate(
-              txn.transaction_date,
-              language === 'ar' ? 'ar' : language === 'fr' ? 'fr' : language === 'ru' ? 'ru' : 'en-US'
-            );
-            const ariaLabel = t('recentTransactions.openTransactionDetails', {
-              ns: 'portal',
-              defaultValue: 'Open transaction details for {{title}} on {{date}}',
-              title,
-              date: formattedDate,
-            });
-            return (
-              <div
-                key={txn.id}
-                role="button"
-                tabIndex={0}
-                aria-label={ariaLabel}
-                onClick={() => openTransactionDetails(txn.id)}
-                onKeyDown={(event) => {
-                  if (!shouldOpenRowFromKeyboard(event)) return;
-                  event.preventDefault();
-                  openTransactionDetails(txn.id);
-                }}
-                className={`group flex items-start gap-3 transition-all duration-150 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 focus-visible:ring-offset-2 ${
-                  variant === 'mobile-dashboard'
-                    ? 'border-0 bg-transparent px-2 py-3 hover:bg-slate-50'
-                    : 'rounded-2xl border border-transparent bg-muted/15 px-3.5 py-3 hover:border-border/70 hover:bg-muted/30'
-                }`}
-              >
-                <div
-                  className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl"
-                  style={{ backgroundColor: catColor + '20' }}
-                >
-                  {isIncome
-                    ? <TrendingUp size={16} style={{ color: catColor }} />
-                    : <TrendingDown size={16} style={{ color: catColor }} />
-                  }
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                    <p className="min-w-0 flex-1 truncate text-sm font-700 text-foreground">
-                      {title}
-                    </p>
-                    {hasDocument ? (
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          openTransactionDetails(txn.id);
-                        }}
-                        onKeyDown={(event) => {
-                          event.stopPropagation();
-                        }}
-                        className={`inline-flex max-w-full flex-shrink-0 items-center gap-1 rounded-full bg-muted px-2 py-0.5 font-600 text-muted-foreground transition-colors hover:bg-muted/80 ${isArabic ? 'text-[11.5px] leading-5' : 'text-[11px] leading-4'}`}
-                      >
-                        <Paperclip size={11} className="text-muted-foreground flex-shrink-0" />
-                        <span className="whitespace-nowrap font-tabular">
-                          {itemCount > 0 ? itemCount : ''}
-                        </span>
-                      </button>
-                    ) : null}
-                  </div>
-                  <p className={`mt-0.5 truncate text-muted-foreground ${isArabic ? 'text-[12.5px] leading-5' : 'text-xs'}`}>
-                    {variant === 'mobile-dashboard' ? categoryLabel : `${categoryLabel} · ${accountLabel}`}
-                  </p>
-                </div>
-                <div className="flex flex-shrink-0 flex-col items-end gap-1 text-right">
-                  <FormattedCurrencyAmount
-                    amount={isIncome ? Math.abs(txn.amount) : -Math.abs(txn.amount)}
-                    currencyCode={txn.currency}
-                    size={variant === 'mobile-dashboard' ? 'sm' : 'sm'}
-                    className={`font-700 font-tabular ${variant === 'mobile-dashboard' ? 'text-[13px]' : 'text-sm'} ${isIncome ? 'text-positive' : variant === 'mobile-dashboard' ? 'text-foreground' : 'text-negative'}`}
-                  />
-                  {variant === 'mobile-dashboard' ? null : (
-                    <span className={`text-muted-foreground ${isArabic ? 'text-[12px] leading-5' : 'text-[11px]'}`}>
-                      {formattedDate}
-                    </span>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+        <div className="flex flex-1 flex-col min-w-0">
+          <div className={`${listDividerClass} min-w-0`}>
+            {transactionRows}
           </div>
         </div>
       )}
@@ -294,6 +294,34 @@ export default function RecentTransactions({
         transactionId={detailsTransactionId}
         onClose={() => setDetailsTransactionId(null)}
       />
+    </>
+  );
+
+  if (isDashboardSection) {
+    return (
+      <div className="flex h-full flex-col min-w-0">
+        {bodyContent}
+      </div>
+    );
+  }
+
+  return (
+    <SectionCard
+      title={variant === 'mobile-dashboard' ? t('recentTransactions.mobileTitle', { ns: 'portal' }) : t('recentTransactions.title', { ns: 'portal' })}
+      description={variant === 'mobile-dashboard' ? undefined : t('recentTransactions.description', { ns: 'portal' })}
+      className={`flex h-full flex-col rounded-[28px] border shadow-card-sm transition-shadow duration-200 hover:shadow-card-md overflow-hidden ${
+        variant === 'mobile-dashboard'
+          ? 'border-slate-200/80 bg-[linear-gradient(180deg,#ffffff,#f8fafc)]'
+          : 'border-border/80 bg-card'
+      }`}
+      action={
+        <Link href="/transactions" className={`font-700 ${variant === 'mobile-dashboard' ? 'text-[13px] text-[#2563eb]' : 'link-accent text-sm'}`}>
+          {t('actions.viewAll', { ns: 'common' })}{variant === 'mobile-dashboard' ? null : <ArrowRight size={13} />}
+        </Link>
+      }
+      bodyClassName={`flex flex-1 flex-col ${variant === 'mobile-dashboard' ? 'p-3 pt-2' : 'p-3'}`}
+    >
+      {bodyContent}
     </SectionCard>
   );
 }

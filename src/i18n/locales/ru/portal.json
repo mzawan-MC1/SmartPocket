@@ -146,7 +146,10 @@
       "finance": "Финансы",
       "manage": "Управление",
       "reports": "Отчеты",
-      "support": "Поддержка"
+      "support": "Поддержка",
+      "money": "MONEY",
+      "investGrow": "INVEST & GROW",
+      "tools": "TOOLS"
     },
     "nav": {
       "transfers": "Переводы",
@@ -159,7 +162,25 @@
       "aiHistory": "История AI",
       "personalSubscriptions": "Личные подписки",
       "faqs": "FAQ",
-      "support": "Поддержка"
+      "support": "Поддержка",
+      "dashboard": "Панель управления",
+      "moneyInOut": "Поступления и расходы",
+      "accounts": "Счета",
+      "budgets": "Бюджеты",
+      "scheduledPayments": "Запланированные платежи",
+      "subscriptions": "Подписки",
+      "billsReminders": "Счета и напоминания",
+      "beneficiaries": "Получатели",
+      "tagsCategories": "Метки и категории",
+      "savings": "Сбережения",
+      "investments": "Инвестиции",
+      "smartAi": "Умный финансовый помощник ИИ",
+      "exchangeRates": "Курсы валют",
+      "calculator": "Калькулятор",
+      "settings": "Настройки",
+      "helpSupport": "Помощь и поддержка",
+      "transactions": "Операции",
+      "dashboardPlural": "Панели управления"
     },
     "lockedTooltip": "{{label}} · {{restriction}}",
     "expand": "Развернуть боковую панель",
@@ -173,10 +194,12 @@
     "quickAdd": "Быстрое добавление",
     "closeQuickAdd": "Закрыть быстрое добавление",
     "closeMore": "Закрыть меню Еще",
-    "smartEntry": "Умный ввод",
+    "smartEntry": "Умный ввод с ИИ",
     "voiceEntry": "Голосовой ввод",
-    "expense": "Расход",
-    "income": "Доход",
+    "expense": "Расходы",
+    "income": "Поступления",
+    "moneyIn": "Поступления",
+    "moneyOut": "Расходы",
     "transfer": "Перевод",
     "account": "Счет",
     "person": "Человек",
@@ -223,7 +246,11 @@
       "personalSubscriptions": "Добавить подписку",
       "recurring": "Добавить регулярную",
       "reimbursement": "Добавить возмещение",
-      "budget": "Добавить бюджет"
+      "budget": "Добавить бюджет",
+      "moneyIn": "Поступления",
+      "moneyOut": "Расходы",
+      "addAccount": "Добавить счет",
+      "addSubscription": "Добавить подписку"
     },
     "quickActionShort": {
       "transaction": "Операция",
@@ -245,7 +272,29 @@
     "moneyHealthConfigTitle": "Требует внимания",
     "moneyHealthReviewAction": "Проверить",
     "moneyHealthEmptyTitle": "Все хорошо",
-    "moneyHealthEmptyDescription": "Сейчас нет срочных задач."
+    "moneyHealthEmptyDescription": "Сейчас нет срочных задач.",
+    "smartAiTitle": "Умный финансовый ИИ",
+    "smartAiSubtitle": "Записывайте расходы, доходы и многое другое — без помощи рук.",
+    "smartAiTypeIt": "Напечатайте",
+    "smartAiSayIt": "Скажите",
+    "smartAiUpload": "Загрузить чек",
+    "smartAiOpenAssistant": "Открыть помощник ИИ",
+    "yourBudgetsTitle": "Ваши Бюджеты",
+    "seeAllBudgets": "Показать все Бюджеты",
+    "yourAccountsTitle": "Ваши Счета",
+    "seeAllAccounts": "Показать все Счета",
+    "addAccountTile": "Добавить Счет",
+    "financialOverviewTitle": "Финансовый обзор",
+    "recentActivityTitle": "Последняя активность",
+    "seeAllTransactions": "Показать все Поступления и расходы",
+    "moneyYouOwe": "Деньги, которые вы должны",
+    "moneyOwedToYou": "Деньги, которые вам должны",
+    "comingUp": "Скоро",
+    "upcomingSubscriptions": "Предстоящие личные подписки",
+    "seeAllScheduledPayments": "Показать все Запланированные платежи",
+    "seeAllSubscriptions": "Показать все Подписки",
+    "seeAllSettlements": "Показать все Расчеты",
+    "seeAllPeople": "Показать всех Получателей"
   },
   "shared": {
     "loadingPlanningPeriodTitle": "Загрузка периода планирования",
@@ -442,7 +491,15 @@
       "managedMoney": "Деньги, которыми я управляю для других",
       "outstandingLoans": "Непогашенные займы",
       "loanRepayments": "Погашения займов"
-    }
+    },
+    "yourMoney": "Ваши Деньги",
+    "personalBalance": "Личный баланс",
+    "moneyIn": "Поступления",
+    "moneyOut": "Расходы",
+    "netReceivedMore": "В этом месяце вы получили на {{amount}} больше, чем потратили.",
+    "netSpentMore": "В этом месяце вы потратили на {{amount}} больше, чем получили.",
+    "netEqual": "Поступления и расходы равны в этом месяце.",
+    "netNoActivity": "В этом месяце ещё не зарегистрировано никакой активности."
   },
   "dashboardCharts": {
     "title": "Финансовый обзор",
@@ -671,7 +728,8 @@
       "merchantPlaceholder": "например, Netflix",
       "nextDueDate": "Следующая дата платежа",
       "creating": "Создание..."
-    }
+    },
+    "pageDescription": "Автоматизируйте регулярные доходы, расходы и переводы."
   },
   "accounts": {
     "title": "Финансовые счета",
@@ -764,7 +822,9 @@
       "notesPlaceholder": "Optional notes...",
       "includeInTotal": "Include in total balance calculation",
       "updateAction": "Update Account"
-    }
+    },
+    "hiddenBalance": "Скрытый баланс",
+    "pageDescription": "Управляйте банками, картами, наличными, цифровыми кошельками и другими счетами."
   },
   "categories": {
     "title": "Категории",
@@ -848,7 +908,8 @@
         "arrowLeftRight": "Перевод",
         "zap": "Электричество"
       }
-    }
+    },
+    "pageDescription": "Организуйте доходы и расходы по категориям и управляйте повторно используемыми метками."
   },
   "people": {
     "title": "Люди",
@@ -931,49 +992,50 @@
       "fullReports": "View Full Reports"
     },
     "form": {
-      "fullNameRequired": "Full name is required.",
-      "preferredCurrencyRequired": "Preferred currency is required.",
-      "addedSuccessfully": "{{name}} added successfully",
-      "addFailed": "Failed to add person.",
-      "fullName": "Full Name",
-      "fullNamePlaceholder": "e.g. Jane Doe",
-      "relationship": "Relationship",
-      "email": "Email",
-      "optional": "Optional",
-      "phone": "Phone",
-      "phoneHelper": "Used for contact context only. User-entered phone values stay unchanged.",
-      "existingPhoneHelper": "Existing phone details stay as entered.",
-      "preferredCurrency": "Preferred Currency",
-      "chooseCurrency": "Choose currency",
-      "notes": "Notes",
-      "notesPlaceholder": "Add optional notes...",
-      "createManagedProfile": "Create a managed profile for shared balances and reimbursements.",
-      "profileUpdated": "Profile updated",
-      "updateFailed": "Failed to update profile.",
-      "saveChanges": "Save Changes"
+      "fullNameRequired": "Полное имя обязательно для заполнения.",
+      "preferredCurrencyRequired": "Предпочитаемая валюта обязательна.",
+      "addedSuccessfully": "{{name}} успешно добавлен",
+      "addFailed": "Не удалось добавить человека.",
+      "fullName": "Полное имя",
+      "fullNamePlaceholder": "например, Иван Иванов",
+      "relationship": "Связь",
+      "email": "Электронная почта",
+      "optional": "Необязательно",
+      "phone": "Телефон",
+      "phoneHelper": "Используется только для контекста контакта. Введенные пользователем значения телефона остаются без изменений.",
+      "existingPhoneHelper": "Существующие данные телефона остаются как введены.",
+      "preferredCurrency": "Предпочитаемая валюта",
+      "chooseCurrency": "Выбрать валюту",
+      "notes": "Заметки",
+      "notesPlaceholder": "Добавить необязательные заметки...",
+      "createManagedProfile": "Создать управляемый профиль для общих балансов и возмещений.",
+      "profileUpdated": "Профиль обновлен",
+      "updateFailed": "Не удалось обновить профиль.",
+      "saveChanges": "Сохранить изменения"
     },
     "quickTransaction": {
-      "title": "Record Person Transaction",
-      "transactionType": "Transaction Type",
-      "validAmountError": "Enter a valid amount.",
-      "descriptionRequired": "Description is required.",
-      "recorded": "Transaction recorded",
-      "recordFailed": "Failed to record transaction.",
-      "descriptionPlaceholder": "Brief description",
-      "createReimbursement": "Create reimbursement for {{name}}",
-      "record": "Record",
+      "title": "Записать операцию с человеком",
+      "transactionType": "Тип операции",
+      "validAmountError": "Введите действительную сумму.",
+      "descriptionRequired": "Описание обязательно.",
+      "recorded": "Операция записана",
+      "recordFailed": "Не удалось записать операцию.",
+      "descriptionPlaceholder": "Краткое описание",
+      "createReimbursement": "Создать возмещение для {{name}}",
+      "record": "Записать",
       "types": {
-        "moneyReceived": "Money Received",
-        "moneyReturned": "Money Returned",
-        "expenseFromHeld": "Expense From Held Balance",
-        "expensePaidByUser": "Expense Paid By Me",
-        "expensePaidByPerson": "Expense Paid By Person",
-        "reimbursementReceived": "Reimbursement Received",
-        "reimbursementPaid": "Reimbursement Paid",
-        "settlement": "Settlement",
-        "adjustment": "Adjustment"
+        "moneyReceived": "Полученные деньги",
+        "moneyReturned": "Возвращенные деньги",
+        "expenseFromHeld": "Расход из удержанного баланса",
+        "expensePaidByUser": "Расход оплачен мной",
+        "expensePaidByPerson": "Расход оплачен человеком",
+        "reimbursementReceived": "Полученное возмещение",
+        "reimbursementPaid": "Выплаченное возмещение",
+        "settlement": "Расчет",
+        "adjustment": "Корректировка"
       }
-    }
+    },
+    "pageDescription": "Управляйте людьми, которым вы одалживаете, от которых берете взаймы, с кем рассчитываетесь и возмещаете."
   },
   "reimbursements": {
     "title": "Возмещения",
@@ -1017,16 +1079,16 @@
     },
     "addReimbursement": "Добавить возмещение",
     "form": {
-      "loadFailed": "Failed to load reimbursement form.",
-      "owedBy": "Owed By",
-      "owedTo": "Owed To",
-      "person": "Person",
-      "me": "Me",
-      "descriptionPlaceholder": "What is this reimbursement for?",
-      "dueDate": "Due Date",
-      "loading": "Loading reimbursement form...",
-      "created": "Reimbursement created",
-      "createFailed": "Failed to create reimbursement."
+      "loadFailed": "Не удалось загрузить форму возмещения.",
+      "owedBy": "Кто должен",
+      "owedTo": "Кому должны",
+      "person": "Человек",
+      "me": "Я",
+      "descriptionPlaceholder": "На что это возмещение?",
+      "dueDate": "Срок оплаты",
+      "loading": "Загрузка формы возмещения...",
+      "created": "Возмещение создано",
+      "createFailed": "Не удалось создать возмещение."
     }
   },
   "settlements": {
@@ -1074,7 +1136,8 @@
       "digitalWallet": "Цифровой кошелек",
       "other": "Другое"
     },
-    "account": "Account"
+    "account": "Account",
+    "pageDescription": "Отслеживайте счета, напоминания, расчеты по займам и задолженности."
   },
   "aiHistory": {
     "title": "История AI",
@@ -1623,7 +1686,9 @@
     "selectRow": "Select row",
     "reportingPreviewTitle": "Reporting currency {{currency}}; provider {{provider}}; rate date {{rateDate}}",
     "showingCount": "Showing {{start}}-{{end}} of {{total}}",
-    "tags": "Tags"
+    "tags": "Tags",
+    "title": "Поступления и расходы",
+    "pageDescription": "Просматривайте, фильтруйте и управляйте доходами, расходами и переводами из одного журнала."
   },
   "spaces": {
     "title": "Пространства",
@@ -2398,7 +2463,8 @@
       "manage": "Управление",
       "manageSubscription": "Управлять подпиской",
       "upgradeAction": "Обновить план"
-    }
+    },
+    "pageDescription": "Настройки, доступ, биллинг и опции платформы."
   },
   "help": {
     "title": "Помощь и поддержка",
@@ -2447,7 +2513,8 @@
     },
     "faqCtaTitle": "Нужен быстрый ответ?",
     "faqCtaDescription": "Откройте библиотеку FAQ Smart Pocket с подсказками по настройке, сценариям работы и вопросам поддержки.",
-    "openFaqs": "Открыть FAQ"
+    "openFaqs": "Открыть FAQ",
+    "pageDescription": "Просматривайте FAQ и обращайтесь в поддержку."
   },
   "onboarding": {
     "title": "Настройка Smart Pocket",
@@ -3324,7 +3391,8 @@
     "loadingData": "Загрузка данных отчета...",
     "noDataToExport": "Нет данных отчета, готовых к экспорту.",
     "csvExportedTransactions": "Экспортировано {{count}} операций в CSV.",
-    "csvExportedBudgets": "Экспортировано {{count}} бюджетов в CSV."
+    "csvExportedBudgets": "Экспортировано {{count}} бюджетов в CSV.",
+    "itemInsightsTitle": "Items Insights"
   },
   "subscriptionBilling": {
     "title": "Подписка и биллинг",
@@ -3882,7 +3950,8 @@
         "notifications": "Покрытие напоминаний",
         "notificationsDescription": "Используется {{count}} настроек напоминаний и встроенные предупреждения в приложении."
       }
-    }
+    },
+    "pageDescription": "Отслеживайте и управляйте повторяющимися личными подписками и продлениями."
   },
   "support": {
     "nav": {
@@ -4467,5 +4536,59 @@
       "delete": "Не удалось удалить статью.",
       "coverUpload": "Не удалось загрузить обложку."
     }
+  },
+  "budgetPreview": {
+    "emptyTitle": "Пока нет бюджетов",
+    "emptyDesc": "Создайте бюджет, чтобы отслеживать расходы в соответствии с вашими целями.",
+    "createBudget": "Создать бюджет"
+  },
+  "accountPreview": {
+    "emptyTitle": "Пока нет счетов",
+    "emptyDesc": "Добавьте первый банковский счет, карту или счет наличными для отслеживания балансов.",
+    "addAccountCTA": "Добавить счет",
+    "hiddenBalance": "Скрытый баланс"
+  },
+  "peoplePreview": {
+    "moneyYouOweGuidance": "Откройте Расчеты, чтобы просмотреть отдельных лиц и записать платежи.",
+    "moneyOwedToYouGuidance": "Откройте Получатели, чтобы просмотреть балансы по каждому человеку и запросить расчеты.",
+    "noMoneyOwedTitle": "Сейчас ничего не должно",
+    "noMoneyOwedDesc": "Отлично — на данный момент нет зарегистрированных долгов перед третьими лицами.",
+    "noMoneyOwedToYouTitle": "Ничто не должно вам",
+    "noMoneyOwedToYouDesc": "Пока ни у кого нет зарегистрированного баланса, подлежащего выплате вам."
+  },
+  "savings": {
+    "title": "Сбережения",
+    "description": "Цели, взносы и прогресс в достижении целей сбережений.",
+    "comingSoonTitle": "Скоро",
+    "comingSoonDesc": "Скоро появится специальный модуль «Сбережения». Здесь вы сможете организовать цели сбережений, отслеживать взносы и контролировать прогресс.",
+    "inDevelopment": "Функция в разработке"
+  },
+  "investments": {
+    "title": "Инвестиции",
+    "description": "Представления портфеля, владения и отслеживание производительности.",
+    "comingSoonTitle": "Скоро",
+    "comingSoonDesc": "Скоро появится модуль «Инвестиции». Здесь появятся представления портфеля, владения и отслеживание производительности.",
+    "inDevelopment": "Функция в разработке"
+  },
+  "exchangeRates": {
+    "title": "Курсы валют",
+    "description": "Инструменты конвертации валют и истории обменных курсов.",
+    "comingSoonTitle": "Скоро",
+    "comingSoonDesc": "Скоро появятся курсы валют и инструменты конвертации валют.",
+    "inDevelopment": "Функция в разработке"
+  },
+  "calculator": {
+    "title": "Калькулятор",
+    "description": "Утилиты финансового калькулятора.",
+    "comingSoonTitle": "Скоро",
+    "comingSoonDesc": "Скоро появится встроенный финансовый калькулятор.",
+    "inDevelopment": "Функция в разработке"
+  },
+  "aiAssistant": {
+    "title": "Умный финансовый помощник ИИ",
+    "pageDescription": "Используйте умный ИИ, чтобы печатать, говорить или сканировать чеки в точные записи."
+  },
+  "common": {
+    "seeAll": "Показать все"
   }
 }

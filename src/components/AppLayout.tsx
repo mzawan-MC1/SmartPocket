@@ -143,7 +143,7 @@ export default function AppLayout({
               className={`print:hidden hidden self-stretch bg-card lg:flex lg:h-screen lg:flex-shrink-0 lg:overflow-hidden ${
                 isRTL ? 'border-l border-border' : 'border-r border-border'
               }`}
-              style={{ width: sidebarCollapsed ? '60px' : '244px' }}
+              style={{ width: sidebarCollapsed ? 'var(--sidebar-collapsed)' : 'var(--sidebar-expanded-layout)' }}
             >
               <Sidebar
                 collapsed={sidebarCollapsed}
@@ -194,7 +194,7 @@ export default function AppLayout({
 
               <main
                 data-route-scroll-container="true"
-                className="min-h-0 flex-1 overflow-x-hidden scrollbar-thin lg:h-full lg:overflow-y-auto lg:overscroll-contain"
+                className="min-h-0 flex-1 overflow-x-hidden scrollbar-thin pt-[calc(var(--topbar-height,56px)+0.25rem)] lg:h-full lg:overflow-y-auto lg:overscroll-contain lg:pt-2"
                 style={{ backgroundColor: AUTHENTICATED_APP_BACKGROUND }}
               >
                 <div className="flex min-h-full flex-col">

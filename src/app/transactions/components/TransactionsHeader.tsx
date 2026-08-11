@@ -18,9 +18,9 @@ export default function TransactionsHeader({
   const { t } = useTranslation('portal');
   return (
     <PageHeader
-      title={t('transactionsHeader.title')}
-      description={t('transactionsHeader.description', { range: activeRangeLabel })}
-      badge={<StatusBadge status="info" label={t('transactionsHeader.badge')} />}
+      title={t('transactions.title', { ns: 'portal', defaultValue: 'Money In & Out' })}
+      description={t('transactions.pageDescription', { range: activeRangeLabel, ns: 'portal', defaultValue: 'Track every deposit, withdrawal, and transfer across your accounts.' })}
+      badge={<StatusBadge status="info" label={t('transactions.badge', { ns: 'portal', defaultValue: 'Cash Flow' })} />}
       compact
       className="rounded-[24px] border border-border/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,252,0.96)_100%)] px-3.5 py-3 shadow-card-sm max-[480px]:px-3.5 max-[480px]:py-3"
       actionsClassName="w-full sm:w-auto"

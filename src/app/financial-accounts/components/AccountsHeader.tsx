@@ -15,9 +15,9 @@ export default function AccountsHeader({ onAddAccount }: AccountsHeaderProps) {
 
   return (
     <PageHeader
-      title={t('accounts.title')}
-      description={t('accounts.description')}
-      badge={<StatusBadge status="info" label={t('accounts.badge')} />}
+      title={t('accounts.title', { ns: 'portal', defaultValue: 'Your Accounts' })}
+      description={t('accounts.description', { ns: 'portal', defaultValue: 'Connect bank accounts, cards, and cash wallets to see your balances in one place.' })}
+      badge={<StatusBadge status="info" label={t('accounts.badge', { ns: 'portal', defaultValue: 'Net Worth' })} />}
       compact
       className="rounded-[24px] border border-border/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,252,0.96)_100%)] px-3.5 py-3 shadow-card-sm max-[480px]:px-3.5 max-[480px]:py-3"
       actionsClassName="w-full sm:w-auto"

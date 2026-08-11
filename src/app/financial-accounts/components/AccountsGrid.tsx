@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
-import { Building2, Wallet, CreditCard, Smartphone, PiggyBank, Landmark, MoreVertical, Edit2, Archive, TrendingUp, TrendingDown, Plus, Eye, ArrowUpDown } from 'lucide-react';
+import { Building2, Wallet, MoreVertical, Edit2, Archive, TrendingUp, TrendingDown, Plus, Eye, ArrowUpDown } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import Modal from '@/components/ui/Modal';
 import Badge from '@/components/ui/Badge';
@@ -21,6 +21,7 @@ import {
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
 import AccountsHeader from './AccountsHeader';
+import { GRADIENT_MAP, getIcon, getAccountTypeLabel } from './account-display';
 import {
   getAccountsSharedWithSpaces,
   getFinancialAccountScopeType,
@@ -42,47 +43,6 @@ const FinancialAccountForm = dynamic(() => import('./FinancialAccountForm'), {
   ssr: false,
   loading: () => null,
 });
-
-const GRADIENT_MAP: Record<string, string> = {
-  bank: 'from-primary to-navy-600',
-  credit_card: 'from-negative to-red-700',
-  savings: 'from-positive to-teal-600',
-  cash: 'from-warning to-amber-600',
-  digital_wallet: 'from-info to-blue-600',
-  investment: 'from-purple-600 to-purple-800',
-  other: 'from-muted-foreground to-slate-600',
-};
-
-function getIcon(type: string) {
-  switch (type) {
-    case 'bank': return Building2;
-    case 'credit_card': return CreditCard;
-    case 'savings': return PiggyBank;
-    case 'cash': return Wallet;
-    case 'digital_wallet': return Smartphone;
-    case 'investment': return Landmark;
-    default: return Wallet;
-  }
-}
-
-function getAccountTypeLabel(type: string, t: (key: string) => string) {
-  switch (type) {
-    case 'bank':
-      return t('accounts.types.bank');
-    case 'credit_card':
-      return t('accounts.types.creditCard');
-    case 'savings':
-      return t('accounts.types.savings');
-    case 'cash':
-      return t('accounts.types.cash');
-    case 'digital_wallet':
-      return t('accounts.types.digitalWallet');
-    case 'investment':
-      return t('accounts.types.investment');
-    default:
-      return t('accounts.types.other');
-  }
-}
 
 function getOwnershipLabel(account: FinancialAccount, t: (key: string, options?: Record<string, unknown>) => string) {
   if (getFinancialAccountScopeType(account) === 'space') {

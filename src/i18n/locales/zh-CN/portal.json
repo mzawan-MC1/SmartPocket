@@ -146,7 +146,10 @@
       "finance": "财务",
       "manage": "管理",
       "reports": "报表",
-      "support": "支持"
+      "support": "支持",
+      "money": "MONEY",
+      "investGrow": "INVEST & GROW",
+      "tools": "TOOLS"
     },
     "nav": {
       "transfers": "转账",
@@ -159,7 +162,25 @@
       "aiHistory": "AI 历史记录",
       "personalSubscriptions": "个人订阅",
       "support": "支持",
-      "faqs": "常见问题"
+      "faqs": "常见问题",
+      "dashboard": "仪表盘",
+      "moneyInOut": "收入与支出",
+      "accounts": "账户",
+      "budgets": "预算",
+      "scheduledPayments": "计划付款",
+      "subscriptions": "订阅",
+      "billsReminders": "账单与提醒",
+      "beneficiaries": "收款人",
+      "tagsCategories": "标签与类别",
+      "savings": "储蓄",
+      "investments": "投资",
+      "smartAi": "智能财务AI助手",
+      "exchangeRates": "汇率",
+      "calculator": "计算器",
+      "settings": "设置",
+      "helpSupport": "帮助与支持",
+      "transactions": "交易",
+      "dashboardPlural": "仪表盘"
     },
     "lockedTooltip": "{{label}} · {{restriction}}",
     "expand": "展开侧边栏",
@@ -173,10 +194,12 @@
     "quickAdd": "快速添加",
     "closeQuickAdd": "关闭快速添加",
     "closeMore": "关闭更多菜单",
-    "smartEntry": "智能录入",
+    "smartEntry": "智能AI录入",
     "voiceEntry": "语音录入",
     "expense": "支出",
     "income": "收入",
+    "moneyIn": "收入",
+    "moneyOut": "支出",
     "transfer": "转账",
     "account": "账户",
     "person": "联系人",
@@ -223,7 +246,11 @@
       "personalSubscriptions": "添加订阅",
       "recurring": "添加定期交易",
       "reimbursement": "添加报销",
-      "budget": "添加预算"
+      "budget": "添加预算",
+      "moneyIn": "收入",
+      "moneyOut": "支出",
+      "addAccount": "添加账户",
+      "addSubscription": "添加订阅"
     },
     "quickActionShort": {
       "transaction": "交易",
@@ -245,7 +272,29 @@
     "moneyHealthConfigTitle": "需要关注",
     "moneyHealthReviewAction": "查看",
     "moneyHealthEmptyTitle": "一切正常",
-    "moneyHealthEmptyDescription": "目前没有紧急事项。"
+    "moneyHealthEmptyDescription": "目前没有紧急事项。",
+    "smartAiTitle": "智能财务AI",
+    "smartAiSubtitle": "记录支出、收入等更多内容——无需手动操作。",
+    "smartAiTypeIt": "手动输入",
+    "smartAiSayIt": "语音输入",
+    "smartAiUpload": "上传收据",
+    "smartAiOpenAssistant": "打开AI助手",
+    "yourBudgetsTitle": "你的预算",
+    "seeAllBudgets": "查看所有预算",
+    "yourAccountsTitle": "你的账户",
+    "seeAllAccounts": "查看所有账户",
+    "addAccountTile": "添加账户",
+    "financialOverviewTitle": "财务概览",
+    "recentActivityTitle": "近期活动",
+    "seeAllTransactions": "查看所有收入与支出",
+    "moneyYouOwe": "你欠的钱",
+    "moneyOwedToYou": "欠你的钱",
+    "comingUp": "即将到来",
+    "upcomingSubscriptions": "即将到期的个人订阅",
+    "seeAllScheduledPayments": "查看所有计划付款",
+    "seeAllSubscriptions": "查看所有订阅",
+    "seeAllSettlements": "查看所有结算",
+    "seeAllPeople": "查看所有收款人"
   },
   "shared": {
     "loadingPlanningPeriodTitle": "正在加载规划周期",
@@ -848,7 +897,8 @@
         "people": "人员",
         "commitments": "承诺"
       }
-    }
+    },
+    "itemInsightsTitle": "Items Insights"
   },
   "dashboardMetrics": {
     "monthly": "月度",
@@ -931,7 +981,15 @@
       "managedMoney": "代管他人资金",
       "outstandingLoans": "未偿还贷款",
       "loanRepayments": "贷款还款"
-    }
+    },
+    "yourMoney": "你的资金",
+    "personalBalance": "个人余额",
+    "moneyIn": "收入",
+    "moneyOut": "支出",
+    "netReceivedMore": "这个月您收到的比花掉的多 {{amount}}。",
+    "netSpentMore": "这个月您花掉的比收到的多 {{amount}}。",
+    "netEqual": "本月收支相等。",
+    "netNoActivity": "本月尚无活动记录。"
   },
   "dashboardCharts": {
     "title": "财务概览",
@@ -1160,7 +1218,8 @@
       "merchantPlaceholder": "例如：Netflix",
       "nextDueDate": "下一个到期日",
       "creating": "正在创建……"
-    }
+    },
+    "pageDescription": "自动化定期收入、支出和转账。"
   },
   "accounts": {
     "title": "财务账户",
@@ -1253,7 +1312,9 @@
       "updateAction": "更新账户",
       "typeRequired": "账户类型为必填。",
       "currency": "货币"
-    }
+    },
+    "hiddenBalance": "隐藏余额",
+    "pageDescription": "管理银行、卡片、现金、数字钱包和其他账户。"
   },
   "categories": {
     "title": "分类",
@@ -1337,7 +1398,8 @@
         "arrowLeftRight": "转账",
         "zap": "电力"
       }
-    }
+    },
+    "pageDescription": "按类别组织收入和支出，并管理可重复使用的标签。"
   },
   "people": {
     "title": "人员",
@@ -1462,7 +1524,8 @@
       "noSettlementsYet": "暂无结算。",
       "personReport": "人员报告",
       "fullReports": "查看完整报告"
-    }
+    },
+    "pageDescription": "管理你借出、借入、结算和报销的人员。"
   },
   "reimbursements": {
     "title": "报销",
@@ -1563,7 +1626,8 @@
       "digitalWallet": "数字钱包",
       "other": "其他"
     },
-    "account": "账户"
+    "account": "账户",
+    "pageDescription": "跟踪账单、提醒、贷款结算和应付款项。"
   },
   "aiHistory": {
     "title": "AI 历史",
@@ -2103,7 +2167,9 @@
       "quantity": "数量",
       "unitPrice": "单价",
       "lineTotal": "总计"
-    }
+    },
+    "title": "收入与支出",
+    "pageDescription": "从一个台账中查看、筛选并管理收入、支出和转账。"
   },
   "spaces": {
     "title": "空间",
@@ -2878,7 +2944,8 @@
       "manage": "管理",
       "manageSubscription": "管理订阅",
       "upgradeAction": "升级"
-    }
+    },
+    "pageDescription": "偏好设置、访问权限、账单和平台选项。"
   },
   "help": {
     "title": "帮助与支持",
@@ -2927,7 +2994,8 @@
     },
     "faqCtaTitle": "需要快速解答？",
     "faqCtaDescription": "浏览 Smart Pocket 常见问题库，获取设置帮助、工作流指导和支持解答。",
-    "openFaqs": "打开常见问题"
+    "openFaqs": "打开常见问题",
+    "pageDescription": "浏览常见问题并联系支持。"
   },
   "onboarding": {
     "title": "设置 Smart Pocket",
@@ -3871,7 +3939,8 @@
         "notifications": "提醒覆盖",
         "notificationsDescription": "使用 {{count}} 项提醒设置以及基于警告的应用内提醒。"
       }
-    }
+    },
+    "pageDescription": "跟踪并管理定期个人订阅和续费。"
   },
   "support": {
     "nav": {
@@ -4450,5 +4519,59 @@
       "delete": "删除博客文章失败。",
       "coverUpload": "上传封面图片失败。"
     }
+  },
+  "budgetPreview": {
+    "emptyTitle": "暂无预算",
+    "emptyDesc": "创建预算以根据目标跟踪支出。",
+    "createBudget": "创建预算"
+  },
+  "accountPreview": {
+    "emptyTitle": "暂无账户",
+    "emptyDesc": "添加你的第一个银行、卡片或现金账户以跟踪余额。",
+    "addAccountCTA": "添加账户",
+    "hiddenBalance": "隐藏余额"
+  },
+  "peoplePreview": {
+    "moneyYouOweGuidance": "浏览结算以查看个人并记录付款。",
+    "moneyOwedToYouGuidance": "打开收款人以按人浏览余额并请求结算。",
+    "noMoneyOwedTitle": "当前无欠款",
+    "noMoneyOwedDesc": "很好——目前没有对他人的欠款记录。",
+    "noMoneyOwedToYouTitle": "无人欠你款项",
+    "noMoneyOwedToYouDesc": "目前没有人有记录的应付给你的余额。"
+  },
+  "savings": {
+    "title": "储蓄",
+    "description": "目标、缴款和储蓄目标进展。",
+    "comingSoonTitle": "即将推出",
+    "comingSoonDesc": "专门的储蓄模块即将推出。在这里你可以组织储蓄目标，跟踪缴款并监控进展。",
+    "inDevelopment": "功能开发中"
+  },
+  "investments": {
+    "title": "投资",
+    "description": "投资组合视图、持仓和业绩跟踪。",
+    "comingSoonTitle": "即将推出",
+    "comingSoonDesc": "投资模块即将推出。投资组合视图、持仓和业绩跟踪将显示在此处。",
+    "inDevelopment": "功能开发中"
+  },
+  "exchangeRates": {
+    "title": "汇率",
+    "description": "货币兑换和外汇历史工具。",
+    "comingSoonTitle": "即将推出",
+    "comingSoonDesc": "汇率和货币兑换工具即将推出。",
+    "inDevelopment": "功能开发中"
+  },
+  "calculator": {
+    "title": "计算器",
+    "description": "财务计算器实用程序。",
+    "comingSoonTitle": "即将推出",
+    "comingSoonDesc": "内置财务计算器即将推出。",
+    "inDevelopment": "功能开发中"
+  },
+  "aiAssistant": {
+    "title": "智能财务AI助手",
+    "pageDescription": "使用智能AI输入、语音或扫描收据生成准确记录。"
+  },
+  "common": {
+    "seeAll": "查看全部"
   }
 }

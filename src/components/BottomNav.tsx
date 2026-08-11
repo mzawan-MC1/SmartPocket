@@ -47,8 +47,8 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
   ];
 
   const quickActions = [
-    { id: 'qa-expense', label: t('bottomNav.expense', { ns: 'portal' }), icon: TrendingDown, color: 'bg-negative-soft text-negative border border-negative/20', action: 'expense' as QuickActionId },
-    { id: 'qa-income', label: t('bottomNav.income', { ns: 'portal' }), icon: TrendingUp, color: 'bg-positive-soft text-positive border border-positive/20', action: 'income' as QuickActionId },
+    { id: 'qa-expense', label: t('bottomNav.moneyOut', { ns: 'portal', defaultValue: t('bottomNav.expense', { ns: 'portal', defaultValue: 'Money Out' }) }), icon: TrendingDown, color: 'bg-negative-soft text-negative border border-negative/20', action: 'expense' as QuickActionId },
+    { id: 'qa-income', label: t('bottomNav.moneyIn', { ns: 'portal', defaultValue: t('bottomNav.income', { ns: 'portal', defaultValue: 'Money In' }) }), icon: TrendingUp, color: 'bg-positive-soft text-positive border border-positive/20', action: 'income' as QuickActionId },
     { id: 'qa-transfer', label: t('bottomNav.transfer', { ns: 'portal' }), icon: ArrowUpDown, color: 'bg-info-soft text-info border border-info/20', action: 'transfer' as QuickActionId },
     { id: 'qa-account', label: t('bottomNav.account', { ns: 'portal' }), icon: Wallet, color: 'bg-warning-soft text-warning border border-warning/20', action: 'account' as QuickActionId },
     ...(canUseManagedPeople

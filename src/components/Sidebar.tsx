@@ -2,7 +2,9 @@
 import React from 'react';
 import Link from 'next/link';
 import AppLogo from '@/components/ui/AppLogo';
-import { LayoutDashboard, ArrowLeftRight, Wallet, PieChart, BarChart3, ChevronDown, ChevronLeft, ChevronRight, LogOut, Repeat, Tag, ArrowUpDown, Users, RotateCcw, DollarSign, Home, History, Loader2, ShoppingBag, CreditCard, LifeBuoy, CircleHelp, BriefcaseBusiness, X, Lock } from 'lucide-react';
+import AppImage from '@/components/ui/AppImage';
+import AppIcon from '@/components/ui/AppIcon';
+import { LayoutDashboard, ArrowLeftRight, Wallet, PieChart, BarChart3, ChevronDown, ChevronLeft, ChevronRight, LogOut, Repeat, Tag, ArrowUpDown, Users, RotateCcw, DollarSign, Home, History, Loader2, ShoppingBag, CreditCard, LifeBuoy, CircleHelp, BriefcaseBusiness, X, Lock, PiggyBank, Calculator, Sparkles, TrendingUp, RefreshCw, Settings } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
@@ -15,6 +17,7 @@ import { useSubscriptionSummary } from '@/contexts/SubscriptionSummaryContext';
 import UserAvatar from '@/components/ui/UserAvatar';
 import { getSubscriptionFeatureAccess } from '@/lib/subscription/entitlements';
 import type { SubscriptionFeatureAccessState } from '@/lib/subscription/entitlements';
+import { useQuickActions } from '@/components/quick-actions/QuickActionsContext';
 
 
 interface SidebarProps {
@@ -74,6 +77,7 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
       ? t('featureGate.badges.family', { ns: 'portal' })
       : t('featureGate.badges.upgrade', { ns: 'portal' })
   ), [t]);
+  const quickActions = useQuickActions();
 
   React.useEffect(() => {
     if (isReportsRoute) {
@@ -81,38 +85,58 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
     }
   }, [isReportsRoute]);
 
+  const dashboardItem: NavItem = {
+    id: 'nav-dashboard',
+    label: t('sidebar.nav.dashboard', { ns: 'portal', defaultValue: 'Dashboard' }),
+    icon: LayoutDashboard,
+    href: '/dashboard',
+  };
+
+  const settingsItem: NavItem = {
+    id: 'nav-settings',
+    label: t('sidebar.nav.settings', { ns: 'portal', defaultValue: 'Settings' }),
+    icon: Settings,
+    href: '/settings',
+  };
+
+  const helpSupportItem: NavItem = {
+    id: 'nav-help-support',
+    label: t('sidebar.nav.helpSupport', { ns: 'portal', defaultValue: 'Help & Support' }),
+    icon: LifeBuoy,
+    href: '/help',
+  };
+
   const navSections = [
     {
       heading: {
-        label: t('sidebar.sections.finance', { ns: 'portal' }),
-        icon: LayoutDashboard,
+        label: t('sidebar.sections.money', { ns: 'portal', defaultValue: 'MONEY' }),
+        icon: Wallet,
       },
       items: [
-        { id: 'nav-dashboard', label: t('nav.dashboard'), icon: LayoutDashboard, href: '/dashboard' },
-        { id: 'nav-transactions', label: t('nav.transactions'), icon: ArrowLeftRight, href: '/transactions' },
+        { id: 'nav-transactions', label: t('sidebar.nav.moneyInOut', { ns: 'portal', defaultValue: 'Money In & Out' }), icon: ArrowLeftRight, href: '/transactions' },
         { id: 'nav-accounts', label: t('nav.accounts'), icon: Wallet, href: '/financial-accounts' },
         { id: 'nav-transfers', label: t('sidebar.nav.transfers', { ns: 'portal' }), icon: ArrowUpDown, href: '/transfers' },
         { id: 'nav-budgets', label: t('nav.budgets'), icon: PieChart, href: '/budgets' },
-        { id: 'nav-recurring', label: t('sidebar.nav.recurring', { ns: 'portal' }), icon: Repeat, href: '/recurring' },
-        { id: 'nav-personal-subscriptions', label: t('sidebar.nav.personalSubscriptions', { ns: 'portal' }), icon: CreditCard, href: '/personal-subscriptions' },
-        { id: 'nav-categories', label: t('sidebar.nav.categories', { ns: 'portal' }), icon: Tag, href: '/categories' },
+        { id: 'nav-recurring', label: t('sidebar.nav.scheduledPayments', { ns: 'portal', defaultValue: 'Scheduled Payments' }), icon: Repeat, href: '/recurring' },
       ],
     },
     {
       heading: {
-        label: t('sidebar.sections.manage', { ns: 'portal' }),
+        label: t('sidebar.sections.manage', { ns: 'portal', defaultValue: 'MANAGE' }),
         icon: BriefcaseBusiness,
       },
       items: [
-        { id: 'nav-reimbursements', label: t('sidebar.nav.reimbursements', { ns: 'portal' }), icon: RotateCcw, href: '/reimbursements' },
-        { id: 'nav-settlements', label: t('sidebar.nav.settlements', { ns: 'portal' }), icon: DollarSign, href: '/settlements' },
+        { id: 'nav-personal-subscriptions', label: t('sidebar.nav.subscriptions', { ns: 'portal', defaultValue: 'Subscriptions' }), icon: CreditCard, href: '/personal-subscriptions' },
+        { id: 'nav-settlements', label: t('sidebar.nav.billsReminders', { ns: 'portal', defaultValue: 'Bills & Reminders' }), icon: DollarSign, href: '/settlements' },
         {
           id: 'nav-people',
-          label: t('sidebar.nav.people', { ns: 'portal' }),
+          label: t('sidebar.nav.beneficiaries', { ns: 'portal', defaultValue: 'Beneficiaries' }),
           icon: Users,
           href: '/people',
           restrictionBadge: shouldShowRestrictedUi(managedPeopleAccess) ? ('family' as const) : undefined,
         },
+        { id: 'nav-categories', label: t('sidebar.nav.tagsCategories', { ns: 'portal', defaultValue: 'Tags & Categories' }), icon: Tag, href: '/categories' },
+        { id: 'nav-reimbursements', label: t('sidebar.nav.reimbursements', { ns: 'portal' }), icon: RotateCcw, href: '/reimbursements' },
         {
           id: 'nav-spaces',
           label: t('sidebar.nav.spaces', { ns: 'portal' }),
@@ -124,7 +148,28 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
     },
     {
       heading: {
-        label: t('sidebar.sections.reports', { ns: 'portal' }),
+        label: t('sidebar.sections.investGrow', { ns: 'portal', defaultValue: 'INVEST & GROW' }),
+        icon: TrendingUp,
+      },
+      items: [
+        { id: 'nav-savings', label: t('sidebar.nav.savings', { ns: 'portal', defaultValue: 'Savings' }), icon: PiggyBank, href: '/savings' },
+        { id: 'nav-investments', label: t('sidebar.nav.investments', { ns: 'portal', defaultValue: 'Investments' }), icon: TrendingUp, href: '/investments' },
+      ],
+    },
+    {
+      heading: {
+        label: t('sidebar.sections.tools', { ns: 'portal', defaultValue: 'TOOLS' }),
+        icon: Sparkles,
+      },
+      items: [
+        { id: 'nav-smart-ai', label: t('sidebar.nav.smartAi', { ns: 'portal', defaultValue: 'Smart AI Assistant' }), icon: Sparkles, href: '#' },
+        { id: 'nav-exchange-rates', label: t('sidebar.nav.exchangeRates', { ns: 'portal', defaultValue: 'Exchange Rates' }), icon: RefreshCw, href: '/exchange-rates' },
+        { id: 'nav-calculator', label: t('sidebar.nav.calculator', { ns: 'portal', defaultValue: 'Calculator' }), icon: Calculator, href: '/calculator' },
+      ],
+    },
+    {
+      heading: {
+        label: t('sidebar.sections.reports', { ns: 'portal', defaultValue: 'REPORTS' }),
         icon: BarChart3,
       },
       items: [
@@ -135,16 +180,6 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
           href: '/ai-history',
           restrictionBadge: shouldShowRestrictedUi(aiHistoryAccess) ? ('upgrade' as const) : undefined,
         },
-      ],
-    },
-    {
-      heading: {
-        label: t('sidebar.sections.support', { ns: 'portal', defaultValue: 'Support' }),
-        icon: LifeBuoy,
-      },
-      items: [
-        { id: 'nav-faqs', label: t('sidebar.nav.faqs', { ns: 'portal', defaultValue: 'FAQs' }), icon: CircleHelp, href: '/faqs' },
-        { id: 'nav-support', label: t('sidebar.nav.support', { ns: 'portal', defaultValue: 'Support' }), icon: LifeBuoy, href: '/support' },
       ],
     },
   ];
@@ -194,12 +229,24 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
     const tooltipLabel = restrictionBadgeLabel
       ? t('sidebar.lockedTooltip', { ns: 'portal', label: item.label, restriction: restrictionBadgeLabel })
       : item.label;
+    const isSmartAiItem = item.id === 'nav-smart-ai';
 
     return (
       <li key={item.id}>
         <Link
           href={item.href}
           onClick={(event) => {
+            if (isSmartAiItem) {
+              event.preventDefault();
+              if (quickActions) {
+                quickActions.openQuickAction('smart_entry');
+              } else {
+                console.error('[Sidebar] Smart AI Assistant requires QuickActionsProvider.');
+                toast.error('Smart AI Assistant temporarily unavailable');
+              }
+              onNavigateItem?.();
+              return;
+            }
             const shouldNavigate = handleNavigationIntent(item.href, event);
             if (shouldNavigate) {
               onNavigateItem?.();
@@ -211,15 +258,21 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
               : itemIsRestricted
                 ? 'border-border/80 bg-muted/20 text-muted-foreground hover:border-border hover:bg-muted/35 hover:text-foreground'
                 : 'border-transparent text-muted-foreground hover:border-border/80 hover:bg-muted/45 hover:text-foreground'
-          } ${isMobileDrawer ? 'px-3 py-2.5' : 'px-2.5 py-2 text-[13px]'} ${compact ? 'px-3 py-2.5' : ''}`}
+          } ${
+            collapsed
+              ? 'mx-auto h-10 w-10 justify-center p-0'
+              : isMobileDrawer
+                ? 'px-3 py-2.5'
+                : 'px-2.5 py-2 text-[13px]'
+          } ${compact && !collapsed ? 'px-3 py-2.5' : ''}`}
           aria-current={active ? 'page' : undefined}
           aria-busy={pending ? 'true' : undefined}
           title={collapsed ? tooltipLabel : undefined}
         >
           <span className={`flex flex-shrink-0 items-center justify-center rounded-lg ${
             active ? 'bg-white text-cyan-600 ring-1 ring-cyan-100' : 'bg-muted/65 text-muted-foreground group-hover:bg-card group-hover:text-foreground'
-          } ${isMobileDrawer ? 'h-8 w-8' : 'h-7 w-7'}`}>
-            <Icon size={isMobileDrawer ? 17 : 15} />
+          } ${collapsed ? 'h-9 w-9' : isMobileDrawer ? 'h-8 w-8' : 'h-7 w-7'}`}>
+            <Icon size={collapsed ? 19 : isMobileDrawer ? 17 : 15} />
           </span>
           {!collapsed && (
             <span className="flex min-w-0 flex-1 items-center gap-2">
@@ -238,10 +291,10 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
             </span>
           )}
           {collapsed && pending ? (
-            <span className="absolute end-2.5 top-2.5 h-2 w-2 rounded-full bg-accent" />
+            <span className="absolute end-1 top-1 h-2 w-2 rounded-full bg-accent ring-1 ring-white z-10" />
           ) : null}
           {collapsed && restrictionBadgeLabel ? (
-            <span className="absolute end-2 top-2 inline-flex h-4 w-4 items-center justify-center rounded-full bg-white text-muted-foreground ring-1 ring-border/90">
+            <span className="absolute end-0 top-0 inline-flex h-4 w-4 items-center justify-center rounded-full bg-white text-muted-foreground ring-1 ring-border/90 z-10">
               <Lock size={9} />
             </span>
           ) : null}
@@ -297,7 +350,7 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
 
     return (
       <div key="reports-navigation" className={isMobileDrawer ? 'space-y-1.5' : 'space-y-1.5'}>
-        {renderSectionHeading(navSections[2].heading)}
+        {renderSectionHeading(navSections[4].heading)}
         <div className={isMobileDrawer ? 'space-y-1' : 'space-y-0.5'}>
           <button
             type="button"
@@ -319,7 +372,13 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
                 : reportsButtonIsRestricted
                   ? 'border-border/80 bg-muted/20 text-muted-foreground hover:border-border hover:bg-muted/35 hover:text-foreground'
                   : 'border-transparent text-muted-foreground hover:border-border/80 hover:bg-muted/45 hover:text-foreground'
-            } ${isMobileDrawer ? 'px-3 py-2.5' : 'px-2.5 py-2 text-[13px]'}`}
+            } ${
+              collapsed
+                ? 'mx-auto h-10 w-10 justify-center p-0'
+                : isMobileDrawer
+                  ? 'px-3 py-2.5'
+                  : 'px-2.5 py-2 text-[13px]'
+            }`}
             aria-current={parentActive ? 'page' : undefined}
             aria-busy={parentPending ? 'true' : undefined}
             aria-expanded={shouldShowSubmenu ? reportsExpanded : undefined}
@@ -331,8 +390,8 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
           >
             <span className={`flex flex-shrink-0 items-center justify-center rounded-lg ${
               parentActive ? 'bg-white text-cyan-600 ring-1 ring-cyan-100' : 'bg-muted/65 text-muted-foreground group-hover:bg-card group-hover:text-foreground'
-            } ${isMobileDrawer ? 'h-8 w-8' : 'h-7 w-7'}`}>
-              <ReportsIcon size={isMobileDrawer ? 17 : 15} />
+            } ${collapsed ? 'h-9 w-9' : isMobileDrawer ? 'h-8 w-8' : 'h-7 w-7'}`}>
+              <ReportsIcon size={collapsed ? 19 : isMobileDrawer ? 17 : 15} />
             </span>
             {!collapsed && (
               <span className="flex min-w-0 flex-1 items-center gap-2">
@@ -353,10 +412,10 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
               />
             ) : null}
             {collapsed && parentPending ? (
-              <span className="absolute end-2.5 top-2.5 h-2 w-2 rounded-full bg-accent" />
+              <span className="absolute end-1 top-1 h-2 w-2 rounded-full bg-accent ring-1 ring-white z-10" />
             ) : null}
             {collapsed && reportsRestrictionBadge ? (
-              <span className="absolute end-2 top-2 inline-flex h-4 w-4 items-center justify-center rounded-full bg-white text-muted-foreground ring-1 ring-border/90">
+              <span className="absolute end-0 top-0 inline-flex h-4 w-4 items-center justify-center rounded-full bg-white text-muted-foreground ring-1 ring-border/90 z-10">
                 <Lock size={9} />
               </span>
             ) : null}
@@ -377,7 +436,7 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
           ) : null}
 
           <ul className={isMobileDrawer ? 'space-y-1' : 'space-y-0.5'}>
-            {navSections[2].items.map((item) => renderNavItem(item))}
+            {navSections[4].items.map((item) => renderNavItem(item))}
           </ul>
         </div>
       </div>
@@ -395,29 +454,47 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
       {/* Logo */}
       <div
         className={`flex shrink-0 items-center border-b border-border/70 bg-white ${
-          isMobileDrawer ? 'h-[84px] gap-3 px-3.5' : 'h-[68px] gap-2.5 px-2.5'
+          isMobileDrawer ? 'h-[84px] gap-3 px-3.5' : collapsed ? 'h-[68px] gap-0 px-2' : 'h-[68px] gap-2.5 px-2.5'
         }`}
       >
-        <div className="min-w-0 flex-1">
+        <div className={`min-w-0 ${collapsed ? 'flex-1 flex justify-center' : 'flex-1'}`}>
           <div
-            className={`flex items-center overflow-hidden border border-border bg-muted/35 ${
-              isMobileDrawer
-                ? collapsed
-                  ? 'h-12 w-11 justify-center rounded-2xl px-1'
-                  : 'h-12 max-w-[218px] rounded-[20px] bg-white px-3 shadow-card-sm'
-                : collapsed
-                  ? 'h-10 w-10 justify-center rounded-xl px-1'
-                  : 'h-10 max-w-[184px] rounded-2xl px-2.5'
+            className={`${
+              collapsed
+                ? isMobileDrawer
+                  ? 'h-10 w-10 flex items-center justify-center rounded-xl'
+                  : 'h-10 w-10 flex items-center justify-center rounded-lg'
+                : isMobileDrawer
+                  ? 'h-12 max-w-[218px] rounded-[20px] bg-white border border-border shadow-card-sm px-3'
+                  : 'h-10 max-w-[184px] rounded-2xl border border-border bg-muted/35 px-2.5'
             }`}
           >
-            <AppLogo
-              src={collapsed ? collapsedLogoSrc : undefined}
-              width={collapsed ? (isMobileDrawer ? 24 : 22) : isMobileDrawer ? 160 : 146}
-              height={collapsed ? (isMobileDrawer ? 24 : 22) : isMobileDrawer ? 36 : 32}
-              alt={collapsed ? `${branding.appName} mark` : `${branding.appName} logo`}
-              className={collapsed ? 'justify-center' : 'w-full justify-start'}
-              imageClassName={collapsed ? 'h-full w-full max-w-full object-contain' : ''}
-            />
+            {collapsed ? (
+              collapsedLogoSrc ? (
+                <AppImage
+                  src={collapsedLogoSrc}
+                  alt={`${branding.appName} mark`}
+                  width={32}
+                  height={32}
+                  className="h-8 w-8 max-h-8 max-w-8 flex-shrink-0 object-contain"
+                  priority={true}
+                  unoptimized={/\.svg(?:\?|$)/i.test(collapsedLogoSrc)}
+                />
+              ) : (
+                <AppIcon
+                  name="SparklesIcon"
+                  size={32}
+                  className="flex-shrink-0 text-accent"
+                />
+              )
+            ) : (
+              <AppLogo
+                width={isMobileDrawer ? 160 : 146}
+                height={isMobileDrawer ? 36 : 32}
+                alt={`${branding.appName} logo`}
+                className="w-full justify-start"
+              />
+            )}
           </div>
           {!collapsed && showBrandText && (
             <span className={`block truncate font-bold tracking-tight text-primary ${isMobileDrawer ? 'mt-2 text-base' : 'mt-1.5 text-[13px]'}`}>
@@ -427,7 +504,7 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
         </div>
         <button
           onClick={onToggle}
-          className={`btn-ghost h-8.5 w-8.5 shrink-0 rounded-xl border border-border/80 p-0 ${isMobileDrawer ? 'inline-flex items-center justify-center bg-secondary/65' : ''}`}
+          className={`btn-ghost h-8.5 w-8.5 shrink-0 rounded-xl border border-border/80 p-0 inline-flex items-center justify-center ${isMobileDrawer ? 'bg-secondary/65' : ''}`}
           aria-label={collapsed ? t('sidebar.expand', { ns: 'portal' }) : t('sidebar.collapse', { ns: 'portal' })}
         >
           {isMobileDrawer ? (
@@ -439,9 +516,12 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
       </div>
 
       {/* Navigation */}
-      <nav className={`min-h-0 flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin ${isMobileDrawer ? 'overscroll-contain px-2 py-4 pb-5' : 'px-2.5 py-4'}`}>
+      <nav className={`min-h-0 flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin ${collapsed ? 'px-2 py-3 pb-[7rem] [scrollbar-gutter:stable]' : isMobileDrawer ? 'overscroll-contain px-2 py-4 pb-5' : 'px-2.5 py-4 pb-[6.5rem]'}`}>
         <div className={isMobileDrawer ? 'space-y-3' : 'space-y-3 lg:space-y-5'}>
-          {navSections.slice(0, 2).map((section) => (
+          <ul className={isMobileDrawer ? 'space-y-1' : 'space-y-0.5'}>
+            {renderNavItem(dashboardItem)}
+          </ul>
+          {navSections.slice(0, 4).map((section) => (
             <div key={section.heading.label} className={isMobileDrawer ? 'space-y-1.5' : 'space-y-1.5 lg:space-y-2'}>
               {renderSectionHeading(section.heading)}
               <ul className={isMobileDrawer ? 'space-y-1' : 'space-y-0.5'}>
@@ -450,12 +530,11 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
             </div>
           ))}
           {renderReportsSection()}
-          <div className={isMobileDrawer ? 'space-y-1.5' : 'space-y-1.5 lg:space-y-2'}>
-            {renderSectionHeading(navSections[3].heading)}
-            <ul className={isMobileDrawer ? 'space-y-1' : 'space-y-0.5'}>
-              {navSections[3].items.map((item) => renderNavItem(item))}
-            </ul>
-          </div>
+          <hr className="border-border/70 mx-2" />
+          <ul className={isMobileDrawer ? 'space-y-1' : 'space-y-0.5'}>
+            {renderNavItem(settingsItem)}
+            {renderNavItem(helpSupportItem)}
+          </ul>
         </div>
       </nav>
 

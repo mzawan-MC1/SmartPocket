@@ -23,9 +23,9 @@ export default function HelpPage() {
     <AppLayout activeRoute="/help">
       <div className="page-section page-shell-readable">
         <PageHeader
-          title={t('help.title')}
-          description={t('help.description')}
-          badge={<StatusBadge status="info" label={t('help.badge')} />}
+          title={t('help.title', { ns: 'portal', defaultValue: 'Help & Support' })}
+          description={t('help.description', { ns: 'portal', defaultValue: 'Guides, FAQs, and ways to get in touch with our team.' })}
+          badge={<StatusBadge status="info" label={t('help.badge', { ns: 'portal', defaultValue: 'Resources' })} />}
         />
 
         {/* Quick Links */}

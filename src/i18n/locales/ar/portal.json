@@ -146,7 +146,10 @@
       "finance": "المالية",
       "manage": "الإدارة",
       "reports": "التقارير",
-      "support": "الدعم"
+      "support": "الدعم",
+      "money": "MONEY",
+      "investGrow": "INVEST & GROW",
+      "tools": "TOOLS"
     },
     "nav": {
       "transfers": "التحويلات",
@@ -159,7 +162,25 @@
       "aiHistory": "سجل الذكاء الاصطناعي",
       "personalSubscriptions": "الاشتراكات الشخصية",
       "faqs": "الأسئلة الشائعة",
-      "support": "الدعم"
+      "support": "الدعم",
+      "dashboard": "Dashboard",
+      "moneyInOut": "Money In & Out",
+      "accounts": "Accounts",
+      "budgets": "Budgets",
+      "scheduledPayments": "Scheduled Payments",
+      "subscriptions": "Subscriptions",
+      "billsReminders": "Bills & Reminders",
+      "beneficiaries": "Beneficiaries",
+      "tagsCategories": "Tags & Categories",
+      "savings": "Savings",
+      "investments": "Investments",
+      "smartAi": "Smart AI Assistant",
+      "exchangeRates": "Exchange Rates",
+      "calculator": "Calculator",
+      "settings": "Settings",
+      "helpSupport": "Help & Support",
+      "transactions": "Transactions",
+      "dashboardPlural": "Dashboard"
     },
     "lockedTooltip": "{{label}} · {{restriction}}",
     "expand": "توسيع الشريط الجانبي",
@@ -173,10 +194,12 @@
     "quickAdd": "إضافة سريعة",
     "closeQuickAdd": "إغلاق الإضافة السريعة",
     "closeMore": "إغلاق قائمة المزيد",
-    "smartEntry": "الإدخال الذكي",
+    "smartEntry": "إدخال الذكاء الاصطناعي",
     "voiceEntry": "الإدخال الصوتي",
-    "expense": "مصروف",
-    "income": "دخل",
+    "expense": "مصروفات",
+    "income": "مدفوعات واردة",
+    "moneyIn": "مدفوعات واردة",
+    "moneyOut": "مصروفات",
     "transfer": "تحويل",
     "account": "حساب",
     "person": "شخص",
@@ -223,7 +246,11 @@
       "personalSubscriptions": "إضافة اشتراك",
       "recurring": "إضافة معاملة متكررة",
       "reimbursement": "إضافة تعويض",
-      "budget": "إضافة ميزانية"
+      "budget": "إضافة ميزانية",
+      "moneyIn": "مدفوعات واردة",
+      "moneyOut": "مصروفات",
+      "addAccount": "إضافة حساب",
+      "addSubscription": "إضافة اشتراك"
     },
     "quickActionShort": {
       "transaction": "معاملة",
@@ -245,7 +272,29 @@
     "moneyHealthConfigTitle": "بحاجة إلى انتباه",
     "moneyHealthReviewAction": "مراجعة",
     "moneyHealthEmptyTitle": "كل شيء جيد",
-    "moneyHealthEmptyDescription": "لا توجد عناصر عاجلة الآن."
+    "moneyHealthEmptyDescription": "لا توجد عناصر عاجلة الآن.",
+    "smartAiTitle": "الذكاء الاصطناعي المالي",
+    "smartAiSubtitle": "سجل المصروفات والدخل والمزيد — بدون استخدام يديك.",
+    "smartAiTypeIt": "اكتبها",
+    "smartAiSayIt": "قلها",
+    "smartAiUpload": "رفع إيصال",
+    "smartAiOpenAssistant": "فتح المساعد الذكي",
+    "yourBudgetsTitle": "ميزانياتك",
+    "seeAllBudgets": "عرض جميع الميزانيات",
+    "yourAccountsTitle": "حساباتك",
+    "seeAllAccounts": "عرض جميع الحسابات",
+    "addAccountTile": "إضافة حساب",
+    "financialOverviewTitle": "نظرة عامة مالية",
+    "recentActivityTitle": "النشاط الأخير",
+    "seeAllTransactions": "عرض جميع المدفوعات الواردة والصادرة",
+    "moneyYouOwe": "أموال تدين بها",
+    "moneyOwedToYou": "أموال مستحقة لك",
+    "comingUp": "قادم قريباً",
+    "upcomingSubscriptions": "الاشتراكات الشخصية القادمة",
+    "seeAllScheduledPayments": "عرض جميع المدفوعات المجدولة",
+    "seeAllSubscriptions": "عرض جميع الاشتراكات",
+    "seeAllSettlements": "عرض جميع التسويات",
+    "seeAllPeople": "عرض جميع المستفيدين"
   },
   "shared": {
     "loadingPlanningPeriodTitle": "جار تحميل فترة التخطيط",
@@ -442,7 +491,15 @@
       "managedMoney": "الأموال التي أديرها للآخرين",
       "outstandingLoans": "القروض المستحقة",
       "loanRepayments": "سداد القروض"
-    }
+    },
+    "yourMoney": "أموالك",
+    "personalBalance": "الرصيد الشخصي",
+    "moneyIn": "مدفوعات واردة",
+    "moneyOut": "مصروفات",
+    "netReceivedMore": "لقد استلمت {{amount}} أكثر مما أنفقت هذا الشهر.",
+    "netSpentMore": "لقد أنفقت {{amount}} أكثر مما استلمت هذا الشهر.",
+    "netEqual": "المدفوعات الواردة والمصروفات متساوية هذا الشهر.",
+    "netNoActivity": "لم يتم تسجيل أي نشاط لهذا الشهر بعد."
   },
   "dashboardCharts": {
     "title": "النظرة المالية العامة",
@@ -671,7 +728,8 @@
       "merchantPlaceholder": "مثال: Netflix",
       "nextDueDate": "تاريخ الاستحقاق القادم",
       "creating": "جارٍ الإنشاء..."
-    }
+    },
+    "pageDescription": "أتمتة الدخل والمصروفات والتحويلات المتكررة."
   },
   "accounts": {
     "title": "الحسابات المالية",
@@ -764,7 +822,9 @@
       "notesPlaceholder": "ملاحظات اختيارية...",
       "includeInTotal": "ضمّن في حساب إجمالي الرصيد",
       "updateAction": "تحديث الحساب"
-    }
+    },
+    "hiddenBalance": "الرصيد المخفي",
+    "pageDescription": "إدارة البنوك والبطاقات والنقد والمحافظ الرقمية والحسابات الأخرى."
   },
   "categories": {
     "title": "الفئات",
@@ -848,7 +908,8 @@
         "arrowLeftRight": "تحويل",
         "zap": "كهرباء"
       }
-    }
+    },
+    "pageDescription": "تنظيم الدخل والمصروفات حسب الفئة، وإدارة الوسوم القابلة لإعادة الاستخدام."
   },
   "people": {
     "title": "الأشخاص",
@@ -933,47 +994,48 @@
     "form": {
       "fullNameRequired": "الاسم الكامل مطلوب.",
       "preferredCurrencyRequired": "العملة المفضلة مطلوبة.",
-      "addedSuccessfully": "{{name}} added successfully",
-      "addFailed": "Failed to add person.",
+      "addedSuccessfully": "تمت إضافة {{name}} بنجاح",
+      "addFailed": "فشل إضافة الشخص.",
       "fullName": "الاسم الكامل",
       "fullNamePlaceholder": "مثال: أحمد علي",
       "relationship": "العلاقة",
       "email": "البريد الإلكتروني",
-      "optional": "Optional",
+      "optional": "اختياري",
       "phone": "رقم الهاتف",
-      "phoneHelper": "Used for contact context only. User-entered phone values stay unchanged.",
-      "existingPhoneHelper": "Existing phone details stay as entered.",
+      "phoneHelper": "يُستخدم لسياق الاتصال فقط. تظل قيم الهواتف التي يدخلها المستخدم دون تغيير.",
+      "existingPhoneHelper": "تظل تفاصيل الهاتف الحالية كما تم إدخالها.",
       "preferredCurrency": "العملة المفضلة",
-      "chooseCurrency": "Choose currency",
+      "chooseCurrency": "اختر العملة",
       "notes": "ملاحظات",
-      "notesPlaceholder": "Add optional notes...",
-      "createManagedProfile": "Create a managed profile for shared balances and reimbursements.",
-      "profileUpdated": "Profile updated",
-      "updateFailed": "Failed to update profile.",
-      "saveChanges": "Save Changes"
+      "notesPlaceholder": "أضف ملاحظات اختيارية...",
+      "createManagedProfile": "أنشئ ملفاً مداراً للأرصدة المشتركة والتعويضات.",
+      "profileUpdated": "تم تحديث الملف الشخصي",
+      "updateFailed": "فشل تحديث الملف الشخصي.",
+      "saveChanges": "حفظ التغييرات"
     },
     "quickTransaction": {
       "title": "تسجيل معاملة للشخص",
       "transactionType": "نوع المعاملة",
-      "validAmountError": "Enter a valid amount.",
-      "descriptionRequired": "Description is required.",
-      "recorded": "Transaction recorded",
-      "recordFailed": "Failed to record transaction.",
-      "descriptionPlaceholder": "Brief description",
-      "createReimbursement": "Create reimbursement for {{name}}",
-      "record": "Record",
+      "validAmountError": "أدخل مبلغاً صالحاً.",
+      "descriptionRequired": "الوصف مطلوب.",
+      "recorded": "تم تسجيل المعاملة",
+      "recordFailed": "فشل تسجيل المعاملة.",
+      "descriptionPlaceholder": "وصف مختصر",
+      "createReimbursement": "إنشاء تعويض لـ {{name}}",
+      "record": "تسجيل",
       "types": {
-        "moneyReceived": "Money Received",
-        "moneyReturned": "Money Returned",
-        "expenseFromHeld": "Expense From Held Balance",
-        "expensePaidByUser": "Expense Paid By Me",
-        "expensePaidByPerson": "Expense Paid By Person",
-        "reimbursementReceived": "Reimbursement Received",
-        "reimbursementPaid": "Reimbursement Paid",
-        "settlement": "Settlement",
-        "adjustment": "Adjustment"
+        "moneyReceived": "أموال مستلمة",
+        "moneyReturned": "أموال مستردة",
+        "expenseFromHeld": "مصروف من الرصيد المحتفظ به",
+        "expensePaidByUser": "مصروف دفعته أنا",
+        "expensePaidByPerson": "مصروف دفعه الشخص",
+        "reimbursementReceived": "تعويض مستلم",
+        "reimbursementPaid": "تعويض مدفوع",
+        "settlement": "تسوية",
+        "adjustment": "تعديل"
       }
-    }
+    },
+    "pageDescription": "إدارة الأشخاص الذين تقرضهم أو تستقر معهم أو تسترد منهم أموالاً."
   },
   "reimbursements": {
     "title": "التعويضات",
@@ -1020,11 +1082,11 @@
       "loadFailed": "فشل تحميل نموذج التعويض.",
       "owedBy": "مدين من قبل",
       "owedTo": "مدين له",
-      "person": "Person",
-      "me": "Me",
-      "descriptionPlaceholder": "What is this reimbursement for?",
+      "person": "الشخص",
+      "me": "أنا",
+      "descriptionPlaceholder": "ما سبب هذا التعويض؟",
       "dueDate": "تاريخ الاستحقاق",
-      "loading": "Loading reimbursement form...",
+      "loading": "جارٍ تحميل نموذج التعويض...",
       "created": "تم إنشاء التعويض",
       "createFailed": "فشل إنشاء التعويض."
     }
@@ -1074,7 +1136,8 @@
       "digitalWallet": "محفظة رقمية",
       "other": "أخرى"
     },
-    "account": "الحساب"
+    "account": "الحساب",
+    "pageDescription": "تتبع الفواتير والتذكيرات وتسويات القروض والالتزامات المستحقة."
   },
   "aiHistory": {
     "title": "سجل الذكاء الاصطناعي",
@@ -1615,7 +1678,9 @@
     "selectRow": "حدد الصف",
     "reportingPreviewTitle": "عملة التقارير {{currency}}؛ المزود {{provider}}؛ تاريخ السعر {{rateDate}}",
     "showingCount": "عرض {{start}}-{{end}} من {{total}}",
-    "tags": "الوسوم"
+    "tags": "الوسوم",
+    "title": "المدفوعات الواردة والصادرة",
+    "pageDescription": "راجع الدخل والمصروفات والتحويلات وقم بتصفيتها وإدارتها من سجل واحد."
   },
   "spaces": {
     "title": "المساحات",
@@ -2390,7 +2455,8 @@
       "manage": "الإدارة",
       "manageSubscription": "إدارة الاشتراك",
       "upgradeAction": "الترقية"
-    }
+    },
+    "pageDescription": "التفضيلات والوصول والفوترة وخيارات المنصة."
   },
   "help": {
     "title": "المساعدة والدعم",
@@ -2439,7 +2505,8 @@
     },
     "faqCtaTitle": "هل تحتاج إلى إجابة سريعة؟",
     "faqCtaDescription": "تصفح مكتبة الأسئلة الشائعة في Smart Pocket للحصول على مساعدة في الإعداد وسير العمل والدعم.",
-    "openFaqs": "فتح الأسئلة الشائعة"
+    "openFaqs": "فتح الأسئلة الشائعة",
+    "pageDescription": "تصفح الأسئلة الشائعة وتواصل مع الدعم."
   },
   "onboarding": {
     "title": "إعداد Smart Pocket",
@@ -3316,7 +3383,8 @@
     "loadingData": "جارٍ تحميل بيانات التقرير...",
     "noDataToExport": "لا توجد بيانات تقرير جاهزة للتصدير.",
     "csvExportedTransactions": "تم تصدير {{count}} معاملة إلى CSV.",
-    "csvExportedBudgets": "تم تصدير {{count}} ميزانية إلى CSV."
+    "csvExportedBudgets": "تم تصدير {{count}} ميزانية إلى CSV.",
+    "itemInsightsTitle": "Items Insights"
   },
   "subscriptionBilling": {
     "title": "الاشتراك والفوترة",
@@ -3872,7 +3940,8 @@
         "notifications": "تغطية التذكيرات",
         "notificationsDescription": "يستخدم {{count}} إعدادات تذكير مع تنبيهات داخل التطبيق مبنية على التحذيرات."
       }
-    }
+    },
+    "pageDescription": "تتبع وإدارة الاشتراكات الشخصية المتكررة والتجديدات."
   },
   "support": {
     "nav": {
@@ -4460,5 +4529,59 @@
       "delete": "تعذر حذف المقال.",
       "coverUpload": "تعذر رفع صورة الغلاف."
     }
+  },
+  "budgetPreview": {
+    "emptyTitle": "لا توجد ميزانيات بعد",
+    "emptyDesc": "أنشئ ميزانية لتتبع الإنفاق مقابل أهدافك.",
+    "createBudget": "إنشاء ميزانية"
+  },
+  "accountPreview": {
+    "emptyTitle": "لا توجد حسابات بعد",
+    "emptyDesc": "أضف أول حساب بنكي أو بطاقة أو حساب نقدي لتتبع الأرصدة.",
+    "addAccountCTA": "إضافة حساب",
+    "hiddenBalance": "الرصيد المخفي"
+  },
+  "peoplePreview": {
+    "moneyYouOweGuidance": "تصفح التسويات لعرض الأفراد وتسجيل المدفوعات.",
+    "moneyOwedToYouGuidance": "افتح المستفيدون لتصفح الأرصدة لكل شخص وطلب التسويات.",
+    "noMoneyOwedTitle": "لا توجد التزامات حالياً",
+    "noMoneyOwedDesc": "ممتاز — لا توجد مستحقات مسجلة للآخرين حالياً.",
+    "noMoneyOwedToYouTitle": "لا يوجد ما يستحق لك",
+    "noMoneyOwedToYouDesc": "لا يوجد لدى أي شخص رصيد مستحق لك حتى الآن."
+  },
+  "savings": {
+    "title": "المدخرات",
+    "description": "الأهداف والمساهمات والتقدم نحو أهداف الادخار.",
+    "comingSoonTitle": "قريباً",
+    "comingSoonDesc": "وحدة مدخرات مخصصة قريبة جداً. هنا ستتمكن من تنظيم أهداف المدخرات وتتبع المساهمات ومراقبة التقدم.",
+    "inDevelopment": "الميزة قيد التطوير"
+  },
+  "investments": {
+    "title": "الاستثمارات",
+    "description": "طرق عرض المحفظة والمقتنيات وتتبع الأداء.",
+    "comingSoonTitle": "قريباً",
+    "comingSoonDesc": "وحدة الاستثمارات قريبة جداً. ستظهر هنا طرق عرض المحفظة والمقتنيات وتتبع الأداء.",
+    "inDevelopment": "الميزة قيد التطوير"
+  },
+  "exchangeRates": {
+    "title": "أسعار الصرف",
+    "description": "أدوات تحويل العملات وتاريخ سعر الصرف.",
+    "comingSoonTitle": "قريباً",
+    "comingSoonDesc": "أدوات أسعار الصرف وتحويل العملات قريبة جداً.",
+    "inDevelopment": "الميزة قيد التطوير"
+  },
+  "calculator": {
+    "title": "الآلة الحاسبة",
+    "description": "أدوات الآلة الحاسبة المالية.",
+    "comingSoonTitle": "قريباً",
+    "comingSoonDesc": "آلة حاسبة مالية مدمجة قريبة جداً.",
+    "inDevelopment": "الميزة قيد التطوير"
+  },
+  "aiAssistant": {
+    "title": "المساعد الذكي المالي",
+    "pageDescription": "استخدم الذكاء الاصطناعي المالي لكتابة الإيصالات أو نطقها أو مسحها ضوئياً لإنشاء سجلات دقيقة."
+  },
+  "common": {
+    "seeAll": "عرض الكل"
   }
 }

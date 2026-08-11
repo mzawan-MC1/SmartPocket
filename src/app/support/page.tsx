@@ -96,8 +96,8 @@ export default function SupportPage() {
     <AppLayout activeRoute="/support">
       <div className="page-section page-shell-readable">
         <PageHeader
-          title={t('support.list.title')}
-          description={t('support.list.description')}
+          title={t('help.title', { ns: 'portal', defaultValue: 'Help & Support' })}
+          description={t('support.list.description', { ns: 'portal', defaultValue: 'Browse and manage your support tickets.' })}
           actions={
             <div className={`flex w-full ${isRTL ? 'justify-start' : 'justify-end'}`}>
               <Link href="/support/new" className="btn-primary">

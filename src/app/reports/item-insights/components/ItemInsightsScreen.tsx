@@ -645,9 +645,9 @@ export default function ItemInsightsScreen() {
   return (
     <div className="page-section">
       <PageHeader
-        title={t('itemInsights.title', { ns: 'portal', defaultValue: 'Item Insights' })}
-        description={t('itemInsights.description', { ns: 'portal', defaultValue: 'Track item-level spending, price history, recurring buying patterns, and merchant intelligence from your saved receipts.' })}
-        badge={<StatusBadge status="info" label={t('itemInsights.badge', { ns: 'portal', defaultValue: 'Receipt Intelligence' })} />}
+        title={t('reports.itemInsightsTitle', { ns: 'portal', defaultValue: 'Items Insights' })}
+        description={t('reports.itemInsightsDescription', { ns: 'portal', defaultValue: 'Track item-level spending, price history, recurring buying patterns, and merchant intelligence from your saved receipts.' })}
+        badge={<StatusBadge status="info" label={t('reports.itemInsightsBadge', { ns: 'portal', defaultValue: 'Receipt Intelligence' })} />}
         compact
         actions={
           <div className="flex flex-wrap gap-2">

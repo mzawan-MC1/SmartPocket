@@ -146,7 +146,10 @@
       "finance": "Finans",
       "manage": "Yönet",
       "reports": "Raporlar",
-      "support": "Destek"
+      "support": "Destek",
+      "money": "MONEY",
+      "investGrow": "INVEST & GROW",
+      "tools": "TOOLS"
     },
     "nav": {
       "transfers": "Transferler",
@@ -159,7 +162,25 @@
       "aiHistory": "AI Geçmişi",
       "personalSubscriptions": "Kişisel Abonelikler",
       "support": "Destek",
-      "faqs": "SSS"
+      "faqs": "SSS",
+      "dashboard": "Kontrol Paneli",
+      "moneyInOut": "Gelirler ve Giderler",
+      "accounts": "Hesaplar",
+      "budgets": "Bütçeler",
+      "scheduledPayments": "Planlanmış Ödemeler",
+      "subscriptions": "Abonelikler",
+      "billsReminders": "Faturalar ve Hatırlatmalar",
+      "beneficiaries": "Alıcılar",
+      "tagsCategories": "Etiketler ve Kategoriler",
+      "savings": "Tasarruflar",
+      "investments": "Yatırımlar",
+      "smartAi": "Akıllı Yapay Zeka Finans Asistanı",
+      "exchangeRates": "Döviz Kurları",
+      "calculator": "Hesap Makinesi",
+      "settings": "Ayarlar",
+      "helpSupport": "Yardım ve Destek",
+      "transactions": "İşlemler",
+      "dashboardPlural": "Kontrol Panelleri"
     },
     "lockedTooltip": "{{label}} · {{restriction}}",
     "expand": "Kenar çubuğunu genişlet",
@@ -173,10 +194,12 @@
     "quickAdd": "Hızlı ekle",
     "closeQuickAdd": "Hızlı eklemeyi kapat",
     "closeMore": "Daha fazla menüyü kapat",
-    "smartEntry": "Akıllı Giriş",
+    "smartEntry": "Akıllı Yapay Zeka Girişi",
     "voiceEntry": "Ses Girişi",
-    "expense": "Gider",
-    "income": "Gelir",
+    "expense": "Giderler",
+    "income": "Gelirler",
+    "moneyIn": "Gelirler",
+    "moneyOut": "Giderler",
     "transfer": "Transfer",
     "account": "Hesap",
     "person": "Kişi",
@@ -223,7 +246,11 @@
       "personalSubscriptions": "Abonelik Ekle",
       "recurring": "Tekrarlayan Ekle",
       "reimbursement": "Geri Ödeme Ekle",
-      "budget": "Bütçe Ekle"
+      "budget": "Bütçe Ekle",
+      "moneyIn": "Gelirler",
+      "moneyOut": "Giderler",
+      "addAccount": "Hesap Ekle",
+      "addSubscription": "Abonelik Ekle"
     },
     "quickActionShort": {
       "transaction": "İşlem",
@@ -245,7 +272,29 @@
     "moneyHealthConfigTitle": "Dikkat gerekiyor",
     "moneyHealthReviewAction": "İncele",
     "moneyHealthEmptyTitle": "Her şey yolunda",
-    "moneyHealthEmptyDescription": "Şu anda acil öğe yok."
+    "moneyHealthEmptyDescription": "Şu anda acil öğe yok.",
+    "smartAiTitle": "Akıllı Finansal Yapay Zeka",
+    "smartAiSubtitle": "Giderleri, gelirleri ve daha fazlasını yakalayın — ellerinizi kullanmadan.",
+    "smartAiTypeIt": "Yazın",
+    "smartAiSayIt": "Söyleyin",
+    "smartAiUpload": "Fiş yükle",
+    "smartAiOpenAssistant": "Yapay Zeka Asistanını Aç",
+    "yourBudgetsTitle": "Bütçeleriniz",
+    "seeAllBudgets": "Tüm Bütçeleri Gör",
+    "yourAccountsTitle": "Hesaplarınız",
+    "seeAllAccounts": "Tüm Hesapları Gör",
+    "addAccountTile": "Hesap Ekle",
+    "financialOverviewTitle": "Finansal Genel Bakış",
+    "recentActivityTitle": "Son Aktivite",
+    "seeAllTransactions": "Tüm Gelirler ve Giderleri Gör",
+    "moneyYouOwe": "Borç Olduğunuz Para",
+    "moneyOwedToYou": "Size Borçlu Para",
+    "comingUp": "Yakında",
+    "upcomingSubscriptions": "Gelecek Kişisel Abonelikler",
+    "seeAllScheduledPayments": "Tüm Planlanmış Ödemeleri Gör",
+    "seeAllSubscriptions": "Tüm Abonelikleri Gör",
+    "seeAllSettlements": "Tüm Mutabakatları Gör",
+    "seeAllPeople": "Tüm Alıcıları Gör"
   },
   "shared": {
     "loadingPlanningPeriodTitle": "Planlama dönemi yükleniyor",
@@ -848,7 +897,8 @@
         "people": "Kişiler",
         "commitments": "Taahhütler"
       }
-    }
+    },
+    "itemInsightsTitle": "Items Insights"
   },
   "dashboardMetrics": {
     "monthly": "Aylık",
@@ -931,7 +981,15 @@
       "managedMoney": "Başkaları Adına Yönettiğim Para",
       "outstandingLoans": "Bekleyen Krediler",
       "loanRepayments": "Kredi Geri Ödemeleri"
-    }
+    },
+    "yourMoney": "Paranız",
+    "personalBalance": "Kişisel Bakiye",
+    "moneyIn": "Gelirler",
+    "moneyOut": "Giderler",
+    "netReceivedMore": "Bu ay harcadığınızdan {{amount}} daha fazlasını aldınız.",
+    "netSpentMore": "Bu ay aldığınızdan {{amount}} daha fazlasını harcadınız.",
+    "netEqual": "Bu ay gelirler ve giderler eşit.",
+    "netNoActivity": "Henüz bu ay için hiçbir aktivite kaydedilmedi."
   },
   "dashboardCharts": {
     "title": "Finansal Genel Bakış",
@@ -1160,7 +1218,8 @@
       "merchantPlaceholder": "örn. Netflix",
       "nextDueDate": "Sonraki Vade Tarihi",
       "creating": "Oluşturuluyor..."
-    }
+    },
+    "pageDescription": "Tekrarlayan gelirleri, giderleri ve transferleri otomatikleştirin."
   },
   "accounts": {
     "title": "Finansal Hesaplar",
@@ -1253,7 +1312,9 @@
       "updateAction": "Hesabı Güncelle",
       "typeRequired": "Hesap türü zorunludur.",
       "currency": "Para Birimi"
-    }
+    },
+    "hiddenBalance": "Gizli bakiye",
+    "pageDescription": "Bankaları, kartları, nakiti, dijital cüzdanları ve diğer hesapları yönetin."
   },
   "categories": {
     "title": "Kategoriler",
@@ -1337,7 +1398,8 @@
         "arrowLeftRight": "Transfer",
         "zap": "Elektrik"
       }
-    }
+    },
+    "pageDescription": "Gelirleri ve giderleri kategoriye göre düzenleyin ve yeniden kullanılabilir etiketleri yönetin."
   },
   "people": {
     "title": "Kişiler",
@@ -1462,7 +1524,8 @@
       "noSettlementsYet": "Henüz mutabakat yok.",
       "personReport": "Kişi Raporu",
       "fullReports": "Tam Raporları Görüntüle"
-    }
+    },
+    "pageDescription": "Para ödünç verdiğiniz, borç aldığınız, mutabakat yaptığınız ve geri ödeme yaptığınız kişileri yönetin."
   },
   "reimbursements": {
     "title": "Geri Ödemeler",
@@ -1563,7 +1626,8 @@
       "digitalWallet": "Dijital Cüzdan",
       "other": "Diğer"
     },
-    "account": "Hesap"
+    "account": "Hesap",
+    "pageDescription": "Faturaları, hatırlatmaları, kredi mutabakatlarını ve ödemeleri takip edin."
   },
   "aiHistory": {
     "title": "AI Geçmişi",
@@ -2103,7 +2167,9 @@
       "quantity": "Miktar",
       "unitPrice": "Birim",
       "lineTotal": "Toplam"
-    }
+    },
+    "title": "Gelirler ve Giderler",
+    "pageDescription": "Gelirleri, giderleri ve transferleri tek bir yevmiyeden inceleyin, filtreleyin ve yönetin."
   },
   "spaces": {
     "title": "Alanlar",
@@ -2878,7 +2944,8 @@
       "manage": "YÃ¶net",
       "manageSubscription": "YÃ¶net subscription",
       "upgradeAction": "YÃ¼kseltme"
-    }
+    },
+    "pageDescription": "Tercihler, erişim, faturalandırma ve platform seçenekleri."
   },
   "help": {
     "title": "Yardım ve Destek",
@@ -2927,7 +2994,8 @@
     },
     "faqCtaTitle": "İhtiyacı Var a hızlı answer?",
     "faqCtaDescription": "Browse the Smart Pocket SSS kitaplık fveya setup yardım, wveyakfdÃ¼ÅŸÃ¼k guidance, and suppveyat answers.",
-    "openFaqs": "AÃ§ SSSs"
+    "openFaqs": "AÃ§ SSSs",
+    "pageDescription": "SSS'leri inceleyin ve destekle iletişime geçin."
   },
   "onboarding": {
     "title": "Smart Pocket'a Hoş Geldiniz",
@@ -3871,7 +3939,8 @@
         "notifications": "Reminder coverage",
         "notificationsDescription": "Kullanarak {{count}} reminder ayarlar artı warning-dayalı in-app alerts."
       }
-    }
+    },
+    "pageDescription": "Tekrarlayan kişisel abonelikleri ve yenilemeleri takip edin ve yönetin."
   },
   "support": {
     "nav": {
@@ -4450,5 +4519,59 @@
       "delete": "BaÅŸarÄ±sÄ±z iÃ§in delete the blog post.",
       "coverUpload": "BaÅŸarÄ±sÄ±z iÃ§in upload the cover image."
     }
+  },
+  "budgetPreview": {
+    "emptyTitle": "Henüz bütçe yok",
+    "emptyDesc": "Harcamalarınızı hedeflerinize göre takip etmek için bir bütçe oluşturun.",
+    "createBudget": "Bütçe oluştur"
+  },
+  "accountPreview": {
+    "emptyTitle": "Henüz hesap yok",
+    "emptyDesc": "Bakiyeleri takip etmek için ilk bankanızı, kartınızı veya nakit hesabınızı ekleyin.",
+    "addAccountCTA": "Hesap ekle",
+    "hiddenBalance": "Gizli bakiye"
+  },
+  "peoplePreview": {
+    "moneyYouOweGuidance": "Bireyleri görmek ve ödemeleri kaydetmek için Mutabakatları inceleyin.",
+    "moneyOwedToYouGuidance": "Kişi başına bakiyeleri incelemek ve mutabakat talep etmek için Alıcıları açın.",
+    "noMoneyOwedTitle": "Şu anda borç yok",
+    "noMoneyOwedDesc": "Harika — şu anda başkalarına ait kaydedilmiş bir borç yok.",
+    "noMoneyOwedToYouTitle": "Size borçlu olan yok",
+    "noMoneyOwedToYouDesc": "Henüz size ödenmesi gereken kaydedilmiş bakiyeye sahip kimse yok."
+  },
+  "savings": {
+    "title": "Tasarruflar",
+    "description": "Hedefler, katkılar ve tasarruf hedeflerine doğru ilerleme.",
+    "comingSoonTitle": "Yakında",
+    "comingSoonDesc": "Özel bir Tasarruflar modülü yakında geliyor. Burada tasarruf hedeflerinizi organize edebilecek, katkıları takip edebilecek ve ilerlemeyi izleyebileceksiniz.",
+    "inDevelopment": "Özellik geliştirme aşamasında"
+  },
+  "investments": {
+    "title": "Yatırımlar",
+    "description": "Portföy görünümleri, varlıklar ve performans takibi.",
+    "comingSoonTitle": "Yakında",
+    "comingSoonDesc": "Bir Yatırımlar modülü yakında geliyor. Portföy görünümleri, varlıklar ve performans takibi burada görünecek.",
+    "inDevelopment": "Özellik geliştirme aşamasında"
+  },
+  "exchangeRates": {
+    "title": "Döviz Kurları",
+    "description": "Para birimi dönüşümü ve FX geçmişi araçları.",
+    "comingSoonTitle": "Yakında",
+    "comingSoonDesc": "Döviz kurları ve para birimi dönüşüm araçları yakında geliyor.",
+    "inDevelopment": "Özellik geliştirme aşamasında"
+  },
+  "calculator": {
+    "title": "Hesap Makinesi",
+    "description": "Finans hesap makinesi yardımcı programları.",
+    "comingSoonTitle": "Yakında",
+    "comingSoonDesc": "Yerleşik bir finans hesap makinesi yakında geliyor.",
+    "inDevelopment": "Özellik geliştirme aşamasında"
+  },
+  "aiAssistant": {
+    "title": "Akıllı Yapay Zeka Finans Asistanı",
+    "pageDescription": "Fişleri doğru kayıtlara yazdırmak, söylemek veya taramak için Akıllı Yapay Zekayı kullanın."
+  },
+  "common": {
+    "seeAll": "Tümünü gör"
   }
 }

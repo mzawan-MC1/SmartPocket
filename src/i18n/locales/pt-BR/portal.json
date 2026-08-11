@@ -146,7 +146,10 @@
       "finance": "Finanças",
       "manage": "Gerenciar",
       "reports": "Relatórios",
-      "support": "Suporte"
+      "support": "Suporte",
+      "money": "MONEY",
+      "investGrow": "INVEST & GROW",
+      "tools": "TOOLS"
     },
     "nav": {
       "transfers": "Transferências",
@@ -159,7 +162,25 @@
       "aiHistory": "Histórico de IA",
       "personalSubscriptions": "Assinaturas Pessoais",
       "support": "Suporte",
-      "faqs": "FAQs"
+      "faqs": "FAQs",
+      "dashboard": "Painel",
+      "moneyInOut": "Entradas e Saídas",
+      "accounts": "Contas",
+      "budgets": "Orçamentos",
+      "scheduledPayments": "Pagamentos Agendados",
+      "subscriptions": "Assinaturas",
+      "billsReminders": "Contas e Lembretes",
+      "beneficiaries": "Beneficiários",
+      "tagsCategories": "Marcadores e Categorias",
+      "savings": "Poupança",
+      "investments": "Investimentos",
+      "smartAi": "Assistente Financeiro com IA",
+      "exchangeRates": "Taxas de Câmbio",
+      "calculator": "Calculadora",
+      "settings": "Configurações",
+      "helpSupport": "Ajuda e Suporte",
+      "transactions": "Transações",
+      "dashboardPlural": "Painéis"
     },
     "lockedTooltip": "{{label}} · {{restriction}}",
     "expand": "Expandir barra lateral",
@@ -173,10 +194,12 @@
     "quickAdd": "Adicionar rápido",
     "closeQuickAdd": "Fechar adicionar rápido",
     "closeMore": "Fechar menu mais",
-    "smartEntry": "Smart Entry",
+    "smartEntry": "Entrada Inteligente com IA",
     "voiceEntry": "Entrada por Voz",
-    "expense": "Despesa",
-    "income": "Renda",
+    "expense": "Saídas",
+    "income": "Entradas",
+    "moneyIn": "Entradas",
+    "moneyOut": "Saídas",
     "transfer": "Transferência",
     "account": "Conta",
     "person": "Pessoa",
@@ -223,7 +246,11 @@
       "personalSubscriptions": "Adicionar Assinatura",
       "recurring": "Adicionar Recorrente",
       "reimbursement": "Adicionar Reembolso",
-      "budget": "Adicionar Orçamento"
+      "budget": "Adicionar Orçamento",
+      "moneyIn": "Entradas",
+      "moneyOut": "Saídas",
+      "addAccount": "Adicionar Conta",
+      "addSubscription": "Adicionar Assinatura"
     },
     "quickActionShort": {
       "transaction": "Transação",
@@ -245,7 +272,29 @@
     "moneyHealthConfigTitle": "Precisa de atenção",
     "moneyHealthReviewAction": "Revisar",
     "moneyHealthEmptyTitle": "Tudo certo",
-    "moneyHealthEmptyDescription": "Sem itens urgentes no momento."
+    "moneyHealthEmptyDescription": "Sem itens urgentes no momento.",
+    "smartAiTitle": "IA Financeira Inteligente",
+    "smartAiSubtitle": "Capture despesas, receitas e mais — sem usar as mãos.",
+    "smartAiTypeIt": "Escreva",
+    "smartAiSayIt": "Diga",
+    "smartAiUpload": "Carregar recibo",
+    "smartAiOpenAssistant": "Abrir Assistente IA",
+    "yourBudgetsTitle": "Seus Orçamentos",
+    "seeAllBudgets": "Ver todos os Orçamentos",
+    "yourAccountsTitle": "Suas Contas",
+    "seeAllAccounts": "Ver todas as Contas",
+    "addAccountTile": "Adicionar Conta",
+    "financialOverviewTitle": "Visão Geral Financeira",
+    "recentActivityTitle": "Atividade Recente",
+    "seeAllTransactions": "Ver todas as Entradas e Saídas",
+    "moneyYouOwe": "Dinheiro que Você Deve",
+    "moneyOwedToYou": "Dinheiro que te Devem",
+    "comingUp": "A Vir",
+    "upcomingSubscriptions": "Assinaturas Pessoais a Vir",
+    "seeAllScheduledPayments": "Ver todos os Pagamentos Agendados",
+    "seeAllSubscriptions": "Ver todas as Assinaturas",
+    "seeAllSettlements": "Ver todos os Acordos",
+    "seeAllPeople": "Ver todos os Beneficiários"
   },
   "shared": {
     "loadingPlanningPeriodTitle": "Carregando período de planejamento",
@@ -848,7 +897,8 @@
         "people": "Pessoas",
         "commitments": "Compromissos"
       }
-    }
+    },
+    "itemInsightsTitle": "Items Insights"
   },
   "dashboardMetrics": {
     "monthly": "Mensal",
@@ -931,7 +981,15 @@
       "managedMoney": "Dinheiro que Gerencio para Outros",
       "outstandingLoans": "Empréstimos Pendentes",
       "loanRepayments": "Pagamentos de Empréstimo"
-    }
+    },
+    "yourMoney": "Seu Dinheiro",
+    "personalBalance": "Saldo Pessoal",
+    "moneyIn": "Entradas",
+    "moneyOut": "Saídas",
+    "netReceivedMore": "Você recebeu {{amount}} a mais do que gastou este mês.",
+    "netSpentMore": "Você gastou {{amount}} a mais do que recebeu este mês.",
+    "netEqual": "As entradas e saídas estão iguais este mês.",
+    "netNoActivity": "Nenhuma atividade registrada para este mês ainda."
   },
   "dashboardCharts": {
     "title": "Visão Geral Financeira",
@@ -1160,7 +1218,8 @@
       "merchantPlaceholder": "ex: Netflix",
       "nextDueDate": "Próxima Data de Vencimento",
       "creating": "Criando..."
-    }
+    },
+    "pageDescription": "Automatize receitas, despesas e transferências recorrentes."
   },
   "accounts": {
     "title": "Contas Financeiras",
@@ -1253,7 +1312,9 @@
       "updateAction": "Atualizar Conta",
       "typeRequired": "O tipo de conta é obrigatório.",
       "currency": "Moeda"
-    }
+    },
+    "hiddenBalance": "Saldo oculto",
+    "pageDescription": "Gerencie bancos, cartões, dinheiro, carteiras digitais e outras contas."
   },
   "categories": {
     "title": "Categorias",
@@ -1337,7 +1398,8 @@
         "arrowLeftRight": "Transferência",
         "zap": "Elétrica"
       }
-    }
+    },
+    "pageDescription": "Organize receitas e despesas por categoria e gerencie marcadores reutilizáveis."
   },
   "people": {
     "title": "Pessoas",
@@ -1462,7 +1524,8 @@
       "noSettlementsYet": "Ainda sem acordos.",
       "personReport": "Relatório da Pessoa",
       "fullReports": "Ver Relatórios Completos"
-    }
+    },
+    "pageDescription": "Gerencie pessoas a quem você empresta, de quem pega emprestado, com quem acerta e reembolsa."
   },
   "reimbursements": {
     "title": "Reembolsos",
@@ -1563,7 +1626,8 @@
       "digitalWallet": "Carteira Digital",
       "other": "Outro"
     },
-    "account": "Conta"
+    "account": "Conta",
+    "pageDescription": "Acompanhe contas, lembretes, acordos de empréstimo e vencimentos."
   },
   "aiHistory": {
     "title": "Histórico de IA",
@@ -2103,7 +2167,9 @@
       "quantity": "Qtd",
       "unitPrice": "Unitário",
       "lineTotal": "Total"
-    }
+    },
+    "title": "Entradas e Saídas",
+    "pageDescription": "Consulte, filtre e gerencie receitas, despesas e transferências a partir de um único registro."
   },
   "spaces": {
     "title": "Espaços",
@@ -2878,7 +2944,8 @@
       "manage": "Gerenciar",
       "manageSubscription": "Gerenciar assinatura",
       "upgradeAction": "Atualizar"
-    }
+    },
+    "pageDescription": "Preferências, acesso, faturamento e opções da plataforma."
   },
   "help": {
     "title": "Ajuda e Suporte",
@@ -2927,7 +2994,8 @@
     },
     "faqCtaTitle": "Precisa de uma resposta rápida?",
     "faqCtaDescription": "Navegue pela biblioteca de FAQs do Smart Pocket para ajuda na configuração, orientações de fluxo de trabalho e respostas de suporte.",
-    "openFaqs": "Abrir FAQs"
+    "openFaqs": "Abrir FAQs",
+    "pageDescription": "Navegue pelas FAQs e entre em contato com o suporte."
   },
   "onboarding": {
     "title": "Configurar o Smart Pocket",
@@ -3871,7 +3939,8 @@
         "notifications": "Cobertura de lembrete",
         "notificationsDescription": "Usando {{count}} configurações de lembrete mais alertas no aplicativo baseados em aviso."
       }
-    }
+    },
+    "pageDescription": "Acompanhe e gerencie assinaturas pessoais recorrentes e renovações."
   },
   "support": {
     "nav": {
@@ -4450,5 +4519,59 @@
       "delete": "Falha ao excluir o post de blog.",
       "coverUpload": "Falha ao carregar a imagem de capa."
     }
+  },
+  "budgetPreview": {
+    "emptyTitle": "Ainda sem orçamentos",
+    "emptyDesc": "Crie um orçamento para acompanhar os gastos em relação às suas metas.",
+    "createBudget": "Criar orçamento"
+  },
+  "accountPreview": {
+    "emptyTitle": "Ainda sem contas",
+    "emptyDesc": "Adicione sua primeira conta bancária, cartão ou dinheiro para acompanhar os saldos.",
+    "addAccountCTA": "Adicionar conta",
+    "hiddenBalance": "Saldo oculto"
+  },
+  "peoplePreview": {
+    "moneyYouOweGuidance": "Abra Acordos para ver pessoas específicas e registrar pagamentos.",
+    "moneyOwedToYouGuidance": "Abra Beneficiários para consultar saldos por pessoa e solicitar acordos.",
+    "noMoneyOwedTitle": "Nada pendente agora",
+    "noMoneyOwedDesc": "Ótimo — sem valores registrados devidos a terceiros no momento.",
+    "noMoneyOwedToYouTitle": "Nada devido a você",
+    "noMoneyOwedToYouDesc": "Ninguém tem saldo registrado pago a você ainda."
+  },
+  "savings": {
+    "title": "Poupança",
+    "description": "Metas, contribuições e progresso em direção aos objetivos de economia.",
+    "comingSoonTitle": "Em breve",
+    "comingSoonDesc": "Um módulo dedicado de Poupança chegará em breve. Aqui você poderá organizar metas de economia, acompanhar contribuições e monitorar o progresso.",
+    "inDevelopment": "Funcionalidade em desenvolvimento"
+  },
+  "investments": {
+    "title": "Investimentos",
+    "description": "Visões de carteira, participações e acompanhamento de desempenho.",
+    "comingSoonTitle": "Em breve",
+    "comingSoonDesc": "Um módulo de Investimentos chegará em breve. Visões de carteira, participações e acompanhamento de desempenho aparecerão aqui.",
+    "inDevelopment": "Funcionalidade em desenvolvimento"
+  },
+  "exchangeRates": {
+    "title": "Taxas de Câmbio",
+    "description": "Ferramentas de conversão de moeda e histórico de câmbio.",
+    "comingSoonTitle": "Em breve",
+    "comingSoonDesc": "Taxas de câmbio e ferramentas de conversão de moeda chegarão em breve.",
+    "inDevelopment": "Funcionalidade em desenvolvimento"
+  },
+  "calculator": {
+    "title": "Calculadora",
+    "description": "Utilitários de calculadora financeira.",
+    "comingSoonTitle": "Em breve",
+    "comingSoonDesc": "Uma calculadora financeira integrada chegará em breve.",
+    "inDevelopment": "Funcionalidade em desenvolvimento"
+  },
+  "aiAssistant": {
+    "title": "Assistente Financeiro com IA",
+    "pageDescription": "Use a IA inteligente para escrever, falar ou escanear recibos em registros precisos."
+  },
+  "common": {
+    "seeAll": "Ver tudo"
   }
 }

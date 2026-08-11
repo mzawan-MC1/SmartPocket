@@ -227,13 +227,7 @@ function OriginalCurrencyDisclosure({
   );
 }
 
-export default function DashboardMetrics({
-  activePeriod,
-  hasConfigurationWarning = false,
-  variant = 'default',
-  mobileAfterSummary,
-  mobileModeToggle,
-}: {
+interface DashboardMetricsProps {
   activePeriod: DashboardActivePeriod;
   hasConfigurationWarning?: boolean;
   variant?: 'default' | 'mobile-dashboard';
@@ -242,7 +236,21 @@ export default function DashboardMetrics({
     label: string;
     onToggle: () => void;
   } | null;
-}) {
+  hideSensitive?: boolean;
+  onHideSensitiveChange?: (value: boolean) => void;
+  onPeriodNetByAccountIdChange?: (periodNetByAccountId: Map<string, number> | null) => void;
+}
+
+export default function DashboardMetrics({
+  activePeriod,
+  hasConfigurationWarning = false,
+  variant = 'default',
+  mobileAfterSummary,
+  mobileModeToggle,
+  hideSensitive: hideSensitiveProp,
+  onHideSensitiveChange,
+  onPeriodNetByAccountIdChange,
+}: DashboardMetricsProps) {
   const { t } = useTranslation(['portal', 'common']);
   const { language } = useLanguage();
   const { data: referenceData } = useClientReferenceData();
@@ -252,7 +260,14 @@ export default function DashboardMetrics({
   const [metrics, setMetrics] = useState<DashboardMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
-  const [hideSensitive, setHideSensitive] = useState(false);
+  const isControlled = typeof hideSensitiveProp === 'boolean';
+  const [internalHideSensitive, setInternalHideSensitive] = useState(false);
+  const effectiveHideSensitive = isControlled ? (hideSensitiveProp ?? false) : internalHideSensitive;
+  const toggleHide = useCallback(() => {
+    const next = !effectiveHideSensitive;
+    if (!isControlled) { setInternalHideSensitive(next); }
+    if (onHideSensitiveChange) { onHideSensitiveChange(next); }
+  }, [effectiveHideSensitive, isControlled, onHideSensitiveChange]);
   const latestLoadRequestRef = useRef(0);
   const metricsRef = useRef<DashboardMetrics | null>(null);
 
@@ -288,6 +303,9 @@ export default function DashboardMetrics({
 
       setMetrics(nextMetrics);
       setLoadError(false);
+      if (onPeriodNetByAccountIdChange) {
+        onPeriodNetByAccountIdChange(nextMetrics.periodNetByAccountId || null);
+      }
     } catch {
       if (latestLoadRequestRef.current !== requestId) {
         return;
@@ -296,6 +314,9 @@ export default function DashboardMetrics({
       if (!metricsRef.current) {
         setMetrics(null);
         setLoadError(true);
+        if (onPeriodNetByAccountIdChange) {
+          onPeriodNetByAccountIdChange(null);
+        }
       }
     } finally {
       if (timeoutId !== null) {
@@ -355,33 +376,33 @@ export default function DashboardMetrics({
       );
     }
 
-    const skeletonCards = Array.from({ length: 8 });
-
     return (
-      <div className="grid grid-cols-2 gap-3 max-[340px]:grid-cols-1 md:grid-cols-4 lg:grid-cols-3">
-        {skeletonCards.map((_, i) => (
-          <div
-            key={`skel-${i}`}
-            className={`metric-card h-full min-h-[116px] animate-pulse rounded-[24px] px-4 py-3.5 max-[480px]:min-h-[104px] max-[480px]:rounded-[20px] max-[480px]:px-3 max-[480px]:py-2.5 ${
-              i === 0
-                ? 'col-span-2 max-[340px]:col-span-1 md:col-span-2 lg:col-span-2'
-                : i === 5
-                  ? 'col-span-2 max-[340px]:col-span-1 md:col-span-2 lg:col-span-1'
-                  : i >= 6
-                    ? 'md:col-span-2 lg:col-span-1'
-                    : ''
-            }`}
-          >
-            <div className="mb-3 flex items-start justify-between">
-              <div className="space-y-2">
-                <div className="h-3.5 w-24 rounded bg-muted" />
-                <div className="h-6 w-28 rounded bg-muted" />
-              </div>
-              <div className="h-10 w-10 rounded-2xl bg-muted" />
-            </div>
-            <div className="h-3 w-24 rounded bg-muted" />
+      <div className="space-y-2.5">
+        {hasConfigurationWarning ? (
+          <p className="text-sm text-warning">{t('dashboardMetrics.monthFallbackWarning')}</p>
+        ) : null}
+        <div className="animate-pulse rounded-[22px] bg-gradient-to-br from-blue-600 via-blue-500 to-blue-700 p-4 md:p-5 shadow-lg">
+          <div className="flex items-center justify-between">
+            <div className="h-5 w-28 rounded bg-white/20" />
+            <div className="h-8 w-8 rounded-full bg-white/15" />
           </div>
-        ))}
+          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3 md:gap-3">
+            <div className="space-y-2.5">
+              <div className="h-3.5 w-32 rounded bg-white/20" />
+              <div className="h-8 w-48 rounded bg-white/20" />
+              <div className="h-3 w-36 rounded bg-white/15" />
+            </div>
+            <div className="space-y-2.5">
+              <div className="h-3.5 w-24 rounded bg-white/20" />
+              <div className="h-8 w-40 rounded bg-white/20" />
+            </div>
+            <div className="space-y-2.5">
+              <div className="h-3.5 w-28 rounded bg-white/20" />
+              <div className="h-8 w-40 rounded bg-white/20" />
+            </div>
+          </div>
+          <div className="mt-3.5 h-4 w-full rounded bg-white/15" />
+        </div>
       </div>
     );
   }
@@ -769,7 +790,7 @@ export default function DashboardMetrics({
         size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
       }
     ) => {
-      if (hideSensitive) {
+      if (effectiveHideSensitive) {
         return renderMaskedAmount(metric, className, size);
       }
 
@@ -897,12 +918,12 @@ export default function DashboardMetrics({
                 ) : null}
                 <button
                   type="button"
-                  onClick={() => setHideSensitive((current) => !current)}
+                  onClick={toggleHide}
                   className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/90 transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
-                  aria-pressed={hideSensitive}
-                  aria-label={hideSensitive ? t('actions.show', { ns: 'common', defaultValue: 'Show' }) : t('actions.hide', { ns: 'common', defaultValue: 'Hide' })}
+                  aria-pressed={effectiveHideSensitive}
+                  aria-label={effectiveHideSensitive ? t('actions.show', { ns: 'common', defaultValue: 'Show' }) : t('actions.hide', { ns: 'common', defaultValue: 'Hide' })}
                 >
-                  {hideSensitive ? (
+                  {effectiveHideSensitive ? (
                     <EyeOff size={16} className="text-white/90" />
                   ) : (
                     <Eye size={16} className="text-white/90" />
@@ -1157,14 +1178,301 @@ export default function DashboardMetrics({
     );
   };
 
+  const desktopMaskedText = '••••••';
+  const getDesktopPrimaryCurrencyCode = (metric: DashboardConvertedMetric) => {
+    if (metric.reportingAmount !== null) return metric.reportingCurrency;
+    return metric.originalTotals[0]?.currency || metrics.defaultCurrency;
+  };
+
+  const renderDesktopMaskedAmount = (
+    metric: DashboardConvertedMetric,
+    className: string,
+    size: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
+  ) => {
+    const code = getDesktopPrimaryCurrencyCode(metric);
+    const currency = getCurrencyByCode(currencies, code);
+    return (
+      <span dir="ltr" className={`inline-flex items-baseline whitespace-nowrap font-tabular ${className}`.trim()}>
+        {currency ? (
+          <CurrencySymbol currency={currency} size={size} className="text-inherit" />
+        ) : (
+          <span>{code}</span>
+        )}
+        <span className="ms-[0.18em]">{desktopMaskedText}</span>
+      </span>
+    );
+  };
+
+  const renderDesktopCurrencyText = (
+    metric: DashboardConvertedMetric,
+    {
+      className,
+      numberClassName = '',
+      symbolClassName = '',
+      size = 'md' as const,
+    }: {
+      className: string;
+      numberClassName?: string;
+      symbolClassName?: string;
+      size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+    }
+  ) => {
+    if (effectiveHideSensitive) {
+      return renderDesktopMaskedAmount(metric, className, size);
+    }
+
+    if (metric.reportingAmount === null) {
+      const safeRows = metric.originalTotals.length > 0
+        ? metric.originalTotals
+        : [{ currency: metrics.defaultCurrency, amount: 0 }];
+
+      return (
+        <div className="flex flex-col gap-1.5">
+          {safeRows.map((row) => (
+            <FormattedCurrencyAmount
+              key={`${row.currency}-${row.amount}`}
+              amount={row.amount}
+              currencyCode={row.currency}
+              locale={locale}
+              className={className}
+              numberClassName={numberClassName}
+              symbolClassName={symbolClassName}
+              size={size}
+            />
+          ))}
+        </div>
+      );
+    }
+
+    return (
+      <span style={{ unicodeBidi: 'isolate' }}>
+        <FormattedCurrencyAmount
+          amount={metric.reportingAmount}
+          currencyCode={metric.reportingCurrency}
+          locale={locale}
+          className={className}
+          numberClassName={numberClassName}
+          symbolClassName={symbolClassName}
+          size={size}
+        />
+      </span>
+    );
+  };
+
+  const incomeIsZero = isZeroMetric(metrics.monthlyIncome);
+  const expensesIsZero = isZeroMetric(metrics.monthlyExpenses);
+  const netReportingAmount = metrics.netCashFlow.reportingAmount ?? 0;
+
+  let netSentence: string;
+  let NetSentenceIcon: typeof TrendingUp;
+  let netSentenceIconClass = '';
+
+  if (incomeIsZero && expensesIsZero) {
+    netSentence = t('dashboardMetrics.netNoActivity', {
+      defaultValue: 'No activity recorded for this month yet.',
+    });
+    NetSentenceIcon = CalendarClock;
+  } else if (netReportingAmount > 0.01) {
+    netSentence = t('dashboardMetrics.netReceivedMore', {
+      defaultValue: 'You received {{amount}} more than you spent this month.',
+      amount: '',
+    });
+    NetSentenceIcon = TrendingUp;
+    netSentenceIconClass = 'text-green-300';
+  } else if (netReportingAmount < -0.01) {
+    netSentence = t('dashboardMetrics.netSpentMore', {
+      defaultValue: 'You spent {{amount}} more than you received this month.',
+      amount: '',
+    });
+    NetSentenceIcon = TrendingDown;
+    netSentenceIconClass = 'text-rose-300';
+  } else {
+    netSentence = t('dashboardMetrics.netEqual', {
+      defaultValue: 'Money in and out are equal this month.',
+    });
+    NetSentenceIcon = CalendarClock;
+  }
+
+  const netAbsoluteAmount: DashboardConvertedMetric = {
+    ...metrics.netCashFlow,
+    reportingAmount: metrics.netCashFlow.reportingAmount !== null
+      ? Math.abs(metrics.netCashFlow.reportingAmount)
+      : null,
+    originalTotals: metrics.netCashFlow.originalTotals.map((row) => ({
+      ...row,
+      amount: Math.abs(row.amount),
+    })),
+  };
+
+  const buildNetSentenceWithAmount = () => {
+    const amountNode = (
+      <span className="mx-[0.28em] inline-flex font-tabular font-700">
+        {effectiveHideSensitive
+          ? renderDesktopMaskedAmount(netAbsoluteAmount, 'text-white', 'sm')
+          : metrics.netCashFlow.reportingAmount !== null
+            ? renderDesktopCurrencyText(netAbsoluteAmount, {
+                className: 'inline-flex items-baseline whitespace-nowrap text-white',
+                numberClassName: 'text-white font-700',
+                symbolClassName: 'text-white/90',
+                size: 'sm',
+              })
+            : renderDesktopCurrencyText(netAbsoluteAmount, {
+                className: 'inline-flex items-baseline whitespace-nowrap text-white',
+                numberClassName: 'text-white font-700',
+                symbolClassName: 'text-white/90',
+                size: 'sm',
+              })}
+      </span>
+    );
+
+    if (incomeIsZero && expensesIsZero) {
+      return <span className="whitespace-normal">{netSentence}</span>;
+    }
+
+    if (netReportingAmount > 0.01 || netReportingAmount < -0.01) {
+      const parts = netSentence.split('{{amount}}');
+      const before = (parts[0] ?? '').replace(/\s*$/, ' ');
+      const after = (parts[1] ?? '').replace(/^\s*/, ' ');
+      return (
+        <span className="whitespace-normal">
+          {before}
+          {amountNode}
+          {after}
+        </span>
+      );
+    }
+
+    return <span className="whitespace-normal">{netSentence}</span>;
+  };
+
+  const balanceDeltaLabel = isMonthMode
+    ? t('dashboardMetrics.netChangeThisMonth')
+    : t('dashboardMetrics.netChangeThisPayPeriod');
+  const netCashFlowPositive = (metrics.netCashFlow.reportingAmount ?? 0) >= 0;
+
   return (
     <div className="space-y-2.5">
       {hasConfigurationWarning ? (
         <p className="text-sm text-warning">{t('dashboardMetrics.monthFallbackWarning')}</p>
       ) : null}
-      <div className="grid grid-cols-2 gap-3 max-[340px]:grid-cols-1 md:grid-cols-4 lg:grid-cols-3">
-        {metricCards.map((metric) => renderMetricCard(metric))}
-      </div>
+
+      <section className="relative overflow-hidden rounded-[22px] bg-gradient-to-br from-blue-600 via-blue-500 to-blue-700 p-3 text-white shadow-lg md:p-4">
+        <div aria-hidden="true" className="pointer-events-none absolute right-[-1.5rem] top-[-1.5rem] h-40 w-40 rounded-full border border-white/10 opacity-60" />
+        <div aria-hidden="true" className="pointer-events-none absolute right-8 bottom-[-2rem] h-32 w-32 rounded-full border border-white/10 opacity-50" />
+
+        <div className="relative z-[1]">
+          <div className="flex items-center justify-between gap-2.5">
+            <h2 className="text-[0.95rem] font-700 tracking-[-0.015em] text-white md:text-[1rem]">
+              {t('dashboardMetrics.yourMoney', { defaultValue: 'Your Money' })}
+            </h2>
+            <button
+              type="button"
+              onClick={toggleHide}
+              className="inline-flex h-[42px] w-[42px] items-center justify-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-0 flex-shrink-0"
+              aria-pressed={effectiveHideSensitive}
+              aria-label={effectiveHideSensitive ? t('actions.show', { ns: 'common', defaultValue: 'Show' }) : t('actions.hide', { ns: 'common', defaultValue: 'Hide' })}
+              title={effectiveHideSensitive ? t('actions.show', { ns: 'common', defaultValue: 'Show' }) : t('actions.hide', { ns: 'common', defaultValue: 'Hide' })}
+            >
+              {effectiveHideSensitive ? (
+                <EyeOff size={28} className="text-white/95" />
+              ) : (
+                <Eye size={28} className="text-white/95" />
+              )}
+            </button>
+          </div>
+
+          <div className="mt-3 grid grid-cols-1 gap-2.5 md:grid-cols-3 md:gap-2.5">
+            <div className="min-w-0">
+              <p className="text-[11px] font-500 text-white/80 md:text-[11.5px]">
+                {t('dashboardMetrics.personalBalance', { defaultValue: 'Personal Balance' })}
+              </p>
+              <div className="mt-1.5 font-tabular">
+                {renderDesktopCurrencyText(
+                  metrics.totalBalance,
+                  {
+                    className: 'inline-flex items-baseline whitespace-nowrap text-[20px] font-800 leading-[1.05] tracking-[-0.04em] text-white md:text-[24px] lg:text-[26px]',
+                    numberClassName: 'text-[20px] font-800 leading-[1.05] tracking-[-0.04em] text-white md:text-[24px] lg:text-[26px]',
+                    symbolClassName: 'text-white/95',
+                    size: 'lg',
+                  }
+                )}
+              </div>
+              <div className="mt-1.5 flex items-center gap-1.25">
+                {netCashFlowPositive ? (
+                  <ArrowUp size={13.5} className="text-green-300 flex-shrink-0" />
+                ) : (
+                  <ArrowDown size={13.5} className="text-rose-300 flex-shrink-0" />
+                )}
+                <div className={`font-tabular ${netCashFlowPositive ? 'text-green-200' : 'text-rose-200'}`}>
+                  {renderDesktopCurrencyText(
+                    metrics.netCashFlow,
+                    {
+                      className: 'inline-flex items-baseline text-[11.5px] font-700 leading-none tracking-[-0.02em]',
+                      numberClassName: 'text-[11.5px] font-700 leading-none tracking-[-0.02em]',
+                      symbolClassName: netCashFlowPositive ? 'text-green-200' : 'text-rose-200',
+                      size: 'xs',
+                    }
+                  )}
+                </div>
+                <span className="text-[11.5px] font-500 text-white/75">{balanceDeltaLabel}</span>
+              </div>
+            </div>
+
+            <div className="min-w-0 md:border-s md:border-white/15 md:ps-3">
+              <p className="text-[12.5px] font-600 text-white/85 md:text-[13.5px]">
+                {t('dashboardMetrics.moneyIn', { defaultValue: 'Money In' })}
+              </p>
+              <div className="mt-1.5 flex items-center gap-2">
+                <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/15 text-green-300">
+                  <ArrowUp size={15} />
+                </span>
+                <div className="font-tabular">
+                  {renderDesktopCurrencyText(
+                    metrics.monthlyIncome,
+                    {
+                      className: 'inline-flex items-baseline whitespace-nowrap text-[18px] font-800 leading-tight tracking-[-0.03em] text-white md:text-[22px]',
+                      numberClassName: 'text-[18px] font-800 leading-tight tracking-[-0.03em] text-white md:text-[22px]',
+                      symbolClassName: 'text-white/90',
+                      size: 'md',
+                    }
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="min-w-0 md:border-s md:border-white/15 md:ps-3">
+              <p className="text-[12.5px] font-600 text-white/85 md:text-[13.5px]">
+                {t('dashboardMetrics.moneyOut', { defaultValue: 'Money Out' })}
+              </p>
+              <div className="mt-1.5 flex items-center gap-2">
+                <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/15 text-rose-300">
+                  <ArrowDown size={15} />
+                </span>
+                <div className="font-tabular">
+                  {renderDesktopCurrencyText(
+                    metrics.monthlyExpenses,
+                    {
+                      className: 'inline-flex items-baseline whitespace-nowrap text-[18px] font-800 leading-tight tracking-[-0.03em] text-white md:text-[22px]',
+                      numberClassName: 'text-[18px] font-800 leading-tight tracking-[-0.03em] text-white md:text-[22px]',
+                      symbolClassName: 'text-white/90',
+                      size: 'md',
+                    }
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-3 flex items-start gap-2 rounded-2xl bg-white/10 px-3 py-2 backdrop-blur-sm">
+            <div className="mt-[2px] flex-shrink-0">
+              <NetSentenceIcon size={14} className={`${netSentenceIconClass || 'text-white/80'}`} />
+            </div>
+            <p className="min-w-0 text-[11.5px] font-500 leading-[1.3rem] text-white/90 md:text-[12px]">
+              {buildNetSentenceWithAmount()}
+            </p>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

@@ -145,13 +145,17 @@ function CustomTooltip({ active, payload, label, currencyCode }: any) {
 
 export default function IncomeExpenseChart({
   activePeriod,
+  desktopChartHeight,
 }: {
   activePeriod: DashboardActivePeriod;
+  desktopChartHeight?: number;
 }) {
   const { t } = useTranslation('portal');
   const { language } = useLanguage();
   const locale = getIntlLocale(language);
   const isArabic = language === 'ar';
+  const effectiveHeight = desktopChartHeight ?? 310;
+  const effectiveLoadingHeight = desktopChartHeight ?? 340;
   const [data, setData] = useState<ChartPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -289,7 +293,7 @@ export default function IncomeExpenseChart({
 
   if (loading) {
     return (
-      <div className="flex h-[320px] items-center justify-center max-[480px]:h-[260px] md:h-[340px]">
+      <div style={{ height: effectiveLoadingHeight }} className="flex items-center justify-center max-[480px]:h-[260px]">
         <div className="h-6 w-6 rounded-full border-2 border-accent border-t-transparent animate-spin" />
       </div>
     );
@@ -297,7 +301,7 @@ export default function IncomeExpenseChart({
 
   if (data.every((d) => d.income === 0 && d.expenses === 0)) {
     return (
-      <div className="flex min-h-[176px] items-start justify-center px-4 pb-4 pt-2 max-[480px]:min-h-[160px]">
+      <div style={{ minHeight: desktopChartHeight ?? 176 }} className="flex items-start justify-center px-4 pb-4 pt-2 max-[480px]:min-h-[160px]">
         <div className="flex max-w-[18rem] flex-col items-center text-center">
           <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-[radial-gradient(circle_at_top,rgba(16,185,129,0.16),rgba(255,255,255,0.98)_68%)] shadow-[0_18px_36px_-28px_rgba(16,185,129,0.8)]">
             <ChartNoAxesCombined size={24} className="text-accent" />
@@ -316,7 +320,7 @@ export default function IncomeExpenseChart({
   }
 
   return (
-    <div className="h-[300px] max-[480px]:h-[240px] md:h-[310px]">
+    <div style={{ height: effectiveHeight }} className="max-[480px]:h-[240px]">
       <ResponsiveContainer width="100%" height="100%">
         <AreaChart data={data} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
         <defs>

@@ -61,12 +61,15 @@ function CustomTooltip({ active, payload, currencyCode, t }: any) {
 
 export default function SpendingCategoryChart({
   activePeriod,
+  desktopChartHeight,
 }: {
   activePeriod: DashboardActivePeriod;
+  desktopChartHeight?: number;
 }) {
   const { t } = useTranslation('portal');
   const { language } = useLanguage();
   const isArabic = language === 'ar';
+  const effectivePieHeight = desktopChartHeight ?? 220;
   const [activeId, setActiveId] = useState<string | null>(null);
   const [data, setData] = useState<CategorySpend[]>([]);
   const [total, setTotal] = useState(0);
@@ -169,12 +172,12 @@ export default function SpendingCategoryChart({
   });
 
   if (loading) {
-    return <div className="flex h-[300px] items-center justify-center max-[480px]:h-[240px]"><div className="h-6 w-6 rounded-full border-2 border-accent border-t-transparent animate-spin" /></div>;
+    return <div style={{ height: desktopChartHeight ?? 300 }} className="flex items-center justify-center max-[480px]:h-[240px]"><div className="h-6 w-6 rounded-full border-2 border-accent border-t-transparent animate-spin" /></div>;
   }
 
   if (!data.length) {
     return (
-      <div className="flex min-h-[220px] flex-col items-center justify-center gap-2 px-4 text-center">
+      <div style={{ minHeight: desktopChartHeight ?? 220 }} className="flex flex-col items-center justify-center gap-2 px-4 text-center">
         <p className={`text-muted-foreground ${isArabic ? 'text-[14px] leading-6' : 'text-sm'}`}>
           {errorMessage || t(activePeriod.mode === 'month' ? 'dashboardCharts.categorySummary.noExpenseDataMonth' : 'dashboardCharts.categorySummary.noExpenseDataPeriod')}
         </p>
@@ -186,10 +189,10 @@ export default function SpendingCategoryChart({
   }
 
   return (
-    <div className="grid gap-5 lg:grid-cols-[minmax(15rem,0.88fr)_minmax(0,1.12fr)] lg:items-start">
+    <div className="grid gap-4 lg:grid-cols-[minmax(15rem,0.88fr)_minmax(0,1.12fr)] lg:items-start">
       <div>
         <div className="rounded-[24px] border border-border/80 bg-muted/15 p-4 md:p-5">
-          <div className="mx-auto h-[220px] w-full max-w-[240px]">
+          <div style={{ height: effectivePieHeight }} className="mx-auto w-full max-w-[240px]">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie

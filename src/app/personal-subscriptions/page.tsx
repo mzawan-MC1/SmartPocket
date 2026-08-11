@@ -330,9 +330,9 @@ export default function PersonalSubscriptionsPage() {
     <AppLayout activeRoute="/personal-subscriptions" hideMobileFooter>
       <div className="page-section max-[480px]:gap-2.5">
         <PageHeader
-          title={t('personalSubscriptions.title', { ns: 'portal' })}
-          description={t('personalSubscriptions.description', { ns: 'portal' })}
-          badge={<StatusBadge status="info" label={t('personalSubscriptions.badge', { ns: 'portal' })} />}
+          title={t('personalSubscriptions.title', { ns: 'portal', defaultValue: 'Subscriptions' })}
+          description={t('personalSubscriptions.description', { ns: 'portal', defaultValue: 'Track active recurring charges and cancel unused services.' })}
+          badge={<StatusBadge status="info" label={t('personalSubscriptions.badge', { ns: 'portal', defaultValue: 'Savings Watch' })} />}
           compact
           className="rounded-[24px] border border-border/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,252,0.96)_100%)] px-3.5 py-3 shadow-card-sm max-[480px]:px-3.5 max-[480px]:py-3"
           actionsClassName="w-full"

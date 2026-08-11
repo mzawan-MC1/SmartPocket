@@ -55,7 +55,8 @@
 
   --mint: #6ee7e7;
   --sidebar-width: 272px;
-  --sidebar-collapsed: 64px;
+  --sidebar-collapsed: 72px;
+  --sidebar-expanded-layout: 244px;
   --topbar-height: 72px;
   --bottom-nav-height: 72px;
   --page-padding-x: 32px;

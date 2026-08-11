@@ -235,9 +235,9 @@ export default function BudgetsPage() {
     <AppLayout activeRoute="/budgets" hideMobileFooter>
       <div className="page-section max-[480px]:gap-2.5">
         <PageHeader
-          title={t('nav.budgets', { ns: 'common' })}
-          description={t('budgets.description')}
-          badge={<StatusBadge status="info" label={t('budgets.badge')} />}
+          title={t('budgets.title', { ns: 'portal', defaultValue: 'Budgets' })}
+          description={t('budgets.description', { ns: 'portal', defaultValue: 'Set category limits and track how much you have left to spend this month.' })}
+          badge={<StatusBadge status="info" label={t('budgets.badge', { ns: 'portal', defaultValue: 'Spending Plan' })} />}
           compact
           className="rounded-[24px] border border-border/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,252,0.96)_100%)] px-3.5 py-3 shadow-card-sm max-[480px]:px-3.5 max-[480px]:py-3"
           actionsClassName="w-full sm:w-auto"

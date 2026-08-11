@@ -118,7 +118,7 @@ export default function Topbar({ onToggleSidebar }: TopbarProps) {
 
   return (
     <header
-      className="sticky top-0 z-20 shrink-0 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/90"
+      className="sticky top-0 z-40 shrink-0 border-b border-border bg-card bg-background"
     >
       <div className="page-shell flex min-h-[72px] w-full flex-wrap items-center gap-3 py-3 max-[480px]:min-h-[60px] max-[480px]:gap-1.5 max-[480px]:py-2 sm:gap-4 sm:py-3.5">
         {/* Mobile menu toggle */}

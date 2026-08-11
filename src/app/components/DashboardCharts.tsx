@@ -52,9 +52,13 @@ function useDeferredChartMount(rootMargin = '300px 0px') {
 export default function DashboardCharts({
   activePeriod,
   hasConfigurationWarning = false,
+  compact = false,
+  desktopChartHeight,
 }: {
   activePeriod: DashboardActivePeriod;
   hasConfigurationWarning?: boolean;
+  compact?: boolean;
+  desktopChartHeight?: number;
 }) {
   const { t } = useTranslation('portal');
   const { language } = useLanguage();
@@ -69,10 +73,68 @@ export default function DashboardCharts({
       : 'dashboardCharts.trendDescriptionDuring');
   const description = t(descriptionKey, { period: activePeriod.label });
   const chartMount = useDeferredChartMount();
+  const effectiveChartHeight = compact ? (desktopChartHeight ?? 220) : 300;
+
+  const tabsAndPeriod = (
+    <div className="flex min-w-0 flex-wrap items-stretch gap-2 lg:max-w-[34rem] lg:justify-end">
+      <Tabs
+        items={[
+          { id: 'trend', label: t('dashboardCharts.tabs.trend') },
+          { id: 'category', label: t('dashboardCharts.tabs.category') },
+        ]}
+        activeId={activeTab}
+        onChange={setActiveTab}
+        className="!flex !w-full !min-w-0 !flex-wrap !overflow-visible sm:!w-auto sm:!min-w-[20rem] sm:!flex-1 lg:!min-w-[22rem] [&_.tab-button]:min-h-[2.35rem] [&_.tab-button]:min-w-0 [&_.tab-button]:flex-1 [&_.tab-button]:rounded-[14px] [&_.tab-button]:px-4 [&_.tab-button]:py-1.5 [&_.tab-button]:text-[11px] [&_.tab-button]:font-700 [&_.tab-button]:whitespace-normal [&_.tab-button]:text-center"
+      />
+      <div className={`inline-flex min-w-0 flex-none items-center justify-center rounded-2xl border border-border/70 bg-muted/15 px-3 py-2 font-700 text-foreground shadow-card-sm sm:min-w-[11.5rem] ${isArabic ? 'text-[11.5px] leading-5' : 'text-[11px]'}`}>
+        {activePeriod.label}
+      </div>
+    </div>
+  );
+
+  const chartBody = (
+    <>
+      {hasConfigurationWarning ? (
+        <div className="mx-5 mt-4 rounded-2xl border border-warning/30 bg-warning-soft/40 px-3 py-2 text-xs text-warning max-[480px]:mx-4">
+          {t('dashboardCharts.warning')}
+        </div>
+      ) : null}
+      <div ref={chartMount.ref} className="px-3 pb-3 pt-4 max-[480px]:px-2 min-w-0">
+        <div className="min-w-0">
+          {chartMount.shouldMount
+            ? (activeTab === 'trend'
+              ? <IncomeExpenseChart activePeriod={activePeriod} desktopChartHeight={effectiveChartHeight} />
+              : <SpendingCategoryChart activePeriod={activePeriod} desktopChartHeight={effectiveChartHeight} />)
+            : <ChartSkeleton height={effectiveChartHeight} />
+          }
+        </div>
+      </div>
+    </>
+  );
+
+  if (compact) {
+    return (
+      <div
+        className="h-full min-w-0"
+        onFocusCapture={() => chartMount.setShouldMount(true)}
+        onPointerEnter={() => chartMount.setShouldMount(true)}
+      >
+        <div className="flex flex-col gap-2.5 border-b border-border/70 px-1 py-1 max-[480px]:px-0 max-[480px]:py-0">
+          <div className="flex min-w-0 flex-col gap-2.5 lg:flex-row lg:items-start lg:justify-end lg:gap-4">
+            <div className="min-w-0 lg:hidden">
+              <p className={`text-muted-foreground ${isArabic ? 'text-[13.5px] leading-6' : 'text-[13px] leading-5'}`}>{description}</p>
+            </div>
+            {tabsAndPeriod}
+          </div>
+        </div>
+        {chartBody}
+      </div>
+    );
+  }
 
   return (
     <section
-      className="section-card h-full rounded-[28px] border border-border/80 bg-card shadow-card-sm transition-shadow duration-200 hover:shadow-card-md"
+      className="section-card h-full rounded-[28px] border border-border/80 bg-card shadow-card-sm transition-shadow duration-200 hover:shadow-card-md overflow-hidden"
       onFocusCapture={() => chartMount.setShouldMount(true)}
       onPointerEnter={() => chartMount.setShouldMount(true)}
     >
@@ -82,37 +144,10 @@ export default function DashboardCharts({
             <h2 className="text-lg font-800 tracking-[-0.02em] text-foreground">{t('dashboardCharts.title')}</h2>
             <p className={`mt-1 text-muted-foreground ${isArabic ? 'text-[13.5px] leading-6' : 'text-[13px] leading-5'}`}>{description}</p>
           </div>
-          <div className="flex min-w-0 flex-wrap items-stretch gap-2 lg:max-w-[34rem] lg:justify-end">
-            <Tabs
-              items={[
-                { id: 'trend', label: t('dashboardCharts.tabs.trend') },
-                { id: 'category', label: t('dashboardCharts.tabs.category') },
-              ]}
-              activeId={activeTab}
-              onChange={setActiveTab}
-              className="!flex !w-full !min-w-0 !flex-wrap !overflow-visible sm:!w-auto sm:!min-w-[20rem] sm:!flex-1 lg:!min-w-[22rem] [&_.tab-button]:min-h-[2.35rem] [&_.tab-button]:min-w-0 [&_.tab-button]:flex-1 [&_.tab-button]:rounded-[14px] [&_.tab-button]:px-4 [&_.tab-button]:py-1.5 [&_.tab-button]:text-[11px] [&_.tab-button]:font-700 [&_.tab-button]:whitespace-normal [&_.tab-button]:text-center"
-            />
-            <div className={`inline-flex min-w-0 flex-none items-center justify-center rounded-2xl border border-border/70 bg-muted/15 px-3 py-2 font-700 text-foreground shadow-card-sm sm:min-w-[11.5rem] ${isArabic ? 'text-[11.5px] leading-5' : 'text-[11px]'}`}>
-              {activePeriod.label}
-            </div>
-          </div>
+          {tabsAndPeriod}
         </div>
       </div>
-      {hasConfigurationWarning ? (
-        <div className="mx-5 mt-4 rounded-2xl border border-warning/30 bg-warning-soft/40 px-3 py-2 text-xs text-warning max-[480px]:mx-4">
-          {t('dashboardCharts.warning')}
-        </div>
-      ) : null}
-      <div ref={chartMount.ref} className="px-3 pb-3 pt-4 max-[480px]:px-2">
-        <div>
-          {chartMount.shouldMount
-            ? (activeTab === 'trend'
-              ? <IncomeExpenseChart activePeriod={activePeriod} />
-              : <SpendingCategoryChart activePeriod={activePeriod} />)
-            : <ChartSkeleton height={300} />
-          }
-        </div>
-      </div>
+      {chartBody}
     </section>
   );
 }
