@@ -4,7 +4,7 @@ import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from 'react-i18next';
-import { RotateCcw, Plus, MessageSquare, Mic, FileUp, ArrowRight } from 'lucide-react';
+import { RotateCcw, Plus, MessageSquare, Mic, FileUp, ArrowRight, History } from 'lucide-react';
 import AppLayout from '@/components/AppLayout';
 import DashboardHeader from '@/app/components/DashboardHeader';
 import DashboardMetrics from '@/app/components/DashboardMetrics';
@@ -253,9 +253,15 @@ const AIUsageOrbLazy = dynamic(() => import('@/app/components/AIUsageCard').then
   ssr: true,
 });
 
+const AIUsageTriggerLazy = dynamic(() => import('@/app/components/AIUsageCard').then((mod) => ({ default: mod.default })), {
+  loading: () => null,
+  ssr: true,
+});
+
 function SmartAIDashboardCard() {
   const { t } = useTranslation('portal');
   const quickActions = useQuickActions();
+  const [aiUsageOpen, setAiUsageOpen] = useState(false);
 
   function openAI(actionId: 'smart_entry' | 'voice_entry' | 'document_entry') {
     quickActions?.openQuickAction(actionId);
@@ -265,16 +271,13 @@ function SmartAIDashboardCard() {
     <div className="col-span-1 lg:col-span-1 min-w-0 overflow-hidden rounded-[22px] border border-purple-200/60 dark:border-purple-400/20 bg-gradient-to-br from-purple-500 via-purple-600 to-indigo-600 text-white p-4 shadow-lg">
       <div className="flex flex-col gap-0 min-w-0">
         <div className="flex flex-row items-start justify-between gap-2 min-w-0">
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1 md:pr-0.5">
             <h2 className="text-[15px] font-800 tracking-[-0.02em]">
               {t('dashboardSections.smartAiTitle', 'Smart AI')}
             </h2>
-            <p className="mt-1 text-[12px] leading-[1.25rem] text-white/85">
-              {t('dashboardSections.smartAiSubtitle', 'Capture expenses, income and more — hands-free')}
+            <p className="mt-1 text-[12.5px] leading-[1.3rem] text-white/88">
+              {t('dashboardSections.smartAiSubtitle', 'Capture expenses, income, receipts and more — hands-free with Smart AI.')}
             </p>
-          </div>
-          <div className="flex-shrink-0 min-h-[40px] min-w-[40px]">
-            <AIUsageOrbLazy variant="desktop-preview-orb" />
           </div>
         </div>
         <div className="mt-3.5">
@@ -322,14 +325,15 @@ function SmartAIDashboardCard() {
           <div className="mt-3.5 flex min-w-0">
             <button
               type="button"
-              onClick={() => openAI('smart_entry')}
+              onClick={() => setAiUsageOpen(true)}
               className="rounded-full bg-white text-purple-700 px-4 h-9 font-700 text-[12px] inline-flex w-full items-center justify-center gap-1.5 shadow-sm hover:shadow min-w-0 flex-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60 focus-visible:ring-offset-1 focus-visible:ring-offset-purple-600"
-              aria-label={t('dashboardSections.smartAiOpenAssistant', 'Open AI Assistant')}
+              aria-label={t('dashboardSections.smartAiUsageHistoryAria', 'View AI usage history and remaining limits')}
             >
-              {t('dashboardSections.smartAiOpenAssistant', 'Open AI Assistant')}
-              <ArrowRight size={13} />
+              <History size={13} />
+              {t('dashboardSections.smartAiUsageHistory', 'AI Usage History')}
             </button>
           </div>
+          <AIUsageTriggerLazy variant="sheet-only" initialOpen={aiUsageOpen} onOpenChange={setAiUsageOpen} />
         </div>
       </div>
     </div>

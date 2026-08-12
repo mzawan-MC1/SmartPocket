@@ -329,8 +329,12 @@ function getMetricVisualStyles(metricId: UsageMetric['id']) {
 
 export default function AIUsageCard({
   variant = 'default',
+  initialOpen,
+  onOpenChange,
 }: {
-  variant?: 'default' | 'mobile-featured' | 'desktop-preview-orb';
+  variant?: 'default' | 'mobile-featured' | 'desktop-preview-orb' | 'sheet-only';
+  initialOpen?: boolean;
+  onOpenChange?: (next: boolean) => void;
 }) {
   const { t } = useTranslation('portal');
   const { language } = useLanguage();
@@ -346,7 +350,24 @@ export default function AIUsageCard({
     [subscriptionSummary]
   );
   const isUnavailable = !loading && (!!error || !subscriptionSummary || subscriptionSummary.status === 'unavailable');
-  const [usageSheetOpen, setUsageSheetOpen] = useState(false);
+  const [usageSheetOpenInternal, setUsageSheetOpenInternal] = useState<boolean>(initialOpen ?? false);
+  const usageSheetOpen = onOpenChange ? Boolean(initialOpen) : usageSheetOpenInternal;
+  const setUsageSheetOpen = useCallback(
+    (next: boolean | ((prev: boolean) => boolean)) => {
+      const resolved = typeof next === 'function' ? next(usageSheetOpen) : next;
+      if (onOpenChange) {
+        onOpenChange(resolved);
+      } else {
+        setUsageSheetOpenInternal(resolved);
+      }
+    },
+    [onOpenChange, usageSheetOpen],
+  );
+  useEffect(() => {
+    if (onOpenChange && initialOpen !== undefined && initialOpen !== usageSheetOpenInternal) {
+      setUsageSheetOpenInternal(initialOpen);
+    }
+  }, [initialOpen, onOpenChange, usageSheetOpenInternal]);
   const [historyItems, setHistoryItems] = useState<AIHistoryItem[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
 
@@ -843,6 +864,10 @@ export default function AIUsageCard({
         {usageSheetModal}
       </>
     );
+  }
+
+  if (variant === 'sheet-only') {
+    return <>{usageSheetModal}</>;
   }
 
   if (variant === 'mobile-featured' && !loading && !isUnavailable && summary?.has_subscription && hasAnyAiAccess) {
