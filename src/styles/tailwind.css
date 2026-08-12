@@ -1073,7 +1073,7 @@
   :root {
     --page-padding-x: 24px;
     --page-padding-y: 24px;
-    --content-top-gap: 12px;
+    --content-top-gap: 8px;
   }
 }
 
