@@ -396,7 +396,7 @@ export default function AIUsageCard({
     );
   };
 
-  if (loading) {
+  if (loading && variant !== 'desktop-preview-orb') {
     return (
       <div className="animate-pulse rounded-[24px] border border-slate-200/80 bg-white p-3.5 shadow-[0_10px_24px_-22px_rgba(15,23,42,0.12)]">
         <div className="flex items-start justify-between gap-3">
@@ -827,36 +827,20 @@ export default function AIUsageCard({
   );
 
   if (variant === 'desktop-preview-orb') {
-    const ViewIcon = Sparkles;
     return (
       <>
         <button
           type="button"
           onClick={() => setUsageSheetOpen(true)}
           className="relative inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white shadow-[0_8px_18px_-14px_rgba(15,23,42,0.4)] transition-transform duration-150 hover:scale-[1.03] hover:bg-white/15 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:ring-offset-0"
-          aria-label={`${t('actions.view', { ns: 'common', defaultValue: 'View' })} ${t('aiUsage.title', { defaultValue: 'AI Usage' })}`}
+          aria-label={orbAriaLabel}
           title={t('aiUsage.viewUsage', { defaultValue: 'View AI usage' })}
         >
           <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-[radial-gradient(circle_at_35%_30%,#ffffff_0%,#e0e7ff_45%,#c7d2fe_100%)] ring-1 ring-white/40">
-            <ViewIcon size={15} className="text-[#4f46e5]" />
+            <Sparkles size={15} className="text-[#4f46e5]" />
           </span>
         </button>
-        {loading ? (
-          <Modal
-            open={usageSheetOpen}
-            onClose={() => setUsageSheetOpen(false)}
-            mobileLayout="sheet"
-            size="md"
-            title={t('aiUsage.title', { defaultValue: 'AI Usage' })}
-            description={t('aiUsage.recentActivitySubtitle', { defaultValue: 'Your recent activity and remaining allowance' })}
-          >
-            <div className="space-y-3 animate-pulse py-3">
-              <div className="h-10 w-full rounded-xl bg-muted" />
-              <div className="h-24 w-full rounded-xl bg-muted" />
-              <div className="h-10 w-full rounded-xl bg-muted" />
-            </div>
-          </Modal>
-        ) : usageSheetModal}
+        {usageSheetModal}
       </>
     );
   }
