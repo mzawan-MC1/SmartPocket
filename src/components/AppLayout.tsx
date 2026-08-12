@@ -194,7 +194,7 @@ export default function AppLayout({
 
               <main
                 data-route-scroll-container="true"
-                className="min-h-0 flex-1 overflow-x-hidden scrollbar-thin pt-[calc(var(--topbar-height,56px)+0.25rem)] lg:h-full lg:overflow-y-auto lg:overscroll-contain lg:pt-2"
+                className="min-h-0 flex-1 overflow-x-hidden scrollbar-thin pt-[calc(var(--topbar-height,56px)+0.25rem)] md:pt-[calc(var(--topbar-height,56px)+0.125rem)] lg:h-full lg:overflow-y-auto lg:overscroll-contain lg:pt-2"
                 style={{ backgroundColor: AUTHENTICATED_APP_BACKGROUND }}
               >
                 <div className="flex min-h-full flex-col">
