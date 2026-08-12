@@ -256,8 +256,8 @@ export default function DashboardHeader({
         ) : null}
       </div>
 
-      <div className="hidden grid-cols-1 gap-1.5 md:grid md:gap-2 lg:grid-cols-[minmax(0,1.08fr)_minmax(24rem,0.98fr)] lg:items-start xl:grid-cols-[auto_minmax(0,1fr)_auto] xl:items-center xl:gap-3">
-        <div className="min-w-0 max-w-[22rem] space-y-1.5 rounded-[20px] border border-transparent py-0.5 xl:flex-none">
+      <div className="hidden grid-cols-1 gap-1 md:grid md:grid-cols-[minmax(0,1fr)_auto] md:items-start md:gap-2 lg:gap-2.5 xl:grid-cols-[auto_minmax(0,1fr)_auto] xl:items-center xl:gap-3">
+        <div className="min-w-0 md:space-y-1.5 md:max-w-none space-y-1.5 max-w-[22rem] rounded-[20px] border border-transparent py-0.5 xl:flex-none xl:space-y-1.5 xl:max-w-[22rem]">
           <h1 className={`flex items-center gap-x-1 gap-y-0 font-800 tracking-[-0.03em] text-foreground lg:text-[1.2rem] xl:flex-nowrap xl:text-[1.3rem] ${
             isArabic
               ? 'text-[1.02rem] leading-[1.3] max-[480px]:text-[1.06rem] max-[360px]:flex-wrap max-[360px]:text-[1rem]'
@@ -272,9 +272,39 @@ export default function DashboardHeader({
           }`}>
             {description}
           </p>
+          <div className="min-w-0 md:flex md:flex-wrap md:items-center md:gap-1.5 xl:hidden">
+            {directActions.map((action) => {
+              const Icon = action.icon;
+              const isSelected = activeQuickAction === action.id;
+              const isMoneyIn = action.id === 'money_in';
+              const isMoneyOut = action.id === 'money_out';
+              const isColored = isMoneyIn || isMoneyOut;
+              return (
+                <button
+                  key={`md-${action.id}`}
+                  type="button"
+                  onClick={(event) => onQuickAction(action.id, event.currentTarget)}
+                  className={`inline-flex h-9 items-center whitespace-nowrap rounded-2xl px-3 text-[12.5px] font-700 transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 ${
+                    isMoneyIn
+                      ? 'border border-positive/30 bg-positive text-white hover:bg-positive/90 active:bg-positive/80 focus-visible:ring-positive/50 shadow-[0_8px_20px_-12px_rgba(34,197,94,0.7)] gap-1.5'
+                      : isMoneyOut
+                        ? 'border border-negative/30 bg-negative text-white hover:bg-negative/90 active:bg-negative/80 focus-visible:ring-negative/50 shadow-[0_8px_20px_-12px_rgba(239,68,68,0.7)] gap-1.5'
+                        : isSelected
+                          ? 'border border-accent/20 bg-accent/10 text-accent shadow-sm shadow-[0_10px_24px_-20px_rgba(20,184,166,0.8)] focus-visible:ring-accent/35 gap-1.5'
+                          : 'border border-border/70 bg-card text-foreground hover:bg-muted/50 focus-visible:ring-accent/35 shadow-sm gap-1.5'
+                  }`}
+                  aria-label={action.label}
+                  aria-pressed={isSelected}
+                >
+                  <Icon size={14.5} className={`${isColored ? 'text-white' : ''} flex-shrink-0`} />
+                  <span className="leading-none whitespace-nowrap">{quickActionShortLabel(action.id)}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-        <div className="min-w-0 xl:flex xl:justify-center">
+        <div className="hidden xl:flex xl:justify-center">
           <div className="flex flex-wrap items-center gap-1.5 xl:flex-nowrap xl:gap-1.5 xl:justify-center">
             {directActions.map((action) => {
               const Icon = action.icon;
@@ -307,7 +337,7 @@ export default function DashboardHeader({
           </div>
         </div>
 
-        <div className="flex w-fit flex-none flex-col gap-0.5 rounded-[16px] border border-border/70 bg-card/90 px-0.5 py-0.5 shadow-card-sm">
+        <div className="md:justify-self-end md:self-start xl:self-auto flex w-fit flex-none flex-col gap-0.5 rounded-[16px] border border-border/70 bg-card/90 px-0.5 py-0.5 shadow-card-sm">
           <div className="overflow-hidden w-fit px-0.5">
             <Tabs
               items={[
@@ -385,7 +415,7 @@ export default function DashboardHeader({
         </div>
 
         {financialPeriodContext.configurationWarning ? (
-          <div className="lg:col-span-full rounded-2xl border border-warning/30 bg-warning-soft/40 px-3 py-2 text-xs text-warning">
+          <div className="md:col-span-full rounded-2xl border border-warning/30 bg-warning-soft/40 px-3 py-2 text-xs text-warning">
             {financialPeriodContext.configurationWarning}
           </div>
         ) : null}

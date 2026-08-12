@@ -780,7 +780,7 @@ export default function DashboardPage() {
       hideMobileFooter
       mobileContentPaddingBottomClassName="pb-[calc(env(safe-area-inset-bottom)+130px)] max-[480px]:pb-[calc(env(safe-area-inset-bottom)+142px)] sm:pb-9 lg:pb-9"
     >
-      <div className="page-section gap-3.5 md:gap-4 lg:gap-5 max-[480px]:gap-3 pt-[calc(env(safe-area-inset-top)+20px)] md:pt-0">
+      <div className="page-section gap-3 md:gap-3.5 lg:gap-4.5 max-[480px]:gap-3 pt-[calc(env(safe-area-inset-top)+20px)] md:pt-0">
         {!coreReady ? (
           showLoadFallback ? (
             <div className="section-card">
@@ -880,8 +880,8 @@ export default function DashboardPage() {
                 <SectionCardSkeleton lines={4} />
               </div>
             ) : isMdUp ? (
-              <div className="space-y-3.5 md:space-y-4 lg:space-y-4 max-[480px]:space-y-3">
-                <div className="grid grid-cols-1 items-start gap-3.5 md:gap-4 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+              <div className="space-y-3 md:space-y-3.5 lg:space-y-4 max-[480px]:space-y-3">
+                <div className="grid grid-cols-1 items-start gap-3 md:gap-3.5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
                   <div className="col-span-1 lg:col-span-1 min-w-0">
                     <DashboardMetrics activePeriod={readyActivePeriod!} hasConfigurationWarning={readyPeriodContext!.hasConfigurationWarning} hideSensitive={globalHideSensitive} onHideSensitiveChange={setGlobalHideSensitive} onPeriodNetByAccountIdChange={setPeriodNetByAccountId} />
                   </div>
