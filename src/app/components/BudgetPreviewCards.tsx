@@ -166,23 +166,23 @@ export default function BudgetPreviewCards({ activePeriod }: BudgetPreviewCardsP
             </div>
 
             <div className="flex-1 flex items-center pt-1 min-w-0">
-              <div className="w-full flex min-w-0 items-center justify-between gap-2">
-                <span className={`text-[20px] font-800 font-tabular ${statusColor} flex-shrink-0`}>
+              <div className="w-full flex min-w-0 flex-wrap items-start justify-between gap-x-2 gap-y-1">
+                <span className={`text-[20px] font-800 font-tabular leading-none ${statusColor} shrink-0`}>
                   {displayPct.toFixed(0)}%
                 </span>
-                <div className="flex min-w-0 items-center justify-end gap-1.5 text-[11px] whitespace-nowrap">
+                <div className="flex min-w-0 flex-wrap items-center justify-end gap-1.5 text-[11px]">
                   <FormattedCurrencyAmount
                     amount={spentAmount}
                     currencyCode={budget.currency}
                     size="xs"
-                    numberClassName="font-600 font-tabular text-muted-foreground"
+                    numberClassName="font-600 font-tabular text-muted-foreground whitespace-nowrap"
                   />
-                  <span className="text-muted-foreground/70 font-500 flex-shrink-0">/</span>
+                  <span className="text-muted-foreground/70 font-500 shrink-0 whitespace-nowrap">/</span>
                   <FormattedCurrencyAmount
                     amount={limitAmount}
                     currencyCode={budget.currency}
                     size="xs"
-                    numberClassName="font-600 font-tabular text-muted-foreground"
+                    numberClassName="font-600 font-tabular text-muted-foreground whitespace-nowrap"
                   />
                 </div>
               </div>
