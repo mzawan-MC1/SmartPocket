@@ -1,12 +1,11 @@
 {
     "name": "Smart Pocket",
     "short_name": "SmartPocket",
-    "description": "Personal Finance, Simplified \u2014 Track income, expenses, budgets, and accounts.",
+    "description": "Personal Finance, Simplified — Track income, expenses, budgets, and accounts.",
     "start_url": "/",
     "display": "standalone",
     "background_color": "#ffffff",
     "theme_color": "#0f3460",
-    "orientation": "portrait-primary",
     "scope": "/",
     "lang": "en",
     "dir": "ltr",
@@ -17,15 +16,15 @@
     "icons": [
         {
             "src": "/favicon.ico",
-            "sizes": "192x192",
+            "sizes": "48x48 64x64 128x128 192x192 256x256 512x512",
             "type": "image/x-icon",
             "purpose": "any maskable"
         },
         {
-            "src": "/favicon.ico",
+            "src": "/assets/images/smart-pocket-desktop-app.png",
             "sizes": "512x512",
-            "type": "image/x-icon",
-            "purpose": "any maskable"
+            "type": "image/png",
+            "purpose": "any"
         }
     ],
     "shortcuts": [
