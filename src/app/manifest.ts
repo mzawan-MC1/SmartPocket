@@ -14,8 +14,8 @@ function getManifestIconType(url: string) {
 
 export default async function manifest(): Promise<MetadataRoute.Manifest> {
   const settings = await getPlatformSettingsSnapshot();
-  const icon192 = buildAbsoluteAssetUrl(settings.branding.pwaIcon192Url, settings);
-  const icon512 = buildAbsoluteAssetUrl(settings.branding.pwaIcon512Url, settings);
+  const icon192 = buildAbsoluteAssetUrl('/icons/smart-pocket-192.png', settings, { includeVersion: false });
+  const icon512 = buildAbsoluteAssetUrl('/icons/smart-pocket-512.png', settings, { includeVersion: false });
 
   return {
     name: settings.branding.appName,
@@ -34,25 +34,25 @@ export default async function manifest(): Promise<MetadataRoute.Manifest> {
       {
         src: icon192,
         sizes: '192x192',
-        type: getManifestIconType(icon192),
+        type: 'image/png',
         purpose: 'any',
       },
       {
         src: icon512,
         sizes: '512x512',
-        type: getManifestIconType(icon512),
+        type: 'image/png',
         purpose: 'any',
       },
       {
         src: icon192,
         sizes: '192x192',
-        type: getManifestIconType(icon192),
+        type: 'image/png',
         purpose: 'maskable',
       },
       {
         src: icon512,
         sizes: '512x512',
-        type: getManifestIconType(icon512),
+        type: 'image/png',
         purpose: 'maskable',
       },
     ],

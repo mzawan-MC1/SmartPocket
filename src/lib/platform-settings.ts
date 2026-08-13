@@ -145,6 +145,8 @@ export const SMART_POCKET_DEFAULT_SOCIAL_IMAGE = '/assets/images/smart-pocket-so
 export const SMART_POCKET_LEGACY_SOCIAL_IMAGE_SVG = '/assets/images/smart-pocket-social-card.svg';
 export const SMART_POCKET_DEFAULT_ICON = '/favicon.ico';
 export const SMART_POCKET_DEFAULT_FAVICON = '/favicon.ico';
+export const SMART_POCKET_DEFAULT_PWA_ICON_192 = '/icons/smart-pocket-192.png';
+export const SMART_POCKET_DEFAULT_PWA_ICON_512 = '/icons/smart-pocket-512.png';
 export const SMART_POCKET_SAFE_FALLBACK_IMAGE = '/assets/images/no_image.png';
 export const SMART_POCKET_LEGACY_WALLET_IMAGE = '/assets/images/app_logo.png';
 export const SMART_POCKET_DEFAULT_SITE_TITLE = 'Smart Pocket — Personal Finance, Simplified';
@@ -265,8 +267,8 @@ export const DEFAULT_PLATFORM_SETTINGS: PlatformSettingsSnapshot = {
     compactLogoUrl: SMART_POCKET_DEFAULT_COMPACT_LOGO,
     faviconUrl: SMART_POCKET_DEFAULT_FAVICON,
     appleTouchIconUrl: SMART_POCKET_DEFAULT_ICON,
-    pwaIcon192Url: SMART_POCKET_DEFAULT_ICON,
-    pwaIcon512Url: SMART_POCKET_DEFAULT_ICON,
+    pwaIcon192Url: SMART_POCKET_DEFAULT_PWA_ICON_192,
+    pwaIcon512Url: SMART_POCKET_DEFAULT_PWA_ICON_512,
     socialImageUrl: SMART_POCKET_DEFAULT_SOCIAL_IMAGE,
     emailLogoUrl: SMART_POCKET_DEFAULT_LOGO,
     organizationLogoUrl: SMART_POCKET_DEFAULT_LOGO,
