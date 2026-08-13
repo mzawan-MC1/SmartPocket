@@ -128,6 +128,14 @@ export default function AppLayout({
       || 'pb-[calc(6.25rem+env(safe-area-inset-bottom))] max-[480px]:pb-[calc(6.75rem+env(safe-area-inset-bottom))] sm:pb-9 lg:pb-9';
   const shouldRenderTopbar = !hideMobileTopbar || isMdUp;
   const shouldRenderFooter = !hideMobileFooter || isMdUp;
+  const hideTopbarOnMobile = Boolean(hideMobileTopbar) && !isMdUp;
+  const mainPaddingOverrides: React.CSSProperties = hideTopbarOnMobile
+    ? {
+        backgroundColor: AUTHENTICATED_APP_BACKGROUND,
+        ['--main-topbar-clear' as never]: '0px',
+        ['--content-top-gap' as never]: '6px',
+      } as React.CSSProperties
+    : { backgroundColor: AUTHENTICATED_APP_BACKGROUND };
 
   return (
     <SubscriptionSummaryProvider>
@@ -194,8 +202,8 @@ export default function AppLayout({
 
               <main
                 data-route-scroll-container="true"
-                className="min-h-0 flex-1 overflow-x-hidden scrollbar-thin pt-[calc(var(--topbar-height,56px)+0.25rem)] md:pt-1 lg:h-full lg:overflow-y-auto lg:overscroll-contain lg:pt-2"
-                style={{ backgroundColor: AUTHENTICATED_APP_BACKGROUND }}
+                className="min-h-0 flex-1 overflow-x-hidden scrollbar-thin pt-[calc(var(--main-topbar-clear,var(--topbar-height,56px))+0.25rem)] md:pt-1 lg:h-full lg:overflow-y-auto lg:overscroll-contain lg:pt-2"
+                style={mainPaddingOverrides}
               >
                 <div className="flex min-h-full flex-col">
                   <div className={`page-shell page-shell-authenticated flex-1 ${resolvedMobileContentPaddingBottomClassName}`}>
