@@ -83,8 +83,8 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
   const shouldShowRestrictedUi = (state: SubscriptionFeatureAccessState) => state === 'restricted';
   const getRestrictionBadgeLabel = React.useCallback((badge: 'upgrade' | 'family') => (
     badge === 'family'
-      ? t('featureGate.badges.family', { ns: 'portal' })
-      : t('featureGate.badges.upgrade', { ns: 'portal' })
+      ? t('featureGate.badges.family', { ns: 'portal', defaultValue: 'Family' })
+      : t('featureGate.badges.upgrade', { ns: 'portal', defaultValue: 'Upgrade' })
   ), [t]);
   const quickActions = useQuickActions();
 
@@ -123,9 +123,9 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
       },
       items: [
         { id: 'nav-transactions', label: t('sidebar.nav.moneyInOut', { ns: 'portal', defaultValue: 'Money In & Out' }), icon: ArrowLeftRight, href: '/transactions' },
-        { id: 'nav-accounts', label: t('nav.accounts'), icon: Wallet, href: '/financial-accounts' },
-        { id: 'nav-transfers', label: t('sidebar.nav.transfers', { ns: 'portal' }), icon: ArrowUpDown, href: '/transfers' },
-        { id: 'nav-budgets', label: t('nav.budgets'), icon: PieChart, href: '/budgets' },
+        { id: 'nav-accounts', label: t('nav.accounts', { defaultValue: 'Accounts' }), icon: Wallet, href: '/financial-accounts' },
+        { id: 'nav-transfers', label: t('sidebar.nav.transfers', { ns: 'portal', defaultValue: 'Transfers' }), icon: ArrowUpDown, href: '/transfers' },
+        { id: 'nav-budgets', label: t('nav.budgets', { defaultValue: 'Budgets' }), icon: PieChart, href: '/budgets' },
         { id: 'nav-recurring', label: t('sidebar.nav.scheduledPayments', { ns: 'portal', defaultValue: 'Scheduled Payments' }), icon: Repeat, href: '/recurring' },
       ],
     },
@@ -145,10 +145,10 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
           restrictionBadge: shouldShowRestrictedUi(managedPeopleAccess) ? ('family' as const) : undefined,
         },
         { id: 'nav-categories', label: t('sidebar.nav.tagsCategories', { ns: 'portal', defaultValue: 'Tags & Categories' }), icon: Tag, href: '/categories' },
-        { id: 'nav-reimbursements', label: t('sidebar.nav.reimbursements', { ns: 'portal' }), icon: RotateCcw, href: '/reimbursements' },
+        { id: 'nav-reimbursements', label: t('sidebar.nav.reimbursements', { ns: 'portal', defaultValue: 'Reimbursements' }), icon: RotateCcw, href: '/reimbursements' },
         {
           id: 'nav-spaces',
-          label: t('sidebar.nav.spaces', { ns: 'portal' }),
+          label: t('sidebar.nav.spaces', { ns: 'portal', defaultValue: 'Spaces' }),
           icon: Home,
           href: '/spaces',
           restrictionBadge: shouldShowRestrictedUi(sharedSpacesAccess) ? ('family' as const) : undefined,
@@ -212,7 +212,7 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
       items: [
         {
           id: 'nav-ai-history',
-          label: t('sidebar.nav.aiHistory', { ns: 'portal' }),
+          label: t('sidebar.nav.aiHistory', { ns: 'portal', defaultValue: 'AI History' }),
           icon: History,
           href: '/ai-history',
           restrictionBadge: shouldShowRestrictedUi(aiHistoryAccess) ? ('upgrade' as const) : undefined,
@@ -225,9 +225,9 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
     try {
       await signOut();
       router.push('/sign-up-login');
-      toast.success(t('topbar.signOutSuccess', { ns: 'portal' }));
+      toast.success(t('topbar.signOutSuccess', { ns: 'portal', defaultValue: 'Signed out successfully.' }));
     } catch {
-      toast.error(t('topbar.signOutError', { ns: 'portal' }));
+      toast.error(t('topbar.signOutError', { ns: 'portal', defaultValue: 'Failed to sign out.' }));
     }
   };
 
@@ -236,12 +236,12 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
     ? (collapsed ? ChevronLeft : ChevronRight)
     : (collapsed ? ChevronRight : ChevronLeft);
 
-  const displayName = profile?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || t('topbar.userFallback', { ns: 'portal' });
+  const displayName = profile?.full_name || user?.user_metadata?.full_name || user?.email?.split('@')[0] || t('topbar.userFallback', { ns: 'portal', defaultValue: 'User' });
   const displayEmail = user?.email || '';
 
   const reportsOverviewItem: NavItem = {
     id: 'nav-reports-overview',
-    label: t('reports.pageTitle', { ns: 'portal', defaultValue: t('nav.reports') }),
+    label: t('reports.pageTitle', { ns: 'portal', defaultValue: 'Reports' }),
     icon: BarChart3,
     href: '/reports',
   };
@@ -264,7 +264,12 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
       ? getRestrictionBadgeLabel(item.restrictionBadge)
       : null;
     const tooltipLabel = restrictionBadgeLabel
-      ? t('sidebar.lockedTooltip', { ns: 'portal', label: item.label, restriction: restrictionBadgeLabel })
+      ? t('sidebar.lockedTooltip', {
+          ns: 'portal',
+          label: item.label,
+          restriction: restrictionBadgeLabel,
+          defaultValue: '{{label}} · {{restriction}}',
+        })
       : item.label;
     const isSmartAiItem = item.id === 'nav-smart-ai';
     const hasNewBadge = Boolean(item.newBadge) && !itemIsRestricted;
@@ -280,7 +285,10 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
                 quickActions.openQuickAction('smart_entry');
               } else {
                 console.error('[Sidebar] Smart AI Assistant requires QuickActionsProvider.');
-                toast.error('Smart AI Assistant temporarily unavailable');
+                toast.error(t('sidebar.errors.smartAiUnavailable', {
+                  ns: 'portal',
+                  defaultValue: 'Smart AI Assistant temporarily unavailable',
+                }));
               }
               onNavigateItem?.();
               return;
@@ -327,7 +335,7 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
               ) : null}
               {hasNewBadge ? (
                 <span className="inline-flex flex-shrink-0 items-center rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[9.5px] font-800 uppercase tracking-[0.14em] text-emerald-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)]">
-                  New
+                  {t('sidebar.badges.new', { ns: 'portal', defaultValue: 'New' })}
                 </span>
               ) : null}
               {pending ? <Loader2 size={13} className="animate-spin flex-shrink-0 text-accent" /> : null}
@@ -430,8 +438,13 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
             aria-expanded={shouldShowSubmenu ? reportsExpanded : undefined}
             title={collapsed ? (
               reportsRestrictionBadge
-                ? t('sidebar.lockedTooltip', { ns: 'portal', label: t('nav.reports'), restriction: reportsRestrictionBadge })
-                : t('nav.reports')
+                ? t('sidebar.lockedTooltip', {
+                    ns: 'portal',
+                    label: t('nav.reports', { defaultValue: 'Reports' }),
+                    restriction: reportsRestrictionBadge,
+                    defaultValue: '{{label}} · {{restriction}}',
+                  })
+                : t('nav.reports', { defaultValue: 'Reports' })
             ) : undefined}
           >
             <span className={`flex flex-shrink-0 items-center justify-center rounded-lg ${
@@ -441,7 +454,7 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
             </span>
             {!collapsed && (
               <span className="flex min-w-0 flex-1 items-center gap-2">
-                <span className="truncate">{t('nav.reports')}</span>
+                <span className="truncate">{t('nav.reports', { defaultValue: 'Reports' })}</span>
                 {reportsRestrictionBadge ? (
                   <span className="inline-flex flex-shrink-0 items-center gap-1 rounded-full border border-border/80 bg-white/80 px-2 py-0.5 text-[10px] font-800 uppercase tracking-[0.12em] text-muted-foreground">
                     <Lock size={10} />
@@ -468,8 +481,13 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
             {collapsed && (
               <span className={`pointer-events-none absolute z-50 whitespace-nowrap rounded-md bg-foreground px-2.5 py-1.5 text-xs font-500 text-card opacity-0 shadow-card-md transition-opacity duration-150 group-hover:opacity-100 ${isRTL ? 'right-full me-3' : 'left-full ms-3'}`}>
                 {reportsRestrictionBadge
-                  ? t('sidebar.lockedTooltip', { ns: 'portal', label: t('nav.reports'), restriction: reportsRestrictionBadge })
-                  : t('nav.reports')}
+                  ? t('sidebar.lockedTooltip', {
+                      ns: 'portal',
+                      label: t('nav.reports', { defaultValue: 'Reports' }),
+                      restriction: reportsRestrictionBadge,
+                      defaultValue: '{{label}} · {{restriction}}',
+                    })
+                  : t('nav.reports', { defaultValue: 'Reports' })}
               </span>
             )}
           </button>
@@ -551,7 +569,7 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
         <button
           onClick={onToggle}
           className={`btn-ghost h-8.5 w-8.5 shrink-0 rounded-xl border border-border/80 p-0 inline-flex items-center justify-center ${isMobileDrawer ? 'bg-secondary/65' : ''}`}
-          aria-label={collapsed ? t('sidebar.expand', { ns: 'portal' }) : t('sidebar.collapse', { ns: 'portal' })}
+          aria-label={collapsed ? t('sidebar.expand', { ns: 'portal', defaultValue: 'Expand sidebar' }) : t('sidebar.collapse', { ns: 'portal', defaultValue: 'Collapse sidebar' })}
         >
           {isMobileDrawer ? (
             <X size={18} className="text-muted-foreground" />
@@ -590,7 +608,7 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
           <button
             onClick={handleSignOut}
             className="transition-opacity hover:opacity-80"
-            title={t('sidebar.signOut', { ns: 'portal' })}
+            title={t('sidebar.signOut', { ns: 'portal', defaultValue: 'Sign out' })}
           >
             <UserAvatar
               fullName={displayName}
@@ -619,15 +637,15 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
             </div>
             <div className={`mt-2 border-t border-border/75 ${isMobileDrawer ? 'pt-2' : 'pt-1.5'}`}>
               <div className="flex items-center justify-between gap-2">
-                <p className={`min-w-0 truncate font-700 uppercase text-muted-foreground ${isMobileDrawer ? 'text-[10px] tracking-[0.14em]' : 'text-[9px] tracking-[0.16em]'}`}>{t('sidebar.accountTitle', { ns: 'portal' })}</p>
+                <p className={`min-w-0 truncate font-700 uppercase text-muted-foreground ${isMobileDrawer ? 'text-[10px] tracking-[0.14em]' : 'text-[9px] tracking-[0.16em]'}`}>{t('sidebar.accountTitle', { ns: 'portal', defaultValue: 'Account' })}</p>
               <button
                 onClick={handleSignOut}
                 className={`inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg border border-negative/18 bg-negative/5 font-600 text-negative transition-colors hover:bg-negative/10 ${isMobileDrawer ? 'min-h-9 px-2.5 py-1.5 text-[11px]' : 'min-h-8 px-2.5 py-1.5 text-[11px]'}`}
-                aria-label={t('sidebar.signOut', { ns: 'portal' })}
-                title={t('sidebar.signOut', { ns: 'portal' })}
+                aria-label={t('sidebar.signOut', { ns: 'portal', defaultValue: 'Sign out' })}
+                title={t('sidebar.signOut', { ns: 'portal', defaultValue: 'Sign out' })}
               >
                 <LogOut size={isMobileDrawer ? 13 : 12} />
-                <span className="truncate">{t('sidebar.signOut', { ns: 'portal' })}</span>
+                <span className="truncate">{t('sidebar.signOut', { ns: 'portal', defaultValue: 'Sign out' })}</span>
               </button>
               </div>
             </div>
