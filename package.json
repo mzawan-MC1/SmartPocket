@@ -59,6 +59,7 @@
     "@capacitor/splash-screen": "^8.0.1",
     "@capacitor/status-bar": "^8.0.2",
     "@dhiwise/component-tagger": "^1.0.15",
+    "@google/genai": "2.17.1",
     "@heroicons/react": "^2.2.0",
     "@react-pdf/renderer": "^4.5.1",
     "@supabase/ssr": "0.12.0",
