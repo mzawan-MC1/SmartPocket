@@ -40,6 +40,10 @@ interface Plan {
   shared_spaces_enabled: boolean;
   standard_reports_enabled: boolean;
   family_reports_enabled: boolean;
+  savings_enabled: boolean;
+  investments_enabled: boolean;
+  exchange_rates_enabled: boolean;
+  calculator_enabled: boolean;
   is_active: boolean;
   display_order: number;
 }
@@ -309,6 +313,10 @@ function PlanEditor({
           ['shared_spaces_enabled', 'Shared Spaces'],
           ['standard_reports_enabled', 'Standard Reports'],
           ['family_reports_enabled', 'Family Reports (Not implemented)'],
+          ['savings_enabled', 'Savings'],
+          ['investments_enabled', 'Investments'],
+          ['exchange_rates_enabled', 'Exchange Rates'],
+          ['calculator_enabled', 'Calculator'],
           ['is_active', 'Active'],
         ] as [keyof Plan, string][]).map(([key, label]) => (
           <div key={key} className="flex items-center justify-between gap-2 bg-secondary/50 rounded-lg px-3 py-2">
@@ -517,6 +525,10 @@ export default function AdminSubscriptionsPage() {
         shared_spaces_enabled: plan.shared_spaces_enabled,
         standard_reports_enabled: plan.standard_reports_enabled,
         family_reports_enabled: plan.family_reports_enabled,
+        savings_enabled: plan.savings_enabled,
+        investments_enabled: plan.investments_enabled,
+        exchange_rates_enabled: plan.exchange_rates_enabled,
+        calculator_enabled: plan.calculator_enabled,
         is_active: plan.is_active,
         updated_at: new Date().toISOString(),
       })
@@ -744,6 +756,12 @@ export default function AdminSubscriptionsPage() {
                           {plan.ai_history_enabled && <span className="text-[10px] bg-info-soft text-info px-2 py-0.5 rounded-full font-600">AI History</span>}
                           {plan.managed_people_enabled && <span className="text-[10px] bg-accent/10 text-accent px-2 py-0.5 rounded-full font-600">Managed People</span>}
                           {plan.shared_spaces_enabled && <span className="text-[10px] bg-accent/10 text-accent px-2 py-0.5 rounded-full font-600">Shared Spaces</span>}
+                          {plan.standard_reports_enabled && <span className="text-[10px] bg-accent/10 text-accent px-2 py-0.5 rounded-full font-600">Standard Reports</span>}
+                          {plan.family_reports_enabled && <span className="text-[10px] bg-violet-500/10 text-violet-700 px-2 py-0.5 rounded-full font-600">Family Reports</span>}
+                          {plan.savings_enabled && <span className="text-[10px] bg-emerald-500/10 text-emerald-700 px-2 py-0.5 rounded-full font-600">Savings</span>}
+                          {plan.investments_enabled && <span className="text-[10px] bg-emerald-500/10 text-emerald-700 px-2 py-0.5 rounded-full font-600">Investments</span>}
+                          {plan.exchange_rates_enabled && <span className="text-[10px] bg-sky-500/10 text-sky-700 px-2 py-0.5 rounded-full font-600">Exchange Rates</span>}
+                          {plan.calculator_enabled && <span className="text-[10px] bg-sky-500/10 text-sky-700 px-2 py-0.5 rounded-full font-600">Calculator</span>}
                         </div>
                       </div>
                     )}
