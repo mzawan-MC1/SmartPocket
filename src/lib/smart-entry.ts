@@ -568,6 +568,16 @@ function buildSubscriptionReview(args: {
     contextCurrencies: args.context?.currencies,
     selectedAccountCurrency: subscriptionAccountSelection?.currency || preferredAccountCurrency,
   });
+
+  // ── Override currency on the SUBSCRIPTION action (the one AI most commonly
+  //    hallucinates USD for).  Preserve ONLY an EXPLICITLY user-spoken currency
+  //    (raw text actually mentions it).
+  const explicitTextCurrency = extractExplicitCurrencyFromSourceText(args.sourceText);
+  if (!explicitTextCurrency && sanitizeCurrency(action.currencyCode || action.currency) !== currency) {
+    action.currency = currency;
+    action.currencyCode = currency;
+  }
+
   const billingFrequency = normalizeSubscriptionBillingFrequency(action.billingFrequency)
     || normalizeSubscriptionBillingFrequency(action.recurringFrequency);
   const amount = typeof action.amount === 'number' ? action.amount : undefined;
@@ -1228,6 +1238,22 @@ export function buildInitialSmartEntryReview(args: {
     selectedAccountCurrency: bestHintAccountCurrency,
   });
 
+  // ── Override ALL action currencies to the resolved default when raw text
+  //    never mentions a currency explicitly.  This stomps AI-hallucinated USD
+  //    on EVERY action/row (multi-action inputs like "100 food + 250 grocery"
+  //    → both actions default to AED).  Explicit currencies ALWAYS win.
+  const actionsExplicitTextCurrency = extractExplicitCurrencyFromSourceText(args.sourceText);
+  if (!actionsExplicitTextCurrency) {
+    for (const action of actions) {
+      if (action.actionType === 'create_account' || action.actionType === 'create_managed_person') continue;
+      const currentActionCurrency = sanitizeCurrency(action.currency || action.currencyCode);
+      if (currentActionCurrency !== inferredCurrency) {
+        action.currency = inferredCurrency;
+        action.currencyCode = inferredCurrency;
+      }
+    }
+  }
+
   const review: SmartEntryReview = {
     understanding: deriveUnderstandingLines(args.instruction),
     missing: [],
@@ -1649,8 +1675,16 @@ export function applySmartEntryReviewToInstruction(
     if (shouldApplyReviewAmount) {
       action = { ...action, amount: review.amount };
     }
-    if (review.currency && !action.currency) {
-      action = { ...action, currency: sanitizeCurrency(review.currency) };
+    if (review.currency) {
+      const resolvedReviewCurrency = sanitizeCurrency(review.currency);
+      const currentActionCurrency = sanitizeCurrency(action.currency || action.currencyCode);
+      if (currentActionCurrency !== resolvedReviewCurrency || !action.currency) {
+        action = {
+          ...action,
+          currency: resolvedReviewCurrency,
+          currencyCode: resolvedReviewCurrency,
+        };
+      }
     }
 
     if (review.person && isPersonRequired(action)) {

@@ -3825,62 +3825,95 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                   <div className={reviewSectionClass}>
                     <div className="relative">
                       {primaryAccountOptions.length > 0 ? (
-                        <div
-                          className={`relative overflow-hidden rounded-xl border bg-card transition-colors ${
-                            hasMissingField('account') || primaryAccountCurrencyMismatch
-                              ? 'border-negative/50 ring-1 ring-negative/20'
-                              : 'border-border/70 hover:border-accent/40 hover:bg-accent/5'
-                          }`}
-                        >
-                          <label htmlFor="smart-entry-primary-account" className="sr-only">
-                            {primaryAccountLabel}
-                          </label>
-                          <span
-                            className={`pointer-events-none absolute top-1/2 z-10 inline-flex h-9 w-9 flex-shrink-0 -translate-y-1/2 items-center justify-center rounded-lg border border-border/70 bg-muted/20 text-muted-foreground ${isRTL ? 'right-3' : 'left-3'}`}
-                          >
-                            <Wallet size={15} className="flex-shrink-0" />
-                          </span>
-                          <span
-                            className={`pointer-events-none absolute top-1.5 z-10 text-[10px] font-700 uppercase leading-4 tracking-[0.14em] text-muted-foreground/80 sm:top-2 sm:text-[10.5px] ${isRTL ? 'right-16 left-12 text-right sm:right-14 sm:left-10' : 'left-16 right-12 text-left sm:left-14 sm:right-10'}`}
-                          >
-                            {primaryAccountLabel}
-                            {reviewState.account?.required ? <span className={getRequiredMarkerClassName()}> *</span> : null}
-                          </span>
-                          <select
-                            id="smart-entry-primary-account"
-                            value={primaryAccountSelectValue}
-                            onChange={(e) => handleAccountSelectionChange('account', e.target.value)}
-                            aria-invalid={hasMissingField('account') || primaryAccountCurrencyMismatch ? 'true' : 'false'}
-                            aria-label={primaryAccountLabel}
-                            title={primaryAccountMetaText}
-                            className={`input-base h-[60px] w-full cursor-pointer appearance-none border-0 bg-transparent text-[13px] font-600 leading-5 text-foreground transition-colors focus-visible:ring-2 focus-visible:ring-accent/10 sm:h-[54px] sm:text-sm ${isRTL ? 'pr-16 pl-12 text-right sm:pr-14 sm:pl-10' : 'pl-16 pr-12 text-left sm:pl-14 sm:pr-14'} pt-[26px] pb-2 sm:pt-5 sm:pb-1.5 [&::-ms-expand]:hidden`}
-                          >
-                            <option value="">
-                              {isSubscriptionFlow
+                        (() => {
+                          const selectedAccount = primaryAccountOptions.find((a) => a.id === primaryAccountSelectValue);
+                          const isCreate = primaryAccountSelectValue === '__create__';
+                          const displayValue = (() => {
+                            if (!primaryAccountSelectValue) {
+                              return isSubscriptionFlow
                                 ? t('smartEntryModal.subscription.paymentAccountFallback', {
                                     ns: 'portal',
                                     defaultValue: 'Select a payment account',
                                   })
-                                : t('smartEntryModal.primaryAccountFallback', { ns: 'portal' })}
-                            </option>
-                            {primaryAccountOptions.map((account) => (
-                              <option key={account.id} value={account.id}>
-                                {getPrimaryAccountOptionLabel(account)}
-                              </option>
-                            ))}
-                            <option value="__create__">
-                              {t('smartEntryModal.createAccountAction', {
+                                : t('smartEntryModal.primaryAccountFallback', { ns: 'portal' });
+                            }
+                            if (isCreate) {
+                              return t('smartEntryModal.createAccountAction', {
                                 ns: 'portal',
                                 name: reviewState.account?.name || t('smartEntryModal.accountFallbackName', { ns: 'portal' }),
-                              })}
-                            </option>
-                          </select>
-                          <span
-                            className={`pointer-events-none absolute top-1/2 z-10 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground ${isRTL ? 'left-3' : 'right-3'}`}
-                          >
-                            <ChevronDown size={16} className="flex-shrink-0" />
-                          </span>
-                        </div>
+                              });
+                            }
+                            return selectedAccount
+                              ? getPrimaryAccountOptionLabel(selectedAccount)
+                              : t('smartEntryModal.primaryAccountFallback', { ns: 'portal' });
+                          })();
+                          const isPlaceholder = !primaryAccountSelectValue || isCreate;
+                          return (
+                            <div
+                              className={`relative overflow-hidden rounded-xl border bg-card transition-colors ${
+                                hasMissingField('account') || primaryAccountCurrencyMismatch
+                                  ? 'border-negative/50 ring-1 ring-negative/20'
+                                  : 'border-border/70 hover:border-accent/40 hover:bg-accent/5'
+                              }`}
+                            >
+                              <label htmlFor="smart-entry-primary-account" className="sr-only">
+                                {primaryAccountLabel}
+                              </label>
+                              {/* Visual layout: 3 columns (icon / text / chevron) with gap-3.
+                                  NO absolute overlays — siblings layout means "Cash · AED" can never
+                                  render under the account icon or overlap the chevron. */}
+                              <div className={`flex min-h-[54px] items-center gap-3 px-3 py-3 sm:min-h-[54px] ${isRTL ? 'flex-row-reverse' : ''}`}>
+                                <span className="inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg border border-border/70 bg-muted/20 text-muted-foreground">
+                                  <Wallet size={15} className="flex-shrink-0" />
+                                </span>
+                                <span className="min-w-0 flex-1">
+                                  <span className={`block text-[10px] font-700 uppercase leading-4 tracking-[0.14em] text-muted-foreground/80 sm:text-[10.5px] ${isRTL ? 'text-right' : 'text-left'}`}>
+                                    {primaryAccountLabel}
+                                    {reviewState.account?.required ? <span className={getRequiredMarkerClassName()}> *</span> : null}
+                                  </span>
+                                  <span
+                                    className={`mt-0.5 block truncate text-[13px] font-600 leading-5 text-foreground sm:text-sm ${isPlaceholder ? 'text-muted-foreground/80' : ''} ${isRTL ? 'text-right' : 'text-left'}`}
+                                    title={primaryAccountMetaText}
+                                  >
+                                    {displayValue}
+                                  </span>
+                                </span>
+                                <span className="inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md text-muted-foreground">
+                                  <ChevronDown size={16} className="flex-shrink-0" />
+                                </span>
+                              </div>
+                              <select
+                                id="smart-entry-primary-account"
+                                value={primaryAccountSelectValue}
+                                onChange={(e) => handleAccountSelectionChange('account', e.target.value)}
+                                aria-invalid={hasMissingField('account') || primaryAccountCurrencyMismatch ? 'true' : 'false'}
+                                aria-label={primaryAccountLabel}
+                                title={primaryAccountMetaText}
+                                className="absolute inset-0 z-20 h-full min-h-[54px] w-full cursor-pointer opacity-0 [&::-ms-expand]:hidden"
+                              >
+                                <option value="">
+                                  {isSubscriptionFlow
+                                    ? t('smartEntryModal.subscription.paymentAccountFallback', {
+                                        ns: 'portal',
+                                        defaultValue: 'Select a payment account',
+                                      })
+                                    : t('smartEntryModal.primaryAccountFallback', { ns: 'portal' })}
+                                </option>
+                                {primaryAccountOptions.map((account) => (
+                                  <option key={account.id} value={account.id}>
+                                    {getPrimaryAccountOptionLabel(account)}
+                                  </option>
+                                ))}
+                                <option value="__create__">
+                                  {t('smartEntryModal.createAccountAction', {
+                                    ns: 'portal',
+                                    name: reviewState.account?.name || t('smartEntryModal.accountFallbackName', { ns: 'portal' }),
+                                  })}
+                                </option>
+                              </select>
+                            </div>
+                          );
+                        })()
                       ) : canUseExistingAccountCreationFlow ? (
                         <button
                           type="button"
