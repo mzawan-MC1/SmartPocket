@@ -197,6 +197,99 @@ function normalizeLookupValue(value: string | null | undefined) {
     .trim();
 }
 
+function extractExplicitCurrencyFromSourceText(sourceText: string | undefined): string | null {
+  const raw = (sourceText || '').toLowerCase();
+  if (raw.length === 0) return null;
+  // ISO codes (case-insensitive) surrounded by word boundaries
+  const isoMatch = raw.match(/\b(aed|usd|eur|gbp|sar|pkr|inr|egp|jod|omr|bhd|kwd|qar|try|cad|aud|nzd|chf|jpy|cny|brl|mxn|zar|rub|pln|nok|sek|dkk)\b/);
+  if (isoMatch) return isoMatch[1].toUpperCase();
+  // Common currency words / colloquial names (multi-locale)
+  if (/\bdirham(s)?\b/.test(raw) || /\bدرهم\b/.test(raw)) return 'AED';
+  if (/\bdollar(s)?\b/.test(raw) || /\bus dollar\b/.test(raw) || /\b\$\b/.test(raw)) return 'USD';
+  if (/\beuro(s)?\b/.test(raw) || /\b€\b/.test(raw)) return 'EUR';
+  if (/\bpound(s)?\b/.test(raw) || /\bsterling\b/.test(raw) || /\b£\b/.test(raw)) return 'GBP';
+  if (/\bsaudi riyal\b/.test(raw) || /\briyal(s)?\b/.test(raw)) return 'SAR';
+  if (/\brupee(s)?\b/.test(raw)) return /\bpak(istani)?\b/.test(raw) ? 'PKR' : 'INR';
+  if (/\bpkr\b/.test(raw) || /\bpak rupee\b/.test(raw)) return 'PKR';
+  if (/\binr\b/.test(raw) || /\bindian rupee\b/.test(raw)) return 'INR';
+  if (/\begp\b/.test(raw) || /\begyptian pound\b/.test(raw)) return 'EGP';
+  if (/\bjod\b/.test(raw) || /\bjordanian dinar\b/.test(raw) || /\bdinar(s)?\b/.test(raw)) return 'JOD';
+  if (/\bomr\b/.test(raw) || /\bomani rial\b/.test(raw) || /\brial(s)?\b/.test(raw)) return 'OMR';
+  if (/\bbhd\b/.test(raw) || /\bbahraini dinar\b/.test(raw)) return 'BHD';
+  if (/\bkwd\b/.test(raw) || /\bkuwaiti dinar\b/.test(raw)) return 'KWD';
+  if (/\bqar\b/.test(raw) || /\bqatari riyal\b/.test(raw)) return 'QAR';
+  if (/\b(lira|turkish lira|₺)\b/.test(raw)) return 'TRY';
+  // Currency symbols
+  if (raw.includes('₹')) return 'INR';
+  if (raw.includes('₨')) {
+    return /\bpak\b/.test(raw) ? 'PKR' : 'INR';
+  }
+  if (raw.includes('ر.س') || raw.includes('ريال سعودي')) return 'SAR';
+  if (raw.includes('د.إ') || raw.includes('د.ك') || raw.includes('د.ب') || raw.includes('ر.ع') || raw.includes('ر.ق')) {
+    if (raw.includes('د.إ')) return 'AED';
+    if (raw.includes('د.ك')) return 'KWD';
+    if (raw.includes('د.ب')) return 'BHD';
+    if (raw.includes('ر.ع')) return 'OMR';
+    if (raw.includes('ر.ق')) return 'QAR';
+  }
+  return null;
+}
+
+function hasExplicitCurrencyInSourceText(sourceText: string | undefined, currencyCode: string | undefined): boolean {
+  if (!currencyCode) return false;
+  const explicit = extractExplicitCurrencyFromSourceText(sourceText);
+  if (!explicit) return false;
+  return explicit === (currencyCode.trim().toUpperCase() || '').toUpperCase();
+}
+
+function resolveSmartEntryCurrency(args: {
+  sourceText?: string;
+  actionCurrency?: string;
+  contextDefaultCurrency?: string;
+  contextCurrencies?: Iterable<string> | null;
+  selectedAccountCurrency?: string;
+}): string {
+  const {
+    sourceText,
+    actionCurrency,
+    contextDefaultCurrency,
+    contextCurrencies,
+    selectedAccountCurrency,
+  } = args;
+
+  // Rule 1: explicit currency mention in raw user text wins unconditionally
+  const explicit = extractExplicitCurrencyFromSourceText(sourceText);
+  if (explicit) {
+    return sanitizeCurrency(explicit, {
+      fallbackCurrency: contextDefaultCurrency,
+      allowedCurrencies: contextCurrencies,
+    });
+  }
+
+  // Rule 2: if there is an explicit account match (we are already sure WHICH account), use its currency
+  const sanitizedAccountCurrency = selectedAccountCurrency
+    ? sanitizeCurrency(selectedAccountCurrency, { fallbackCurrency: contextDefaultCurrency, allowedCurrencies: contextCurrencies })
+    : null;
+  if (sanitizedAccountCurrency) {
+    return sanitizedAccountCurrency;
+  }
+
+  // Rule 3: action.currency / action.currencyCode from AI ONLY if raw source text MATCHES that currency explicitly
+  //         (this prevents the "AI hallucinates USD" bug when user said nothing about currency)
+  const aiProvided = (actionCurrency || '').trim();
+  if (aiProvided && hasExplicitCurrencyInSourceText(sourceText, aiProvided)) {
+    return sanitizeCurrency(aiProvided, { fallbackCurrency: contextDefaultCurrency, allowedCurrencies: contextCurrencies });
+  }
+
+  // Rule 4: user default / platform default context.defaultCurrency
+  if (contextDefaultCurrency) {
+    return sanitizeCurrency(contextDefaultCurrency, { allowedCurrencies: contextCurrencies });
+  }
+
+  // Rule 5: final fallback (USD)
+  return sanitizeCurrency(undefined, { allowedCurrencies: contextCurrencies });
+}
+
 function hasAnyPhrase(raw: string, phrases: string[]) {
   return phrases.some((phrase) => raw.includes(phrase));
 }
@@ -447,13 +540,34 @@ function buildSubscriptionReview(args: {
 
   const raw = (args.sourceText || '').toLowerCase();
   const todayIso = getContextCurrentDate(args.context);
-  const currency = sanitizeCurrency(
-    action.currencyCode || action.currency || args.context?.defaultCurrency,
-    {
-      fallbackCurrency: args.context?.defaultCurrency,
-      allowedCurrencies: args.context?.currencies,
-    }
+
+  // ── Hint account lookup (for Rule 2 defaulting: selected-account currency) ──
+  const subscriptionHintAccounts = (args.context?.accounts || []).filter(
+    (account): account is ContextAccount => !!account?.id && account.includeInTotal !== false
   );
+  const hintMatch = findSubscriptionPaymentAccount({
+    hint: action.accountName || action.financialAccountHint,
+    context: args.context,
+  });
+  const preferredAccountCurrency =
+    (hintMatch.account?.currency || (subscriptionHintAccounts[0]?.currency));
+  const subscriptionAccountSelection = hintMatch.account?.id
+    ? {
+        mode: 'existing' as const,
+        accountId: hintMatch.account.id,
+        name: hintMatch.account.name,
+        type: hintMatch.account.type as SmartEntryAccountSelection['type'],
+        currency: sanitizeCurrency(hintMatch.account.currency, { fallbackCurrency: args.context?.defaultCurrency, allowedCurrencies: args.context?.currencies }),
+      }
+    : undefined;
+
+  const currency = resolveSmartEntryCurrency({
+    sourceText: args.sourceText,
+    actionCurrency: action.currencyCode || action.currency,
+    contextDefaultCurrency: args.context?.defaultCurrency,
+    contextCurrencies: args.context?.currencies,
+    selectedAccountCurrency: subscriptionAccountSelection?.currency || preferredAccountCurrency,
+  });
   const billingFrequency = normalizeSubscriptionBillingFrequency(action.billingFrequency)
     || normalizeSubscriptionBillingFrequency(action.recurringFrequency);
   const amount = typeof action.amount === 'number' ? action.amount : undefined;
@@ -492,12 +606,19 @@ function buildSubscriptionReview(args: {
     }),
     missing: [],
     currency,
-    account: buildSubscriptionAccountSelection({
-      action,
-      context: args.context,
-      currency,
-      required: accountRequired,
-    }),
+    account: subscriptionAccountSelection
+      ? {
+          ...subscriptionAccountSelection,
+          required: accountRequired,
+          includeInTotal: true,
+          scope: 'personal' as const,
+        }
+      : buildSubscriptionAccountSelection({
+          action,
+          context: args.context,
+          currency,
+          required: accountRequired,
+        }),
     subscription: {
       intent: action.actionType,
       subscriptionId: matchingSubscriptions.selected?.id || action.subscriptionId,
@@ -1048,13 +1169,64 @@ export function buildInitialSmartEntryReview(args: {
     typeof explicitExpenseAmount !== 'number' &&
     (hasImplicitSpendMention(sourceText) || missingAmountAction?.amountNeedsConfirmation === true) &&
     !shouldUseFullReceivedAmount;
-  const inferredCurrency = sanitizeCurrency(
-    actions.find((action) => typeof action.currency === 'string')?.currency || args.context?.defaultCurrency,
-    {
-      fallbackCurrency: args.context?.defaultCurrency,
-      allowedCurrencies: args.context?.currencies,
-    }
-  );
+  // ── Hint account lookup (for Rule 2 defaulting: selected-account currency) ──
+  const primaryHintAccounts = primaryAccountAction
+    ? (() => {
+        const isManagedTmp = isManagedPurpose(purpose);
+        const managedTmp = primaryPersonAction?.personName || receiptAction?.personName;
+        const eligible = getEligibleAccountsForPurpose({
+          purpose,
+          accounts: args.context?.accounts,
+          field: 'account',
+          personName: managedTmp,
+          people: args.context?.people,
+        });
+        const m = findContextAccount(
+          {
+            accountId: primaryAccountAction.accountId,
+            name: primaryAccountAction.accountName,
+          },
+          { ...args.context, accounts: eligible }
+        );
+        const fb = !primaryAccountAction.accountName && !primaryAccountAction.accountId
+          ? eligible[0]
+          : undefined;
+        return { matchedCurrency: m?.currency, fallbackCurrency: fb?.currency };
+      })()
+    : { matchedCurrency: undefined, fallbackCurrency: undefined };
+  const destinationHintCurrency = destinationAccountAction
+    ? (() => {
+        const eligible = getEligibleAccountsForPurpose({
+          purpose,
+          accounts: args.context?.accounts,
+          field: 'destinationAccount',
+          personName: undefined,
+          people: args.context?.people,
+        });
+        const m = findContextAccount(
+          {
+            accountId: destinationAccountAction.destinationAccountId,
+            name: destinationAccountAction.destinationAccountName,
+          },
+          { ...args.context, accounts: eligible }
+        );
+        return m?.currency;
+      })()
+    : undefined;
+  const bestHintAccountCurrency =
+    primaryHintAccounts.matchedCurrency
+    || primaryHintAccounts.fallbackCurrency
+    || destinationHintCurrency
+    || ((args.context?.accounts || [])[0] as ContextAccount | undefined)?.currency;
+
+  const inferredCurrency = resolveSmartEntryCurrency({
+    sourceText: args.sourceText,
+    actionCurrency: actions.find((action) => typeof action.currency === 'string')?.currency
+      || actions.find((action) => typeof action.currencyCode === 'string')?.currencyCode,
+    contextDefaultCurrency: args.context?.defaultCurrency,
+    contextCurrencies: args.context?.currencies,
+    selectedAccountCurrency: bestHintAccountCurrency,
+  });
 
   const review: SmartEntryReview = {
     understanding: deriveUnderstandingLines(args.instruction),
@@ -1227,6 +1399,36 @@ export function buildInitialSmartEntryReview(args: {
         };
   }
 
+  // ── Currency consistency: when raw text does NOT mention a currency
+  //    explicitly, lock review.currency to the selected/default account
+  //    currency (preferred), falling back to context.defaultCurrency.
+  //    This prevents AI-hallucinated "USD" from winning when the user
+  //    never said USD and their default account is e.g. Cash · AED.
+  const explicitTextCurrency = extractExplicitCurrencyFromSourceText(args.sourceText);
+  if (!explicitTextCurrency) {
+    const primaryAccountCurrency =
+      review.account?.mode === 'existing' && review.account.accountId
+        ? review.account.currency
+        : review.account?.currency;
+    const destinationAccountCurrency =
+      review.destinationAccount?.mode === 'existing' && review.destinationAccount.accountId
+        ? review.destinationAccount.currency
+        : review.destinationAccount?.currency;
+    const candidateCurrency =
+      primaryAccountCurrency
+      || destinationAccountCurrency
+      || args.context?.defaultCurrency;
+    const resolvedDefaulted = candidateCurrency
+      ? sanitizeCurrency(candidateCurrency, {
+          fallbackCurrency: args.context?.defaultCurrency,
+          allowedCurrencies: args.context?.currencies,
+        })
+      : null;
+    if (resolvedDefaulted && resolvedDefaulted !== review.currency) {
+      review.currency = resolvedDefaulted;
+    }
+  }
+
   if ((!review.purpose || review.purpose === 'unclear' || review.purposeNeedsConfirmation) && purposeOptions?.length) {
     review.missing.push('purpose');
   }
@@ -1240,7 +1442,7 @@ export function buildInitialSmartEntryReview(args: {
   if (shouldAskExpenseAmount || hasOtherMissingAmounts) {
     review.missing.push('amount');
   }
-  if (actions.some((action) => !action.currency && !args.context?.defaultCurrency)) {
+  if (!sanitizeCurrency(review.currency, { fallbackCurrency: args.context?.defaultCurrency, allowedCurrencies: args.context?.currencies })) {
     review.missing.push('currency');
   }
   if (review.person?.required && !review.person.personId && !review.person.name) {

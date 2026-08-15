@@ -3836,12 +3836,12 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                             {primaryAccountLabel}
                           </label>
                           <span
-                            className={`pointer-events-none absolute top-1/2 z-10 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg border border-border/70 bg-muted/20 text-muted-foreground ${isRTL ? 'right-3' : 'left-3'}`}
+                            className={`pointer-events-none absolute top-1/2 z-10 inline-flex h-9 w-9 flex-shrink-0 -translate-y-1/2 items-center justify-center rounded-lg border border-border/70 bg-muted/20 text-muted-foreground ${isRTL ? 'right-3' : 'left-3'}`}
                           >
-                            <Wallet size={15} />
+                            <Wallet size={15} className="flex-shrink-0" />
                           </span>
                           <span
-                            className={`pointer-events-none absolute top-1.5 z-10 text-[10px] font-700 uppercase leading-4 tracking-[0.14em] text-muted-foreground/80 sm:top-2 sm:text-[10.5px] ${isRTL ? 'right-14 left-12 text-right sm:left-10' : 'left-14 right-12 text-left sm:right-10'}`}
+                            className={`pointer-events-none absolute top-1.5 z-10 text-[10px] font-700 uppercase leading-4 tracking-[0.14em] text-muted-foreground/80 sm:top-2 sm:text-[10.5px] ${isRTL ? 'right-16 left-12 text-right sm:right-14 sm:left-10' : 'left-16 right-12 text-left sm:left-14 sm:right-10'}`}
                           >
                             {primaryAccountLabel}
                             {reviewState.account?.required ? <span className={getRequiredMarkerClassName()}> *</span> : null}
@@ -3853,7 +3853,7 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                             aria-invalid={hasMissingField('account') || primaryAccountCurrencyMismatch ? 'true' : 'false'}
                             aria-label={primaryAccountLabel}
                             title={primaryAccountMetaText}
-                            className={`input-base h-[60px] w-full cursor-pointer appearance-none border-0 bg-transparent text-[13px] font-600 leading-5 text-foreground transition-colors focus-visible:ring-2 focus-visible:ring-accent/10 sm:h-[54px] sm:text-sm ${isRTL ? 'pr-14 pl-12 text-right sm:pl-10' : 'pl-14 pr-12 text-left sm:pr-10'} pt-[26px] pb-2 sm:pt-5 sm:pb-1.5`}
+                            className={`input-base h-[60px] w-full cursor-pointer appearance-none border-0 bg-transparent text-[13px] font-600 leading-5 text-foreground transition-colors focus-visible:ring-2 focus-visible:ring-accent/10 sm:h-[54px] sm:text-sm ${isRTL ? 'pr-16 pl-12 text-right sm:pr-14 sm:pl-10' : 'pl-16 pr-12 text-left sm:pl-14 sm:pr-14'} pt-[26px] pb-2 sm:pt-5 sm:pb-1.5 [&::-ms-expand]:hidden`}
                           >
                             <option value="">
                               {isSubscriptionFlow
@@ -3876,9 +3876,9 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
                             </option>
                           </select>
                           <span
-                            className={`pointer-events-none absolute top-1/2 z-10 -translate-y-1/2 text-muted-foreground ${isRTL ? 'left-3' : 'right-3'}`}
+                            className={`pointer-events-none absolute top-1/2 z-10 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground ${isRTL ? 'left-3' : 'right-3'}`}
                           >
-                            <ChevronDown size={16} />
+                            <ChevronDown size={16} className="flex-shrink-0" />
                           </span>
                         </div>
                       ) : canUseExistingAccountCreationFlow ? (
