@@ -143,13 +143,13 @@
   },
   "sidebar": {
     "sections": {
-      "finance": "Finance",
+      "finance": "Finances",
       "manage": "Gestion",
       "reports": "Rapports",
       "support": "Support",
-      "money": "MONEY",
-      "investGrow": "INVEST & GROW",
-      "tools": "TOOLS"
+      "money": "ARGENT",
+      "investGrow": "INVESTIR ET GRANDIR",
+      "tools": "OUTILS"
     },
     "nav": {
       "transfers": "Transferts",
@@ -161,8 +161,8 @@
       "spaces": "Espaces",
       "aiHistory": "Historique IA",
       "personalSubscriptions": "Abonnements personnels",
-      "faqs": "FAQ",
       "support": "Support",
+      "faqs": "FAQ",
       "dashboard": "Tableau de bord",
       "moneyInOut": "Entrées et sorties",
       "accounts": "Comptes",
@@ -174,7 +174,7 @@
       "tagsCategories": "Étiquettes et catégories",
       "savings": "Épargne",
       "investments": "Investissements",
-      "smartAi": "Assistant financier IA intelligent",
+      "smartAi": "Assistant IA intelligent",
       "exchangeRates": "Taux de change",
       "calculator": "Calculatrice",
       "settings": "Paramètres",
@@ -182,17 +182,17 @@
       "transactions": "Transactions",
       "dashboardPlural": "Tableau de bord"
     },
-    "lockedTooltip": "{{label}} · {{restriction}}",
+    "lockedTooltip": "{{label}}  · {{restriction}}",
     "expand": "Développer la barre latérale",
     "collapse": "Réduire la barre latérale",
     "accountTitle": "Compte",
     "accountDescription": "Gérez le profil depuis le menu supérieur.",
-    "signOut": "Se déconnecter",
+    "signOut": "Déconnexion",
     "badges": {
       "new": "Nouveau"
     },
     "errors": {
-      "smartAiUnavailable": "Smart AI Assistant temporairement indisponible"
+      "smartAiUnavailable": "Assistant IA temporairement indisponible"
     }
   },
   "bottomNav": {
@@ -3512,7 +3512,7 @@
     "upgradeAction": "Comparer les offres",
     "backAction": "Retour au tableau de bord",
     "badges": {
-      "locked": "Verrouille",
+      "locked": "Verrouillé",
       "upgrade": "Améliorer",
       "family": "Famille",
       "expired": "Essai expire"
@@ -4553,18 +4553,18 @@
     "comingSoonTitle": "Bientôt disponible",
     "comingSoonDesc": "Un module Épargne dédié arrive bientôt. Ici, vous pourrez organiser vos objectifs d'épargne, suivre les contributions et surveiller les progrès.",
     "inDevelopment": "Fonctionnalité en développement",
-    "emptyTitle": "Aucun objectif d'épargne pour le moment",
+    "emptyTitle": "Aucun objectif pour l’instant.",
     "emptyDesc": "Créez votre premier objectif d'épargne pour commencer à atteindre vos cibles financières.",
     "addGoal": "Ajouter un objectif d'épargne",
     "editGoal": "Modifier l'objectif d'épargne",
     "deleteGoal": "Supprimer l'objectif",
-    "goalName": "Nom de l'objectif",
+    "goalName": "Nom de l’objectif",
     "goalNamePlaceholder": "ex. Fonds d'urgence",
     "targetAmount": "Montant cible",
     "currentAmount": "Épargne actuelle",
     "deadline": "Date cible",
     "monthlyContribution": "Versement mensuel",
-    "progress": "Progression",
+    "progress": "Progrès",
     "percentComplete": "{{percent}}% effectué",
     "status": "Statut",
     "categories": "Catégories",
@@ -4593,10 +4593,83 @@
     "linkedAccount": "Compte lié",
     "tips": "Conseils épargne",
     "suggestions": "Suggestions intelligentes",
-    "summary": "Résumé de l'épargne",
+    "summary": {
+      "activeGoals": "Objectifs actifs",
+      "monthlyTarget": "Objectif mensuel",
+      "nextTargetDate": "Prochaine date butoir",
+      "totalSaved": "Total épargné"
+    },
     "totalGoals": "Total des objectifs",
     "totalSaved": "Total épargné",
-    "nearestDeadline": "Échéance la plus proche"
+    "nearestDeadline": "Échéance la plus proche",
+    "accounts": {
+      "subtitle": "Inclus dans le Total épargné parallèlement à vos objectifs.",
+      "title": "Comptes d’épargne existants"
+    },
+    "badge": "Vos objectifs",
+    "cards": {
+      "monthly": "Mensuel",
+      "realData": "Données réelles",
+      "remaining": "Restant",
+      "savedTarget": "Épargné / Objectif"
+    },
+    "contrib": {
+      "add": "Ajouter",
+      "added": "Versement ajouté.",
+      "afterAdd": "Après ajout",
+      "amount": "Montant du versement",
+      "currentSaved": "Épargne actuelle",
+      "failed": "Impossible d’ajouter le versement.",
+      "positive": "Saisissez un montant supérieur à 0.",
+      "title": "Ajouter un versement"
+    },
+    "created": "Objectif d’épargne créé.",
+    "deleteConfirm": {
+      "confirm": "Supprimer",
+      "description": "Cette action supprime ",
+      "title": "Supprimer l’objectif ?"
+    },
+    "deleteFailed": "Impossible de supprimer l’objectif.",
+    "deleted": "Objectif d’épargne supprimé.",
+    "empty": {
+      "action": "Créez votre premier objectif",
+      "description": "Commencez par un fonds d'urgence, un voyage ou tout objectif personnel que vous souhaitez suivre dans le temps.",
+      "title": "Aucun objectif pour l’instant."
+    },
+    "form": {
+      "category": "Catégorie",
+      "create": "Créer l’objectif",
+      "currency": "Devise",
+      "currentSaved": "Épargne actuelle",
+      "description": "Définissez un objectif, ce que vous avez déjà épargné et une cotisation mensuelle facultative.",
+      "editTitle": "Modifier l’objectif",
+      "goalName": "Nom de l’objectif",
+      "goalNamePlaceholder": "Fonds d’urgence, voyage à Bali…",
+      "linkedAccount": "Compte rattaché (facultatif)",
+      "monthlyContribution": "Versement mensuel",
+      "nameRequired": "Le nom de l’objectif est requis.",
+      "noLinkedAccount": "Non rattaché",
+      "notes": "Notes (facultatif)",
+      "notesPlaceholder": "Pourquoi cet objectif compte, ou un rappel rapide pour vous-même.",
+      "savedTooHigh": "Le montant épargné ne peut dépasser la cible.",
+      "targetAmount": "Montant cible",
+      "targetDate": "Date cible (facultatif)",
+      "targetRequired": "Le montant cible doit être supérieur à 0.",
+      "title": "Nouvel objectif d’épargne",
+      "update": "Mettre à jour"
+    },
+    "goals": {
+      "actions": "Actions de l’objectif",
+      "addContribution": "Ajouter un versement",
+      "delete": "Supprimer",
+      "edit": "Modifier",
+      "subtitle": "Créez un objectif, suivez ce que vous épargnez et ajoutez des cotisations au fur et à mesure.",
+      "title": "Objectifs d’épargne"
+    },
+    "loadFailed": "Impossible de charger les objectifs.",
+    "newGoal": "Nouvel objectif d’épargne",
+    "saveFailed": "Impossible d’enregistrer l’objectif.",
+    "updated": "Objectif d’épargne mis à jour."
   },
   "investments": {
     "title": "Investissements",
@@ -4613,8 +4686,11 @@
     "totalValue": "Valeur totale",
     "totalCost": "Coût total",
     "totalGain": "Gain/perte totale",
-    "totalGainPercent": "{{percent}}%",
-    "holdings": "Avoirs",
+    "totalGainPercent": "{{percent}} %",
+    "holdings": {
+      "subtitle": "Ajoutez ce que vous détenez; suivi manuel, pas de données de marché en temps réel.",
+      "title": "Portefeuille"
+    },
     "assetAllocation": "Répartition des actifs",
     "performance": "Performance",
     "performance1D": "1 jour",
@@ -4628,7 +4704,7 @@
     "categories": "Catégories",
     "categoryStocks": "Actions",
     "categoryBonds": "Obligations",
-    "categoryETFs": "ETFs",
+    "categoryETFs": "ETF",
     "categoryMutualFunds": "Fonds communs de placement",
     "categoryCrypto": "Crypto-monnaies",
     "categoryRealEstate": "Immobilier",
@@ -4640,7 +4716,65 @@
     "dividend": "Dividende",
     "quantity": "Quantité",
     "pricePerUnit": "Prix par unité",
-    "fees": "Frais"
+    "fees": "Frais",
+    "accounts": {
+      "current": "Actuel",
+      "delta": "Variation",
+      "invested": "Investi",
+      "realData": "Données réelles",
+      "subtitle": "Inclus dans vos totaux ci-dessus.",
+      "title": "Comptes d’investissement existants"
+    },
+    "badge": "Vos avoirs",
+    "created": "Investissement ajouté.",
+    "deleteConfirm": {
+      "confirm": "Supprimer l'investissement",
+      "description": "Ceci supprime ",
+      "title": "Supprimer l'investissement ?"
+    },
+    "deleteFailed": "Impossible de supprimer.",
+    "deleted": "Investissement supprimé.",
+    "disclaimer": "Smart Pocket vous aide à suivre vos investissements. Ce n’est pas un conseil financier.",
+    "empty": {
+      "action": "Ajoutez votre premier investissement",
+      "description": "Commencez par une action seule, un fonds, un portefeuille de crypto-monnaies ou un bien immobilier. Les valeurs sont mises à jour manuellement pour plus de précision.",
+      "title": "Aucun investissement suivi pour l’instant."
+    },
+    "form": {
+      "assetType": "Type d’actif",
+      "create": "Ajouter un investissement",
+      "currency": "Devise",
+      "currentValue": "Valeur actuelle",
+      "description": "Suivez un bien que vous détenez. Saisissez ce que vous avez payé et sa valeur actuelle.",
+      "editTitle": "Modifier l’investissement",
+      "invested": "Montant investi",
+      "name": "Nom de l’investissement",
+      "namePlaceholder": "ex. S&P 500 ETF, portefeuille BTC, Appartement 3B",
+      "nameRequired": "Le nom de l’investissement est requis.",
+      "notes": "Notes (facultatif)",
+      "notesPlaceholder": "Code, emplacement, quantité ou rappel rapide pour vous-même.",
+      "purchaseDate": "Date d'achat (facultatif)",
+      "title": "Ajouter un investissement",
+      "update": "Mettre à jour l'investissement"
+    },
+    "holding": {
+      "actions": "Actions sur l'investissement",
+      "delete": "Supprimer",
+      "edit": "Modifier",
+      "colInvested": "Investi",
+      "colValue": "Valeur",
+      "colGainLoss": "Gain / Perte"
+    },
+    "loadFailed": "Impossible de charger les investissements.",
+    "newInvestment": "Ajouter un investissement",
+    "saveFailed": "Impossible d’enregistrer.",
+    "summary": {
+      "assetTypes": "Types d’actifs",
+      "currentValue": "Valeur actuelle",
+      "gainLoss": "Gain / Perte",
+      "totalInvested": "Total investi"
+    },
+    "updated": "Investissement mis à jour."
   },
   "exchangeRates": {
     "title": "Taux de change",
@@ -4653,7 +4787,28 @@
     "targetCurrency": "Devise cible",
     "lastUpdated": "Dernière mise à jour",
     "convert": "Convertir",
-    "converter": "Convertisseur de devises",
+    "converter": {
+      "amount": "Montant",
+      "amountLabel": "Montant",
+      "amountPlaceholder": "ex. 100",
+      "asOf": "Au",
+      "error": "Conversion impossible.",
+      "from": "De",
+      "fromLabel": "De",
+      "notAvailable": "Non disponible",
+      "providerFallback": "Global Exchange",
+      "providerLabel": "Fournisseur : {{provider}}",
+      "result": "Résultat",
+      "resultLabel": "Résultat",
+      "stale": "Taux légèrement ancien utilisé.",
+      "staleNote": "Les taux pourraient être obsolètes",
+      "subtitle": "Convertissez entre devises à l'aide de l'instantané des taux sauvegardé.",
+      "swap": "Inverser devises",
+      "swapAria": "Inverser les devises source et cible",
+      "title": "Convertisseur de devises",
+      "to": "Vers",
+      "toLabel": "Vers"
+    },
     "amount": "Montant",
     "from": "De",
     "to": "Vers",
@@ -4685,7 +4840,47 @@
     "provider": "Fournisseur",
     "stale": "Les taux pourraient être obsolètes",
     "refresh": "Actualiser les taux",
-    "refreshing": "Actualisation..."
+    "refreshing": "Actualisation...",
+    "actions": {
+      "refresh": "Actualiser les taux"
+    },
+    "badge": "Global Exchange",
+    "empty": {
+      "action": "Actualiser les taux",
+      "description": "Les taux n'ont pas pu être chargés pour le moment.",
+      "searchDescription": "Essayez un autre code ou nom de devise.",
+      "searchTitle": "Aucune devise ne correspond à votre recherche",
+      "title": "Taux de change indisponibles"
+    },
+    "fetchError": {
+      "generic": "Les taux n'ont pas pu être chargés."
+    },
+    "freshness": {
+      "fresh": "Taux à jour",
+      "stale": "Les taux sont susceptibles d'être plus anciens",
+      "unavailable": "Taux indisponibles"
+    },
+    "meta": {
+      "defaultCurrency": "Devise par défaut",
+      "lastUpdated": "Dernière mise à jour",
+      "notYet": "Pas encore",
+      "status": "Statut",
+      "unavailable": "Indisponible"
+    },
+    "refreshButton": "Actualiser les taux",
+    "snapshotLoadError": {
+      "fallback": "Échec du chargement des taux de change."
+    },
+    "table": {
+      "colCode": "Code",
+      "colCurrency": "Devise",
+      "colInverse": "Inverse",
+      "colRate": "1 {{code}} achète",
+      "searchPlaceholder": "Rechercher une devise…",
+      "subtitle": "Taux par rapport à votre devise par défaut ({{code}}).",
+      "title": "Taux populaires",
+      "truncatedHint": ""
+    }
   },
   "calculator": {
     "title": "Calculatrice",
@@ -4714,7 +4909,47 @@
     "calculate": "Calculer",
     "reset": "Réinitialiser",
     "schedule": "Échéancier de paiement",
-    "summary": "Résumé"
+    "summary": "Résumé",
+    "badge": "Outils rapides",
+    "budget": {
+      "allocated": "Alloué",
+      "breakdown": "Répartition mensuelle",
+      "deficit": "Déficit",
+      "enterIncome": "Saisissez le revenu mensuel",
+      "enterIncomeHint": "Ajoutez des revenus, des dépenses et un objectif d'épargne pour voir ce qui reste.",
+      "expenses": "Dépenses",
+      "income": "Revenu mensuel",
+      "remaining": "Restant",
+      "savingsTarget": "Épargne",
+      "surplus": "Excédent"
+    },
+    "disclaimer": "Estimations uniquement — les résultats sont donnés à titre indicatif et ne constituent pas un conseil financier.",
+    "loan": {
+      "amount": "Montant du prêt",
+      "enterLoan": "Saisissez les détails du prêt",
+      "enterLoanHint": "Ajoutez le montant, le taux et la durée pour estimer l'échéance mensuelle.",
+      "estPayment": "Paiement estimé",
+      "months": "mois",
+      "perMonth": "par mois",
+      "principal": "Capital",
+      "rate": "Intérêt annuel (%)",
+      "term": "Durée (mois)",
+      "totalInterest": "Intérêts totaux",
+      "totalRepaid": "Total remboursé"
+    },
+    "savings": {
+      "complete": "Terminé",
+      "currentSaved": "Épargne actuelle",
+      "enterTarget": "Saisissez un montant cible",
+      "enterTargetHint": "Renseignez votre objectif et votre cotisation mensuelle pour estimer la durée.",
+      "monthlyContribution": "Versement mensuel",
+      "months": "mois",
+      "monthsNeeded": "Mois nécessaires",
+      "progress": "Progrès",
+      "remaining": "Restant",
+      "targetAmount": "Montant cible",
+      "targetDate": "Date cible"
+    }
   },
   "aiAssistant": {
     "title": "Assistant financier IA intelligent",

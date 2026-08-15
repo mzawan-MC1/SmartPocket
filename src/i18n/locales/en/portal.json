@@ -4593,10 +4593,83 @@
     "linkedAccount": "Linked account",
     "tips": "Savings Tips",
     "suggestions": "Smart Suggestions",
-    "summary": "Savings Summary",
+    "summary": {
+      "activeGoals": "Active goals",
+      "monthlyTarget": "Monthly target",
+      "nextTargetDate": "Next target date",
+      "totalSaved": "Total saved"
+    },
     "totalGoals": "Total goals",
     "totalSaved": "Total saved",
-    "nearestDeadline": "Nearest deadline"
+    "nearestDeadline": "Nearest deadline",
+    "accounts": {
+      "subtitle": "Included in Total saved alongside your goals.",
+      "title": "Existing savings accounts"
+    },
+    "badge": "Your goals",
+    "cards": {
+      "monthly": "Monthly",
+      "realData": "Real data",
+      "remaining": "Remaining",
+      "savedTarget": "Saved / Target"
+    },
+    "contrib": {
+      "add": "Add",
+      "added": "Contribution added.",
+      "afterAdd": "After add",
+      "amount": "Contribution amount",
+      "currentSaved": "Current saved",
+      "failed": "Could not add contribution.",
+      "positive": "Enter an amount greater than 0.",
+      "title": "Add contribution"
+    },
+    "created": "Savings goal created.",
+    "deleteConfirm": {
+      "confirm": "Delete goal",
+      "description": "This action removes ",
+      "title": "Delete savings goal?"
+    },
+    "deleteFailed": "Could not delete goal.",
+    "deleted": "Savings goal deleted.",
+    "empty": {
+      "action": "Create your first goal",
+      "description": "Start with an emergency fund, a trip, or any personal goal you want to track over time.",
+      "title": "No savings goals yet"
+    },
+    "form": {
+      "category": "Category",
+      "create": "Create goal",
+      "currency": "Currency",
+      "currentSaved": "Current saved",
+      "description": "Set a target, what you have already saved, and an optional monthly contribution.",
+      "editTitle": "Edit savings goal",
+      "goalName": "Goal name",
+      "goalNamePlaceholder": "Emergency fund, Bali trip…",
+      "linkedAccount": "Linked account (optional)",
+      "monthlyContribution": "Monthly contribution",
+      "nameRequired": "Goal name is required.",
+      "noLinkedAccount": "Not linked",
+      "notes": "Notes (optional)",
+      "notesPlaceholder": "Why this goal matters, or a quick reminder to yourself.",
+      "savedTooHigh": "Saved amount cannot be greater than target.",
+      "targetAmount": "Target amount",
+      "targetDate": "Target date (optional)",
+      "targetRequired": "Target amount must be greater than 0.",
+      "title": "New savings goal",
+      "update": "Update goal"
+    },
+    "goals": {
+      "actions": "Goal actions",
+      "addContribution": "Add contribution",
+      "delete": "Delete",
+      "edit": "Edit",
+      "subtitle": "Create a goal, track what you save, and add contributions as you go.",
+      "title": "Savings goals"
+    },
+    "loadFailed": "Could not load savings goals.",
+    "newGoal": "New savings goal",
+    "saveFailed": "Could not save goal.",
+    "updated": "Savings goal updated."
   },
   "investments": {
     "title": "Investments",
@@ -4614,7 +4687,10 @@
     "totalCost": "Total cost",
     "totalGain": "Total gain/loss",
     "totalGainPercent": "{{percent}}%",
-    "holdings": "Holdings",
+    "holdings": {
+      "subtitle": "Add what you own; values are tracked manually, not live market data.",
+      "title": "Investment holdings"
+    },
     "assetAllocation": "Asset Allocation",
     "performance": "Performance",
     "performance1D": "1 Day",
@@ -4640,7 +4716,65 @@
     "dividend": "Dividend",
     "quantity": "Quantity",
     "pricePerUnit": "Price per unit",
-    "fees": "Fees"
+    "fees": "Fees",
+    "accounts": {
+      "current": "Current",
+      "delta": "Delta",
+      "invested": "Invested",
+      "realData": "Real data",
+      "subtitle": "Included in your totals above.",
+      "title": "Existing investment accounts"
+    },
+    "badge": "Your holdings",
+    "created": "Investment added.",
+    "deleteConfirm": {
+      "confirm": "Delete investment",
+      "description": "This removes ",
+      "title": "Delete investment?"
+    },
+    "deleteFailed": "Could not delete investment.",
+    "deleted": "Investment deleted.",
+    "disclaimer": "Smart Pocket helps you track investments. It does not provide financial advice.",
+    "empty": {
+      "action": "Add your first investment",
+      "description": "Start with a single stock, a fund, a crypto wallet, or a property. Values update manually for accuracy.",
+      "title": "No tracked investments yet"
+    },
+    "form": {
+      "assetType": "Asset type",
+      "create": "Add investment",
+      "currency": "Currency",
+      "currentValue": "Current value",
+      "description": "Track something you own. Enter what you paid and what it is worth today.",
+      "editTitle": "Edit investment",
+      "invested": "Amount invested",
+      "name": "Investment name",
+      "namePlaceholder": "e.g. S&P 500 ETF, BTC wallet, Apartment 3B",
+      "nameRequired": "Investment name is required.",
+      "notes": "Notes (optional)",
+      "notesPlaceholder": "Ticker, location, quantity, or a quick reminder to yourself.",
+      "purchaseDate": "Purchase date (optional)",
+      "title": "Add investment",
+      "update": "Update investment"
+    },
+    "holding": {
+      "actions": "Investment actions",
+      "delete": "Delete",
+      "edit": "Edit",
+      "colInvested": "Invested",
+      "colValue": "Value",
+      "colGainLoss": "Gain/Loss"
+    },
+    "loadFailed": "Could not load investments.",
+    "newInvestment": "Add investment",
+    "saveFailed": "Could not save investment.",
+    "summary": {
+      "assetTypes": "Asset types",
+      "currentValue": "Current value",
+      "gainLoss": "Gain / loss",
+      "totalInvested": "Total invested"
+    },
+    "updated": "Investment updated."
   },
   "exchangeRates": {
     "title": "Exchange Rates",
@@ -4653,7 +4787,28 @@
     "targetCurrency": "Target currency",
     "lastUpdated": "Last updated",
     "convert": "Convert",
-    "converter": "Currency Converter",
+    "converter": {
+      "amount": "Amount",
+      "amountLabel": "Amount",
+      "amountPlaceholder": "e.g. 100",
+      "asOf": "As of",
+      "error": "Unable to convert.",
+      "from": "From",
+      "fromLabel": "From",
+      "notAvailable": "Not available",
+      "providerFallback": "Global Exchange",
+      "providerLabel": "Provider: {{provider}}",
+      "result": "Result",
+      "resultLabel": "Result",
+      "stale": "Using a slightly older rate.",
+      "staleNote": "Rates may be out of date",
+      "subtitle": "Convert between currencies using the saved rates snapshot.",
+      "swap": "Swap currencies",
+      "swapAria": "Swap from and to currencies",
+      "title": "Currency converter",
+      "to": "To",
+      "toLabel": "To"
+    },
     "amount": "Amount",
     "from": "From",
     "to": "To",
@@ -4685,7 +4840,47 @@
     "provider": "Provider",
     "stale": "Rates may be stale",
     "refresh": "Refresh rates",
-    "refreshing": "Refreshing..."
+    "refreshing": "Refreshing...",
+    "actions": {
+      "refresh": "Refresh rates"
+    },
+    "badge": "Global Exchange",
+    "empty": {
+      "action": "Refresh rates",
+      "description": "Rates could not be loaded right now.",
+      "searchDescription": "Try a different code or currency name.",
+      "searchTitle": "No currencies match your search",
+      "title": "Exchange rates unavailable"
+    },
+    "fetchError": {
+      "generic": "Rates could not be loaded."
+    },
+    "freshness": {
+      "fresh": "Rates up to date",
+      "stale": "Rates may be older",
+      "unavailable": "Rates unavailable"
+    },
+    "meta": {
+      "defaultCurrency": "Default currency",
+      "lastUpdated": "Last updated",
+      "notYet": "Not yet",
+      "status": "Status",
+      "unavailable": "Unavailable"
+    },
+    "refreshButton": "Refresh rates",
+    "snapshotLoadError": {
+      "fallback": "Failed to load exchange rates."
+    },
+    "table": {
+      "colCode": "Code",
+      "colCurrency": "Currency",
+      "colInverse": "Inverse",
+      "colRate": "1 {{code}} buys",
+      "searchPlaceholder": "Search currency…",
+      "subtitle": "Rates against your default currency ({{code}}).",
+      "title": "Popular rates",
+      "truncatedHint": ""
+    }
   },
   "calculator": {
     "title": "Calculator",
@@ -4714,7 +4909,47 @@
     "calculate": "Calculate",
     "reset": "Reset",
     "schedule": "Payment Schedule",
-    "summary": "Summary"
+    "summary": "Summary",
+    "badge": "Quick tools",
+    "budget": {
+      "allocated": "Allocated",
+      "breakdown": "Monthly breakdown",
+      "deficit": "Deficit",
+      "enterIncome": "Enter monthly income",
+      "enterIncomeHint": "Add income, expenses, and a savings target to see what is left over.",
+      "expenses": "Expenses",
+      "income": "Monthly income",
+      "remaining": "Remaining",
+      "savingsTarget": "Savings",
+      "surplus": "Surplus"
+    },
+    "disclaimer": "Estimates only — results are for quick reference and do not constitute financial advice.",
+    "loan": {
+      "amount": "Loan amount",
+      "enterLoan": "Enter loan details",
+      "enterLoanHint": "Add the amount, rate, and term to estimate the monthly payment.",
+      "estPayment": "Estimated payment",
+      "months": "months",
+      "perMonth": "per month",
+      "principal": "Principal",
+      "rate": "Annual interest (%)",
+      "term": "Term (months)",
+      "totalInterest": "Total interest",
+      "totalRepaid": "Total repaid"
+    },
+    "savings": {
+      "complete": "Complete",
+      "currentSaved": "Current saved",
+      "enterTarget": "Enter a target amount",
+      "enterTargetHint": "Fill in your goal and monthly contribution to estimate how long it will take.",
+      "monthlyContribution": "Monthly contribution",
+      "months": "mo",
+      "monthsNeeded": "Months needed",
+      "progress": "Progress",
+      "remaining": "Remaining",
+      "targetAmount": "Target amount",
+      "targetDate": "Target date"
+    }
   },
   "aiAssistant": {
     "title": "Smart AI Assistant",

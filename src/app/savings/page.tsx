@@ -153,13 +153,43 @@ function dateToInputValue(iso: string | null | undefined) {
   return `${y}-${m}-${day}`;
 }
 
-function goalStatus(goal: SavingsGoalRecord): { key: 'not_started' | 'in_progress' | 'completed'; label: string; tone: 'info' | 'success' | 'missing' } {
+function goalStatus(goal: SavingsGoalRecord): { key: 'not_started' | 'in_progress' | 'completed'; tone: 'info' | 'success' | 'missing' } {
   const saved = toNumber(goal.current_saved);
   const target = toNumber(goal.target_amount);
-  if (target <= 0 || saved <= 0) return { key: 'not_started', label: 'Not started', tone: 'missing' };
-  if (saved >= target) return { key: 'completed', label: 'Completed', tone: 'success' };
-  return { key: 'in_progress', label: 'In progress', tone: 'info' };
+  if (target <= 0 || saved <= 0) return { key: 'not_started', tone: 'missing' };
+  if (saved >= target) return { key: 'completed', tone: 'success' };
+  return { key: 'in_progress', tone: 'info' };
 }
+
+const SAVINGS_STATUS_LABEL_KEY: Record<'not_started' | 'in_progress' | 'completed', string> = {
+  not_started: 'savings.status.notStarted',
+  in_progress: 'savings.status.inProgress',
+  completed: 'savings.status.completed',
+};
+
+const SAVINGS_STATUS_DEFAULT: Record<'not_started' | 'in_progress' | 'completed', string> = {
+  not_started: 'Not started',
+  in_progress: 'In progress',
+  completed: 'Completed',
+};
+
+const SAVINGS_CATEGORY_LABEL_KEY: Record<string, string> = {
+  emergency: 'savings.categories.emergencyFund',
+  travel: 'savings.categories.vacation',
+  rent_or_bills: 'savings.categories.homeRenovation',
+  education: 'savings.categories.education',
+  car_or_home: 'savings.categories.newCar',
+  other: 'savings.categories.other',
+};
+
+const SAVINGS_CATEGORY_DEFAULT: Record<string, string> = {
+  emergency: 'Emergency fund',
+  travel: 'Travel',
+  rent_or_bills: 'Rent or bills',
+  education: 'Education',
+  car_or_home: 'Car or home',
+  other: 'Other goals',
+};
 
 function GoalCardHeader({
   goal,
@@ -168,6 +198,7 @@ function GoalCardHeader({
   goal: SavingsGoalRecord;
   locale: string;
 }) {
+  const { t } = useTranslation(['portal', 'common']);
   const meta = CATEGORY_BY_ID[goal.category] ?? CATEGORY_BY_ID.other;
   const Icon = meta.icon;
   const saved = toNumber(goal.current_saved);
@@ -176,6 +207,14 @@ function GoalCardHeader({
   const progress = target > 0 ? Math.min(100, (saved / target) * 100) : 0;
   const monthly = toNumber(goal.monthly_contribution);
   const status = goalStatus(goal);
+  const statusLabel = t(SAVINGS_STATUS_LABEL_KEY[status.key], {
+    ns: 'portal',
+    defaultValue: SAVINGS_STATUS_DEFAULT[status.key],
+  });
+  const categoryLabel = t(SAVINGS_CATEGORY_LABEL_KEY[goal.category] ?? 'savings.categories.other', {
+    ns: 'portal',
+    defaultValue: SAVINGS_CATEGORY_DEFAULT[goal.category] ?? 'Other goals',
+  });
 
   return (
     <div className="flex flex-col gap-3 p-5 max-[480px]:p-4">
@@ -190,10 +229,10 @@ function GoalCardHeader({
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-1.5">
               <h3 className="truncate text-[15px] font-800 text-foreground">{goal.name}</h3>
-              <StatusBadge status={status.tone} label={status.label} />
+              <StatusBadge status={status.tone} label={statusLabel} />
             </div>
             <p className="mt-0.5 line-clamp-1 text-xs font-600 text-muted-foreground">
-              {meta.label}
+              {categoryLabel}
               {goal.target_date ? (
                 <span className="ml-1.5 inline-flex items-center gap-1">
                   <CalendarDays size={11} className="text-accent/80" />
@@ -209,7 +248,7 @@ function GoalCardHeader({
         <div className="flex items-baseline justify-between gap-3">
           <div className="min-w-0">
             <p className="text-[10.5px] font-700 uppercase tracking-[0.12em] text-muted-foreground">
-              Saved / Target
+              {t('savings.cards.savedTarget', { defaultValue: 'Saved / Target' })}
             </p>
             <div className="mt-0.5 flex items-baseline gap-1.5">
               <FormattedCurrencyAmount
@@ -245,7 +284,7 @@ function GoalCardHeader({
       <div className="grid grid-cols-2 gap-2.5">
         <div className="rounded-2xl border border-border bg-muted/20 p-2.5">
           <p className="text-[10.5px] font-700 uppercase tracking-wide text-muted-foreground">
-            Remaining
+            {t('savings.cards.remaining', { defaultValue: 'Remaining' })}
           </p>
           <FormattedCurrencyAmount
             amount={remaining}
@@ -255,7 +294,7 @@ function GoalCardHeader({
         </div>
         <div className="rounded-2xl border border-border bg-muted/20 p-2.5">
           <p className="text-[10.5px] font-700 uppercase tracking-wide text-muted-foreground">
-            Monthly
+            {t('savings.cards.monthly', { defaultValue: 'Monthly' })}
           </p>
           <FormattedCurrencyAmount
             amount={monthly}
@@ -653,7 +692,7 @@ export default function SavingsPage() {
                 </p>
               </div>
               <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-700 text-emerald-700">
-                <Sparkles size={12} /> Real data
+                <Sparkles size={12} /> {t('savings.cards.realData', { defaultValue: 'Real data' })}
               </span>
             </div>
             <div className="grid grid-cols-1 gap-2.5 p-5 sm:grid-cols-2 max-[480px]:p-4">

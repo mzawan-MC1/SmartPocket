@@ -477,7 +477,7 @@ export default function InvestmentsPage() {
                 </p>
               </div>
               <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-700 text-emerald-700">
-                <Sparkles size={12} /> Real data
+                <Sparkles size={12} /> {t('investments.accounts.realData', { defaultValue: 'Real data' })}
               </span>
             </div>
             <div className="grid grid-cols-1 gap-2.5 p-5 sm:grid-cols-2 max-[480px]:p-4">
@@ -513,15 +513,15 @@ export default function InvestmentsPage() {
                     </div>
                     <div className="mt-2.5 grid grid-cols-3 gap-2 text-center">
                       <div>
-                        <p className="text-[10px] font-700 uppercase tracking-wide text-muted-foreground">Invested</p>
+                        <p className="text-[10px] font-700 uppercase tracking-wide text-muted-foreground">{t('investments.accounts.invested', { defaultValue: 'Invested' })}</p>
                         <FormattedCurrencyAmount amount={invested} currencyCode={a.currency} className="mt-0.5 block text-[12.5px] font-800 text-foreground" />
                       </div>
                       <div>
-                        <p className="text-[10px] font-700 uppercase tracking-wide text-muted-foreground">Current</p>
+                        <p className="text-[10px] font-700 uppercase tracking-wide text-muted-foreground">{t('investments.accounts.current', { defaultValue: 'Current' })}</p>
                         <FormattedCurrencyAmount amount={curr} currencyCode={a.currency} className="mt-0.5 block text-[12.5px] font-800 text-foreground" />
                       </div>
                       <div>
-                        <p className="text-[10px] font-700 uppercase tracking-wide text-muted-foreground">Delta</p>
+                        <p className="text-[10px] font-700 uppercase tracking-wide text-muted-foreground">{t('investments.accounts.delta', { defaultValue: 'Delta' })}</p>
                         <FormattedCurrencyAmount amount={Math.abs(delta)} currencyCode={a.currency} className={`mt-0.5 block text-[12.5px] font-800 ${positive ? 'text-emerald-600' : 'text-rose-600'}`} />
                       </div>
                     </div>
@@ -632,14 +632,14 @@ export default function InvestmentsPage() {
                           <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] font-600 text-muted-foreground">
                             <span className="inline-flex items-center gap-1">
                               <Briefcase size={11} />
-                              Invested{' '}
+                              {t('investments.holding.colInvested', { defaultValue: 'Invested' })}{' '}
                               <span className="font-800 text-foreground">
                                 <FormattedCurrencyAmount amount={invested} currencyCode={defaultCurrencyCode} textOnly />
                               </span>
                             </span>
                             <span className="inline-flex items-center gap-1">
                               <DollarSign size={11} />
-                              Value{' '}
+                              {t('investments.holding.colValue', { defaultValue: 'Value' })}{' '}
                               <span className="font-800 text-foreground">
                                 <FormattedCurrencyAmount amount={current} currencyCode={defaultCurrencyCode} textOnly />
                               </span>
@@ -763,19 +763,19 @@ export default function InvestmentsPage() {
                             <div className="grid grid-cols-3 gap-2 text-center">
                               <div>
                                 <p className="text-[10px] font-700 uppercase tracking-wide text-muted-foreground">
-                                  Invested
+                                  {t('investments.holding.colInvested', { defaultValue: 'Invested' })}
                                 </p>
                                 <FormattedCurrencyAmount amount={rInvested} currencyCode={r.currency} className="mt-0.5 block text-[12px] font-800 text-foreground" />
                               </div>
                               <div>
                                 <p className="text-[10px] font-700 uppercase tracking-wide text-muted-foreground">
-                                  Value
+                                  {t('investments.holding.colValue', { defaultValue: 'Value' })}
                                 </p>
                                 <FormattedCurrencyAmount amount={rCurrent} currencyCode={r.currency} className="mt-0.5 block text-[12px] font-800 text-foreground" />
                               </div>
                               <div>
                                 <p className="text-[10px] font-700 uppercase tracking-wide text-muted-foreground">
-                                  Gain/Loss
+                                  {t('investments.holding.colGainLoss', { defaultValue: 'Gain/Loss' })}
                                 </p>
                                 <div className={`mt-0.5 flex flex-col items-center gap-0.5 ${rPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
                                   <FormattedCurrencyAmount amount={Math.abs(rDelta)} currencyCode={r.currency} textOnly className="text-[12px] font-800" />

@@ -145,42 +145,42 @@
     "sections": {
       "finance": "财务",
       "manage": "管理",
-      "reports": "报表",
+      "reports": "报告",
       "support": "支持",
-      "money": "MONEY",
-      "investGrow": "INVEST & GROW",
-      "tools": "TOOLS"
+      "money": "资金",
+      "investGrow": "投资与增长",
+      "tools": "工具"
     },
     "nav": {
       "transfers": "转账",
-      "recurring": "定期交易",
+      "recurring": "周期性",
       "categories": "分类",
       "reimbursements": "报销",
       "settlements": "结算",
-      "people": "联系人",
+      "people": "人员",
       "spaces": "空间",
-      "aiHistory": "AI 历史记录",
+      "aiHistory": "AI历史",
       "personalSubscriptions": "个人订阅",
       "support": "支持",
       "faqs": "常见问题",
-      "dashboard": "仪表盘",
-      "moneyInOut": "收入与支出",
+      "dashboard": "仪表板",
+      "moneyInOut": "资金进出",
       "accounts": "账户",
       "budgets": "预算",
       "scheduledPayments": "计划付款",
       "subscriptions": "订阅",
       "billsReminders": "账单与提醒",
       "beneficiaries": "收款人",
-      "tagsCategories": "标签与类别",
+      "tagsCategories": "标签与分类",
       "savings": "储蓄",
       "investments": "投资",
-      "smartAi": "智能财务AI助手",
+      "smartAi": "智能AI助手",
       "exchangeRates": "汇率",
       "calculator": "计算器",
       "settings": "设置",
       "helpSupport": "帮助与支持",
       "transactions": "交易",
-      "dashboardPlural": "仪表盘"
+      "dashboardPlural": "仪表板"
     },
     "lockedTooltip": "{{label}} · {{restriction}}",
     "expand": "展开侧边栏",
@@ -189,10 +189,10 @@
     "accountDescription": "从顶部菜单管理个人资料选项。",
     "signOut": "退出登录",
     "badges": {
-      "new": "新增"
+      "new": "新"
     },
     "errors": {
-      "smartAiUnavailable": "智能财务AI助手暂时不可用"
+      "smartAiUnavailable": "智能AI助手暂时不可用"
     }
   },
   "bottomNav": {
@@ -3525,7 +3525,7 @@
       "textAi": "文字 AI",
       "voiceAi": "语音 AI",
       "receiptIntelligence": "收据智能",
-      "aiHistory": "AI 历史",
+      "aiHistory": "AI历史",
       "managedPeople": "被管理人",
       "sharedSpaces": "共享空间",
       "standardReports": "标准报告",
@@ -4553,7 +4553,7 @@
     "comingSoonTitle": "即将推出",
     "comingSoonDesc": "专门的储蓄模块即将推出。在这里你可以组织储蓄目标，跟踪缴款并监控进展。",
     "inDevelopment": "功能开发中",
-    "emptyTitle": "暂无储蓄目标",
+    "emptyTitle": "暂无储蓄目标。",
     "emptyDesc": "创建第一个储蓄目标，开始为您的目标积累资金。",
     "addGoal": "添加储蓄目标",
     "editGoal": "编辑储蓄目标",
@@ -4563,7 +4563,7 @@
     "targetAmount": "目标金额",
     "currentAmount": "当前已存",
     "deadline": "目标日期",
-    "monthlyContribution": "每月供款",
+    "monthlyContribution": "月度供款",
     "progress": "进度",
     "percentComplete": "已完成 {{percent}}%",
     "status": "状态",
@@ -4593,10 +4593,83 @@
     "linkedAccount": "关联账户",
     "tips": "储蓄小贴士",
     "suggestions": "智能建议",
-    "summary": "储蓄汇总",
+    "summary": {
+      "activeGoals": "活跃目标",
+      "monthlyTarget": "月度目标",
+      "nextTargetDate": "下一目标日期",
+      "totalSaved": "已存总额"
+    },
     "totalGoals": "目标总数",
     "totalSaved": "已存总额",
-    "nearestDeadline": "最近截止日期"
+    "nearestDeadline": "最近截止日期",
+    "accounts": {
+      "subtitle": "已包含在与目标一并计算的累计储蓄总额中。",
+      "title": "现有储蓄账户"
+    },
+    "badge": "您的目标",
+    "cards": {
+      "monthly": "月度",
+      "realData": "真实数据",
+      "remaining": "剩余",
+      "savedTarget": "已存 / 目标"
+    },
+    "contrib": {
+      "add": "添加",
+      "added": "已添加供款。",
+      "afterAdd": "添加后",
+      "amount": "供款金额",
+      "currentSaved": "当前已存",
+      "failed": "无法添加供款。",
+      "positive": "请输入大于0的金额。",
+      "title": "添加供款"
+    },
+    "created": "目标已创建。",
+    "deleteConfirm": {
+      "confirm": "删除目标",
+      "description": "此操作将删除 ",
+      "title": "删除储蓄目标？"
+    },
+    "deleteFailed": "无法删除目标。",
+    "deleted": "目标已删除。",
+    "empty": {
+      "action": "创建第一个目标",
+      "description": "从紧急备用金、旅行计划或任何想要随时间追踪的个人目标开始。",
+      "title": "暂无储蓄目标。"
+    },
+    "form": {
+      "category": "分类",
+      "create": "创建目标",
+      "currency": "币种",
+      "currentSaved": "当前已存",
+      "description": "设定目标金额、已储蓄金额和可选的每月贡献金额。",
+      "editTitle": "编辑储蓄目标",
+      "goalName": "目标名称",
+      "goalNamePlaceholder": "应急基金、巴叢岛之旅……",
+      "linkedAccount": "关联账户（可选）",
+      "monthlyContribution": "月度供款",
+      "nameRequired": "目标名称必填。",
+      "noLinkedAccount": "未关联",
+      "notes": "备注（可选）",
+      "notesPlaceholder": "列出此目标重要的原因，或一个短的自我提醒。",
+      "savedTooHigh": "已存金额不能超过目标。",
+      "targetAmount": "目标金额",
+      "targetDate": "目标日期（可选）",
+      "targetRequired": "目标金额必须大于0。",
+      "title": "新建储蓄目标",
+      "update": "更新目标"
+    },
+    "goals": {
+      "actions": "目标操作",
+      "addContribution": "添加供款",
+      "delete": "删除",
+      "edit": "编辑",
+      "subtitle": "创建目标、跟踪您的储蓄并在过程中添加贡献。",
+      "title": "储蓄目标"
+    },
+    "loadFailed": "无法加载储蓄目标。",
+    "newGoal": "新建储蓄目标",
+    "saveFailed": "无法保存目标。",
+    "updated": "目标已更新。"
   },
   "investments": {
     "title": "投资",
@@ -4614,7 +4687,10 @@
     "totalCost": "总成本",
     "totalGain": "总盈亏",
     "totalGainPercent": "{{percent}}%",
-    "holdings": "持仓",
+    "holdings": {
+      "subtitle": "添加您持有的投资；价值手动追踪，非实时市场数据。",
+      "title": "投资持仓"
+    },
     "assetAllocation": "资产配置",
     "performance": "业绩表现",
     "performance1D": "1日",
@@ -4640,7 +4716,65 @@
     "dividend": "股息",
     "quantity": "数量",
     "pricePerUnit": "单价",
-    "fees": "手续费"
+    "fees": "手续费",
+    "accounts": {
+      "current": "当前",
+      "delta": "差值",
+      "invested": "已投入",
+      "realData": "真实数据",
+      "subtitle": "已计入上方总额。",
+      "title": "现有投资账户"
+    },
+    "badge": "您的持有",
+    "created": "投资已添加。",
+    "deleteConfirm": {
+      "confirm": "删除投资",
+      "description": "此操作将删除 ",
+      "title": "确认删除投资？"
+    },
+    "deleteFailed": "无法删除投资。",
+    "deleted": "投资已删除。",
+    "disclaimer": "Smart Pocket 帮助您追踪投资。不提供金融建议。",
+    "empty": {
+      "action": "添加您的第一笔投资",
+      "description": "从单只股票、基金、加密钱包或房产开始。为确保准确性，价值将手动更新。",
+      "title": "暂无追踪的投资。"
+    },
+    "form": {
+      "assetType": "资ъف类型",
+      "create": "添加投资",
+      "currency": "币种",
+      "currentValue": "当前价值",
+      "description": "跟踪您拥有的资产。输入支付金额和当前价值。",
+      "editTitle": "编辑投资",
+      "invested": "投入金额",
+      "name": "投资名称",
+      "namePlaceholder": "例如 S&P 500 ETF、BTC 钱包、3B 公寓",
+      "nameRequired": "投资名称必填。",
+      "notes": "备注（可选）",
+      "notesPlaceholder": "股票代码、地点、数量或自我简短提醒。",
+      "purchaseDate": "购买日期（可选）",
+      "title": "添加投资",
+      "update": "更新投资"
+    },
+    "holding": {
+      "actions": "投资操作",
+      "delete": "删除",
+      "edit": "编辑",
+      "colInvested": "已投入",
+      "colValue": "值",
+      "colGainLoss": "盈亏"
+    },
+    "loadFailed": "无法加载投资。",
+    "newInvestment": "添加投资",
+    "saveFailed": "无法保存投资。",
+    "summary": {
+      "assetTypes": "资产类型",
+      "currentValue": "当前价值",
+      "gainLoss": "收益 / 亏损",
+      "totalInvested": "已投资总额"
+    },
+    "updated": "投资已更新。"
   },
   "exchangeRates": {
     "title": "汇率",
@@ -4653,10 +4787,31 @@
     "targetCurrency": "目标货币",
     "lastUpdated": "最后更新",
     "convert": "转换",
-    "converter": "货币转换器",
+    "converter": {
+      "amount": "金额",
+      "amountLabel": "金额",
+      "amountPlaceholder": "例如 100",
+      "asOf": "截至",
+      "error": "无法进行转换。",
+      "from": "从",
+      "fromLabel": "从",
+      "notAvailable": "暂不可用",
+      "providerFallback": "Global Exchange",
+      "providerLabel": "提供方：{{provider}}",
+      "result": "结果",
+      "resultLabel": "结果",
+      "stale": "正在使用略旧的汇率。",
+      "staleNote": "汇率可能已过期",
+      "subtitle": "使用已保存的汇率快照进行货币转换。",
+      "swap": "交换币种",
+      "swapAria": "交换源货币与目标货币",
+      "title": "货币转换器",
+      "to": "到",
+      "toLabel": "到"
+    },
     "amount": "金额",
-    "from": "源货币",
-    "to": "目标货币",
+    "from": "从",
+    "to": "到",
     "convertedAmount": "转换后金额",
     "rate": "汇率",
     "ratePair": "{{from}} → {{to}}",
@@ -4682,10 +4837,50 @@
     "change24h": "24小时涨跌",
     "change24hPositive": "+{{value}}%",
     "change24hNegative": "-{{value}}%",
-    "provider": "数据提供方",
+    "provider": "提供方",
     "stale": "汇率可能已过期",
     "refresh": "刷新汇率",
-    "refreshing": "刷新中……"
+    "refreshing": "刷新中……",
+    "actions": {
+      "refresh": "刷新汇率"
+    },
+    "badge": "Global Exchange",
+    "empty": {
+      "action": "刷新汇率",
+      "description": "当前无法加载汇率。",
+      "searchDescription": "请尝试其他代码或货币名称。",
+      "searchTitle": "没有匹配您搜索的货币",
+      "title": "汇率不可用"
+    },
+    "fetchError": {
+      "generic": "无法加载汇率。"
+    },
+    "freshness": {
+      "fresh": "汇率已更新",
+      "stale": "汇率可能较旧",
+      "unavailable": "汇率不可用"
+    },
+    "meta": {
+      "defaultCurrency": "默认币种",
+      "lastUpdated": "最后更新",
+      "notYet": "尚未",
+      "status": "状态",
+      "unavailable": "不可用"
+    },
+    "refreshButton": "刷新汇率",
+    "snapshotLoadError": {
+      "fallback": "加载汇率失败。"
+    },
+    "table": {
+      "colCode": "代码",
+      "colCurrency": "币种",
+      "colInverse": "反向",
+      "colRate": "1 {{code}} 可购买",
+      "searchPlaceholder": "搜索货币…",
+      "subtitle": "相对于默认货币（{{code}}）的汇率。",
+      "title": "主流汇率",
+      "truncatedHint": ""
+    }
   },
   "calculator": {
     "title": "计算器",
@@ -4714,7 +4909,47 @@
     "calculate": "计算",
     "reset": "重置",
     "schedule": "还款计划",
-    "summary": "汇总"
+    "summary": "汇总",
+    "badge": "快捷工具",
+    "budget": {
+      "allocated": "已分配",
+      "breakdown": "月度明细",
+      "deficit": "赤字",
+      "enterIncome": "输入月收入",
+      "enterIncomeHint": "添加收入、支出和储蓄目标，查看剩余。",
+      "expenses": "支出",
+      "income": "月收入",
+      "remaining": "剩余",
+      "savingsTarget": "储蓄",
+      "surplus": "盈余"
+    },
+    "disclaimer": "仅为估算 — 结果仅供快速参考，不构成财务建议。",
+    "loan": {
+      "amount": "贷款金额",
+      "enterLoan": "输入贷款详情",
+      "enterLoanHint": "输入本金、利率和期限以估算月供。",
+      "estPayment": "估算还款",
+      "months": "个月",
+      "perMonth": "每月",
+      "principal": "本金",
+      "rate": "年利率（%）",
+      "term": "期限（月）",
+      "totalInterest": "总利息",
+      "totalRepaid": "总还款"
+    },
+    "savings": {
+      "complete": "已完成",
+      "currentSaved": "当前已存",
+      "enterTarget": "输入目标金额",
+      "enterTargetHint": "填写目标和每月贡献以估算所需时间。",
+      "monthlyContribution": "月度供款",
+      "months": "月",
+      "monthsNeeded": "所需月份",
+      "progress": "进度",
+      "remaining": "剩余",
+      "targetAmount": "目标金额",
+      "targetDate": "目标日期"
+    }
   },
   "aiAssistant": {
     "title": "智能财务AI助手",

@@ -147,9 +147,9 @@
       "manage": "Yönet",
       "reports": "Raporlar",
       "support": "Destek",
-      "money": "MONEY",
-      "investGrow": "INVEST & GROW",
-      "tools": "TOOLS"
+      "money": "PARA",
+      "investGrow": "YATIRIM VE BÜYÜME",
+      "tools": "ARAÇLAR"
     },
     "nav": {
       "transfers": "Transferler",
@@ -159,7 +159,7 @@
       "settlements": "Mutabakatlar",
       "people": "Kişiler",
       "spaces": "Alanlar",
-      "aiHistory": "AI Geçmişi",
+      "aiHistory": "Yapay Zeka Geçmişi",
       "personalSubscriptions": "Kişisel Abonelikler",
       "support": "Destek",
       "faqs": "SSS",
@@ -174,25 +174,25 @@
       "tagsCategories": "Etiketler ve Kategoriler",
       "savings": "Tasarruflar",
       "investments": "Yatırımlar",
-      "smartAi": "Akıllı Yapay Zeka Finans Asistanı",
+      "smartAi": "Akıllı Yapay Zeka Asistanı",
       "exchangeRates": "Döviz Kurları",
       "calculator": "Hesap Makinesi",
       "settings": "Ayarlar",
       "helpSupport": "Yardım ve Destek",
       "transactions": "İşlemler",
-      "dashboardPlural": "Kontrol Panelleri"
+      "dashboardPlural": "Kontrol Paneli"
     },
     "lockedTooltip": "{{label}} · {{restriction}}",
     "expand": "Kenar çubuğunu genişlet",
     "collapse": "Kenar çubuğunu daralt",
     "accountTitle": "Hesap",
     "accountDescription": "Üst menüden profil seçeneklerini yönetin.",
-    "signOut": "Çıkış yap",
+    "signOut": "Oturumu kapat",
     "badges": {
       "new": "Yeni"
     },
     "errors": {
-      "smartAiUnavailable": "Akıllı Yapay Zeka Finans Asistanı geçici olarak kullanılamıyor"
+      "smartAiUnavailable": "Akıllı Yapay Zeka Asistanı geçici olarak kullanılamıyor"
     }
   },
   "bottomNav": {
@@ -3502,7 +3502,7 @@
     "wholeNumberPriceRequirement": "Fiyats zorunludur be kaydedildi olarak tamamı USD amounts."
   },
   "featureGate": {
-    "title": "Feature unavailable",
+    "title": "Özellik kullanılamıyor",
     "description": "{{feature}}  değil available on sizin current abonelik.",
     "unavailableTitle": "Bu feature  değil dahildir in sizin current plan.",
     "unavailableDescription": "{{feature}} is available on yÃ¼kseker plans.",
@@ -3513,7 +3513,7 @@
     "backAction": "Geri iÃ§in dashboard",
     "badges": {
       "locked": "Kilitli",
-      "upgrade": "YÃ¼kseltme",
+      "upgrade": "Yükselt",
       "family": "Aile",
       "expired": "Deneme expired"
     },
@@ -3525,7 +3525,7 @@
       "textAi": "Metin Yapay Zeka",
       "voiceAi": "Ses Yapay Zeka",
       "receiptIntelligence": "FiÅŸ Intelligence",
-      "aiHistory": "Yapay Zeka GeÃ§miÅŸ",
+      "aiHistory": "Yapay Zeka Geçmişi",
       "managedPeople": "YÃ¶netd KiÅŸiler",
       "sharedSpaces": "PaylaÅŸd Alanlar",
       "standardReports": "Standart Rapveyalar",
@@ -4553,16 +4553,16 @@
     "comingSoonTitle": "Yakında",
     "comingSoonDesc": "Özel bir Tasarruflar modülü yakında geliyor. Burada tasarruf hedeflerinizi organize edebilecek, katkıları takip edebilecek ve ilerlemeyi izleyebileceksiniz.",
     "inDevelopment": "Özellik geliştirme aşamasında",
-    "emptyTitle": "Henüz tasarruf hedefi yok",
+    "emptyTitle": "Henüz hedef yok.",
     "emptyDesc": "Hedeflerinize doğru ilerlemeye başlamak için ilk tasarruf hedefinizi oluşturun.",
     "addGoal": "Tasarruf Hedefi Ekle",
     "editGoal": "Tasarruf Hedefini Düzenle",
     "deleteGoal": "Hedefi Sil",
     "goalName": "Hedef adı",
     "goalNamePlaceholder": "örn: Acil Durum Fonu",
-    "targetAmount": "Hedef tutar",
-    "currentAmount": "Mevcut birikim",
-    "deadline": "Hedef tarih",
+    "targetAmount": "Hedef tutarı",
+    "currentAmount": "Mevcut tasarruf",
+    "deadline": "Hedef tarihi",
     "monthlyContribution": "Aylık katkı",
     "progress": "İlerleme",
     "percentComplete": "%{{percent}} tamamlandı",
@@ -4593,10 +4593,83 @@
     "linkedAccount": "Bağlı hesap",
     "tips": "Tasarruf İpuçları",
     "suggestions": "Akıllı Öneriler",
-    "summary": "Tasarruf Özeti",
+    "summary": {
+      "activeGoals": "Aktif hedefler",
+      "monthlyTarget": "Aylık hedef",
+      "nextTargetDate": "Bir sonraki hedef tarihi",
+      "totalSaved": "Toplam tasarruf"
+    },
     "totalGoals": "Toplam hedef",
-    "totalSaved": "Toplam birikim",
-    "nearestDeadline": "En yakın son tarih"
+    "totalSaved": "Toplam tasarruf",
+    "nearestDeadline": "En yakın son tarih",
+    "accounts": {
+      "subtitle": "Hedeflerinizle birlikte Toplam biriktirilen tutara dahil.",
+      "title": "Mevcut tasarruf hesapları"
+    },
+    "badge": "Hedefleriniz",
+    "cards": {
+      "monthly": "Aylık",
+      "realData": "Gerçek veri",
+      "remaining": "Kalan",
+      "savedTarget": "Tasarruf / Hedef"
+    },
+    "contrib": {
+      "add": "Ekle",
+      "added": "Katkı eklendi.",
+      "afterAdd": "Eklemeden sonra",
+      "amount": "Katkı tutarı",
+      "currentSaved": "Mevcut tasarruf",
+      "failed": "Katkı eklenemedi.",
+      "positive": "0’dan büyük bir tutar girin.",
+      "title": "Katkı ekle"
+    },
+    "created": "Hedef oluşturuldu.",
+    "deleteConfirm": {
+      "confirm": "Hedefi sil",
+      "description": "Bu işlem ",
+      "title": "Hedef silinsin mi?"
+    },
+    "deleteFailed": "Hedef silinemedi.",
+    "deleted": "Hedef silindi.",
+    "empty": {
+      "action": "İlk hedefinizi oluşturun",
+      "description": "Acil durum fonu, bir seyahat veya zaman içinde takip etmek istediğiniz herhangi bir kişisel hedef ile başlayın.",
+      "title": "Henüz hedef yok."
+    },
+    "form": {
+      "category": "Kategori",
+      "create": "Hedef oluştur",
+      "currency": "Para birimi",
+      "currentSaved": "Mevcut tasarruf",
+      "description": "Bir hedef, şu ana kadar biriktirdiğiniz tutar ve isteğe bağlı aylık katkı belirleyin.",
+      "editTitle": "Hedefi düzenle",
+      "goalName": "Hedef adı",
+      "goalNamePlaceholder": "Acil durum fonu, Bali gezisi…",
+      "linkedAccount": "Bağlı hesap (isteğe bağlı)",
+      "monthlyContribution": "Aylık katkı",
+      "nameRequired": "Hedef adı zorunludur.",
+      "noLinkedAccount": "Bağlı değil",
+      "notes": "Notlar (isteğe bağlı)",
+      "notesPlaceholder": "Bu hedef neden önemli ya da kendinize kısa bir hatırlatma.",
+      "savedTooHigh": "Tasarruf edilen tutar hedeften büyük olamaz.",
+      "targetAmount": "Hedef tutarı",
+      "targetDate": "Hedef tarihi (isteğe bağlı)",
+      "targetRequired": "Hedef tutarı 0’dan büyük olmalıdır.",
+      "title": "Yeni tasarruf hedefi",
+      "update": "Hedefi güncelle"
+    },
+    "goals": {
+      "actions": "Hedef eylemleri",
+      "addContribution": "Katkı ekle",
+      "delete": "Sil",
+      "edit": "Düzenle",
+      "subtitle": "Bir hedef oluşturun, biriktirdiklerinizi takip edin ve ilerledikçe katkı ekleyin.",
+      "title": "Tasarruf hedefleri"
+    },
+    "loadFailed": "Tasarruf hedefleri yüklenemedi.",
+    "newGoal": "Yeni tasarruf hedefi",
+    "saveFailed": "Hedef kaydedilemedi.",
+    "updated": "Hedef güncellendi."
   },
   "investments": {
     "title": "Yatırımlar",
@@ -4614,7 +4687,10 @@
     "totalCost": "Toplam maliyet",
     "totalGain": "Toplam kazanç/kayıp",
     "totalGainPercent": "%{{percent}}",
-    "holdings": "Varlıklar",
+    "holdings": {
+      "subtitle": "Sahip olduklarınızı ekleyin; değerler manuel olarak takip edilir, canlı piyasa verisi değildir.",
+      "title": "Yatırım portföyü"
+    },
     "assetAllocation": "Varlık Dağılımı",
     "performance": "Performans",
     "performance1D": "1 Gün",
@@ -4640,7 +4716,65 @@
     "dividend": "Temettü",
     "quantity": "Miktar",
     "pricePerUnit": "Birim fiyat",
-    "fees": "Ücretler"
+    "fees": "Ücretler",
+    "accounts": {
+      "current": "Mevcut",
+      "delta": "Fark",
+      "invested": "Yatırılan",
+      "realData": "Gerçek veri",
+      "subtitle": "Yukarıdaki toplamlarınıza dahildir.",
+      "title": "Mevcut yatırım hesapları"
+    },
+    "badge": "Varlıklarınız",
+    "created": "Yatırım eklendi.",
+    "deleteConfirm": {
+      "confirm": "Yatırımı sil",
+      "description": "Bu işlem ",
+      "title": "Yatırım silinsin mi?"
+    },
+    "deleteFailed": "Yatırım silinemedi.",
+    "deleted": "Yatırım silindi.",
+    "disclaimer": "Smart Pocket yatırımlarınızı takip etmenize yardımcı olur. Finansal tavsiye sağlamaz.",
+    "empty": {
+      "action": "İlk yatırımınızı ekleyin",
+      "description": "Tek bir hisse senedi, bir fon, bir kripto cüzdanı veya bir gayrimenkul ile başlayın. Doğruluk için değerler manuel olarak güncellenir.",
+      "title": "Henüz takip edilen yatırım yok."
+    },
+    "form": {
+      "assetType": "Varlık türü",
+      "create": "Yatırım ekle",
+      "currency": "Para birimi",
+      "currentValue": "Mevcut değer",
+      "description": "Sahip olduğunuz bir şeyi takip edin. Ödediğiniz tutarı ve bugünki değerini girin.",
+      "editTitle": "Yatırımı düzenle",
+      "invested": "Yatırılan tutar",
+      "name": "Yatırım adı",
+      "namePlaceholder": "örn. S&P 500 ETF, BTC cüzdanı, Daire 3B",
+      "nameRequired": "Yatırım adı zorunludur.",
+      "notes": "Notlar (isteğe bağlı)",
+      "notesPlaceholder": "Kod, konum, miktar veya kendinize kısa bir hatırlatma.",
+      "purchaseDate": "Satın alma tarihi (isteğe bağlı)",
+      "title": "Yatırım ekle",
+      "update": "Yatırımı güncelle"
+    },
+    "holding": {
+      "actions": "Yatırım işlemleri",
+      "delete": "Sil",
+      "edit": "Düzenle",
+      "colInvested": "Yatırılan",
+      "colValue": "Değer",
+      "colGainLoss": "Kı\ngişim/Zarar"
+    },
+    "loadFailed": "Yatırımlar yüklenemedi.",
+    "newInvestment": "Yatırım ekle",
+    "saveFailed": "Yatırım kaydedilemedi.",
+    "summary": {
+      "assetTypes": "Varlık türleri",
+      "currentValue": "Mevcut değer",
+      "gainLoss": "Kazancı / Zarar",
+      "totalInvested": "Toplam yatırım"
+    },
+    "updated": "Yatırım güncellendi."
   },
   "exchangeRates": {
     "title": "Döviz Kurları",
@@ -4653,10 +4787,31 @@
     "targetCurrency": "Hedef para birimi",
     "lastUpdated": "Son güncelleme",
     "convert": "Dönüştür",
-    "converter": "Para Birimi Dönüştürücü",
+    "converter": {
+      "amount": "Tutar",
+      "amountLabel": "Tutar",
+      "amountPlaceholder": "örn. 100",
+      "asOf": "Tarih",
+      "error": "Dönüştürülemedi.",
+      "from": "Kimden",
+      "fromLabel": "Kimden",
+      "notAvailable": "Kullanılamıyor",
+      "providerFallback": "Global Exchange",
+      "providerLabel": "Sağlayıcı: {{provider}}",
+      "result": "Sonuç",
+      "resultLabel": "Sonuç",
+      "stale": "Biraz eski kur kullanılıyor.",
+      "staleNote": "Kurlar eski olabilir",
+      "subtitle": "Kaydedilen kur anlını kullanarak para birimleri arasında dönüştürün.",
+      "swap": "Para birimlerini değiştir",
+      "swapAria": "Kaynak ve hedef para birimlerini değiştir",
+      "title": "Döviz dönüştürücü",
+      "to": "Kime",
+      "toLabel": "Kime"
+    },
     "amount": "Tutar",
-    "from": "Kaynak",
-    "to": "Hedef",
+    "from": "Kimden",
+    "to": "Kime",
     "convertedAmount": "Dönüştürülmüş tutar",
     "rate": "Kur",
     "ratePair": "{{from}} → {{to}}",
@@ -4684,8 +4839,48 @@
     "change24hNegative": "-%{{value}}",
     "provider": "Sağlayıcı",
     "stale": "Kurlar güncel olmayabilir",
-    "refresh": "Kurları yenile",
-    "refreshing": "Yenileniyor..."
+    "refresh": "Kurları güncelle",
+    "refreshing": "Yenileniyor...",
+    "actions": {
+      "refresh": "Kurları güncelle"
+    },
+    "badge": "Global Exchange",
+    "empty": {
+      "action": "Kurları güncelle",
+      "description": "Kurlar şu anda yüklenemedi.",
+      "searchDescription": "Farklı bir kod veya para birimi adı deneyin.",
+      "searchTitle": "Aramanıza uygun para birimi yok",
+      "title": "Döviz kurları kullanılamıyor"
+    },
+    "fetchError": {
+      "generic": "Kurlar yüklenemedi."
+    },
+    "freshness": {
+      "fresh": "Güncel kurlar",
+      "stale": "Kurlar eski olabilir",
+      "unavailable": "Kurlar kullanılamıyor"
+    },
+    "meta": {
+      "defaultCurrency": "Varsayılan para",
+      "lastUpdated": "Son güncelleme",
+      "notYet": "Henüz yok",
+      "status": "Durum",
+      "unavailable": "Kullanılamıyor"
+    },
+    "refreshButton": "Kurları güncelle",
+    "snapshotLoadError": {
+      "fallback": "Döviz kurları yüklenemedi."
+    },
+    "table": {
+      "colCode": "Kod",
+      "colCurrency": "Para birimi",
+      "colInverse": "Ters",
+      "colRate": "1 {{code}} ile alınan",
+      "searchPlaceholder": "Para birimi ara…",
+      "subtitle": "Varsayılan para biriminize ({{code}}) göre kurlar.",
+      "title": "Popüler kurlar",
+      "truncatedHint": ""
+    }
   },
   "calculator": {
     "title": "Hesap Makinesi",
@@ -4714,7 +4909,47 @@
     "calculate": "Hesapla",
     "reset": "Sıfırla",
     "schedule": "Ödeme Çizelgesi",
-    "summary": "Özet"
+    "summary": "Özet",
+    "badge": "Hızlı araçlar",
+    "budget": {
+      "allocated": "Ayrılan",
+      "breakdown": "Aylık döküm",
+      "deficit": "Açık",
+      "enterIncome": "Aylık geliri girin",
+      "enterIncomeHint": "Kalanı görmek için gelir, gider ve biriktirme hedefi ekleyin.",
+      "expenses": "Giderler",
+      "income": "Aylık gelir",
+      "remaining": "Kalan",
+      "savingsTarget": "Tasarruflar",
+      "surplus": "Fazla"
+    },
+    "disclaimer": "Yalnızca tahmin — sonuçlar hızlı başvuru içindir ve finansal tavsiye niteliği taşımaz.",
+    "loan": {
+      "amount": "Kredi tutarı",
+      "enterLoan": "Kredi detaylarını girin",
+      "enterLoanHint": "Aylık ödemeyi tahmin etmek için tutar, oran ve vade ekleyin.",
+      "estPayment": "Tahmini ödeme",
+      "months": "ay",
+      "perMonth": "aylık",
+      "principal": "Ana para",
+      "rate": "Yıllık faiz (%)",
+      "term": "Vade (ay)",
+      "totalInterest": "Toplam faiz",
+      "totalRepaid": "Toplam ödenen"
+    },
+    "savings": {
+      "complete": "Tamamlandı",
+      "currentSaved": "Mevcut tasarruf",
+      "enterTarget": "Hedef tutarı girin",
+      "enterTargetHint": "Ne kadar süreceğini tahmin etmek için hedefinizi ve aylık katkınızı doldurun.",
+      "monthlyContribution": "Aylık katkı",
+      "months": "ay",
+      "monthsNeeded": "Gerekli ay",
+      "progress": "İlerleme",
+      "remaining": "Kalan",
+      "targetAmount": "Hedef tutarı",
+      "targetDate": "Hedef tarihi"
+    }
   },
   "aiAssistant": {
     "title": "Akıllı Yapay Zeka Finans Asistanı",

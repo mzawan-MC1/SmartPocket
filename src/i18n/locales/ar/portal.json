@@ -155,14 +155,14 @@
       "transfers": "التحويلات",
       "recurring": "المتكررة",
       "categories": "الفئات",
-      "reimbursements": "التعويضات",
+      "reimbursements": "المستحقات",
       "settlements": "التسويات",
       "people": "الأشخاص",
       "spaces": "المساحات",
-      "aiHistory": "سجل الذكاء الاصطناعي",
+      "aiHistory": "سجل المساعد الذكي",
       "personalSubscriptions": "الاشتراكات الشخصية",
-      "faqs": "الأسئلة الشائعة",
       "support": "الدعم",
+      "faqs": "الأسئلة الشائعة",
       "dashboard": "لوحة المعلومات",
       "moneyInOut": "المدفوعات والواردات",
       "accounts": "الحسابات",
@@ -180,7 +180,7 @@
       "settings": "الإعدادات",
       "helpSupport": "المساعدة والدعم",
       "transactions": "المعاملات",
-      "dashboardPlural": "لوحات المعلومات"
+      "dashboardPlural": "لوحة المعلومات"
     },
     "lockedTooltip": "{{label}} · {{restriction}}",
     "expand": "توسيع الشريط الجانبي",
@@ -3520,13 +3520,13 @@
     },
     "planCodes": {
       "personal": "شخصية",
-      "family": "عائلية"
+      "family": "عائلة"
     },
     "features": {
       "textAi": "الذكاء النصي",
       "voiceAi": "الذكاء الصوتي",
       "receiptIntelligence": "ذكاء الإيصالات",
-      "aiHistory": "سجل الذكاء الاصطناعي",
+      "aiHistory": "سجل المساعد الذكي",
       "managedPeople": "الأشخاص المدارون",
       "sharedSpaces": "المساحات المشتركة",
       "standardReports": "التقارير القياسية",
@@ -4571,10 +4571,10 @@
     "goalName": "اسم الهدف",
     "goalNamePlaceholder": "مثال: صندوق الطوارئ",
     "targetAmount": "المبلغ المستهدف",
-    "currentAmount": "المبلغ المحفوظ حالياً",
-    "deadline": "التاريخ المستهدف",
+    "currentAmount": "المبلغ المدخر حالياً",
+    "deadline": "تاريخ الهدف",
     "monthlyContribution": "المساهمة الشهرية",
-    "progress": "التقدم",
+    "progress": "التقدّم",
     "percentComplete": "اكتمل {{percent}}%",
     "status": "الحالة",
     "categories": "الفئات",
@@ -4604,76 +4604,82 @@
     "tips": "نصائح للادخار",
     "suggestions": "اقتراحات ذكية",
     "summary": {
-      "totalSaved": "إجمالي ما تم ادخاره",
       "activeGoals": "الأهداف النشطة",
       "monthlyTarget": "الهدف الشهري",
-      "nextTargetDate": "تاريخ الهدف القادم"
+      "nextTargetDate": "تاريخ الهدف القادم",
+      "totalSaved": "إجمالي ما تم ادخاره"
     },
     "totalGoals": "إجمالي الأهداف",
-    "totalSaved": "إجمالي المدخرات",
+    "totalSaved": "إجمالي ما تم ادخاره",
     "nearestDeadline": "أقرب موعد",
-    "badge": "أهدافك",
-    "newGoal": "هدف ادخار جديد",
-    "loadFailed": "تعذر تحميل أهداف المدخرات.",
-    "updated": "تم تحديث هدف المدخرات.",
-    "created": "تم إنشاء هدف المدخرات.",
-    "saveFailed": "تعذر حفظ الهدف.",
-    "deleted": "تم حذف هدف المدخرات.",
-    "deleteFailed": "تعذر حذف الهدف.",
     "accounts": {
-      "title": "حسابات المدخرات الحالية",
-      "subtitle": "مضمن في إجمالي المدخرات بجانب أهدافك."
+      "subtitle": "مضمن في إجمالي المدخرات بجانب أهدافك.",
+      "title": "حسابات الادخار الحالية"
     },
-    "goals": {
-      "title": "أهداف المدخرات",
-      "subtitle": "أنشئ هدفاً، وتتبع ما تدخره، وأضف المساهمات كلما تقدمك.",
-      "addContribution": "إضافة مساهمة",
-      "actions": "خيارات الهدف",
-      "edit": "تعديل",
-      "delete": "حذف"
+    "badge": "أهدافك",
+    "cards": {
+      "monthly": "شهرياً",
+      "realData": "بيانات فعلية",
+      "remaining": "المتبقي",
+      "savedTarget": "المدخر / المستهدف"
     },
+    "contrib": {
+      "add": "إضافة",
+      "added": "تمت إضافة المساهمة.",
+      "afterAdd": "بعد الإضافة",
+      "amount": "مبلغ المساهمة",
+      "currentSaved": "المبلغ المدخر حالياً",
+      "failed": "تعذرت إضافة المساهمة.",
+      "positive": "أدخل مبلغاً أكبر من 0.",
+      "title": "إضافة مساهمة"
+    },
+    "created": "تم إنشاء هدف ادخار.",
+    "deleteConfirm": {
+      "confirm": "حذف الهدف",
+      "description": "سيؤدي هذا الإجراء إلى إزالة \"{{name}}\" ولا يمكن التراجع عنه.",
+      "title": "هل تريد حذف هدف الادخار؟"
+    },
+    "deleteFailed": "تعذر حذف الهدف.",
+    "deleted": "تم حذف هدف الادخار.",
     "empty": {
-      "title": "لا توجد أهداف ادخار بعد",
+      "action": "أنشِ هدفك الأول",
       "description": "ابدأ بصندوق طوارئ، أو رحلة، أو أي هدف شخصي تريد تتبعه بمرور الوقت.",
-      "action": "أنشئ أول هدف لك"
+      "title": "لا توجد أهداف ادخار بعد"
     },
     "form": {
-      "title": "هدف ادخار جديد",
-      "editTitle": "تعديل هدف المدخرات",
+      "category": "الفئة",
+      "create": "إنشاء الهدف",
+      "currency": "العملة",
+      "currentSaved": "المبلغ المدخر حالياً",
       "description": "حدد المبلغ المستهدف، وما ادخرته حتى الآن، ومساهمة شهرية اختيارية.",
-      "nameRequired": "اسم الهدف مطلوب.",
-      "targetRequired": "المبلغ المستهدف يجب أن يكون أكبر من صفر.",
-      "savedTooHigh": "المبلغ المدخر لا يمكن أن يكون أكبر من المستهدف.",
+      "editTitle": "تعديل هدف الادخار",
       "goalName": "اسم الهدف",
       "goalNamePlaceholder": "صندوق طوارئ، رحلة بالي…",
-      "category": "الفئة",
-      "currency": "العملة",
-      "targetAmount": "المبلغ المستهدف",
-      "currentSaved": "المحفوظ حالياً",
-      "monthlyContribution": "المساهمة الشهرية",
-      "targetDate": "تاريخ الهدف (اختياري)",
       "linkedAccount": "الحساب المرتبط (اختياري)",
+      "monthlyContribution": "المساهمة الشهرية",
+      "nameRequired": "اسم الهدف مطلوب.",
       "noLinkedAccount": "غير مرتبط",
       "notes": "ملاحظات (اختياري)",
       "notesPlaceholder": "لماذا يهم هذا الهدف، أو تذكير سريع لنفسك.",
-      "create": "إنشاء الهدف",
+      "savedTooHigh": "لا يمكن أن يكون المبلغ المدخر أكبر من الهدف.",
+      "targetAmount": "المبلغ المستهدف",
+      "targetDate": "تاريخ الهدف (اختياري)",
+      "targetRequired": "يجب أن يكون المبلغ المستهدف أكبر من 0.",
+      "title": "هدف ادخار جديد",
       "update": "تحديث الهدف"
     },
-    "contrib": {
-      "title": "إضافة مساهمة",
-      "currentSaved": "المحفوظ حالياً",
-      "amount": "مبلغ المساهمة",
-      "afterAdd": "بعد الإضافة",
-      "add": "إضافة",
-      "positive": "أدخل مبلغاً أكبر من صفر.",
-      "added": "تمت إضافة المساهمة.",
-      "failed": "تعذرت إضافة المساهمة."
+    "goals": {
+      "actions": "إجراءات الهدف",
+      "addContribution": "إضافة مساهمة",
+      "delete": "حذف",
+      "edit": "تعديل",
+      "subtitle": "أنشئ هدفاً، وتتبع ما تدخره، وأضف المساهمات كلما تقدمك.",
+      "title": "أهداف الادخار"
     },
-    "deleteConfirm": {
-      "title": "حذف هدف المدخرات؟",
-      "description": "سيؤدي هذا الإجراء إلى إزالة \"{{name}}\" ولا يمكن التراجع عنه.",
-      "confirm": "حذف الهدف"
-    }
+    "loadFailed": "تعذر تحميل الأهداف الادخارية.",
+    "newGoal": "هدف ادخار جديد",
+    "saveFailed": "تعذر حفظ الهدف.",
+    "updated": "تم تحديث هدف الادخار."
   },
   "investments": {
     "title": "الاستثمارات",
@@ -4692,11 +4698,8 @@
     "totalGain": "إجمالي الربح/الخسارة",
     "totalGainPercent": "{{percent}}%",
     "holdings": {
-      "title": "مقتنيات الاستثمار",
-      "subtitle": "أضف ما تملكه؛ ويتم تتبع القيم يدوياً وليس ببيانات سوق حية.",
-      "actions": "خيارات الاستثمار",
-      "edit": "تعديل",
-      "delete": "حذف"
+      "subtitle": "أضف ما تملكه؛ ويتم تتبع القيم يدوياً، وليس ببيانات سوق حية.",
+      "title": "محفظة الاستثمار"
     },
     "assetAllocation": "توزيع الأصول",
     "performance": "الأداء",
@@ -4724,52 +4727,64 @@
     "quantity": "الكمية",
     "pricePerUnit": "سعر الوحدة",
     "fees": "الرسوم",
-    "badge": "مقتنياتك",
-    "newInvestment": "إضافة استثمار",
-    "disclaimer": "يساعدك Smart Pocket على تتبع استثماراتك، وهو لا يقدم نصائح مالية.",
-    "loadFailed": "تعذر تحميل الاستثمارات.",
-    "updated": "تم تحديث الاستثمار.",
-    "created": "تمت إضافة الاستثمار.",
-    "saveFailed": "تعذر حفظ الاستثمار.",
-    "deleted": "تم حذف الاستثمار.",
-    "deleteFailed": "تعذر حذف الاستثمار.",
-    "summary": {
-      "totalInvested": "إجمالي المستثمر",
-      "currentValue": "القيمة الحالية",
-      "gainLoss": "الربح / الخسارة",
-      "assetTypes": "أنواع الأصول"
-    },
     "accounts": {
-      "title": "حسابات الاستثمار الحالية",
-      "subtitle": "مضمنة في الإجماليات أعلاها."
+      "current": "الحالي",
+      "delta": "الفرق",
+      "invested": "المدفوع",
+      "realData": "بيانات فعلية",
+      "subtitle": "مضمن في إجمالي ما سبق.",
+      "title": "حسابات الاستثمار الحالية"
     },
+    "badge": "ممتلكاتك",
+    "created": "تمت إضافة الاستثمار.",
+    "deleteConfirm": {
+      "confirm": "حذف الاستثمار",
+      "description": "سيؤدي هذا إلى إزالة \"{{name}}\" ولا يمكن التراجع عنه.",
+      "title": "حذف الاستثمار؟"
+    },
+    "deleteFailed": "تعذر حذف الاستثمار.",
+    "deleted": "تم حذف الاستثمار.",
+    "disclaimer": "يساعدك Smart Pocket على تتبع استثمارك، وهو لا يقدم نصائح مالية.",
     "empty": {
-      "title": "لا توجد استثمارات متتبعة بعد",
+      "action": "أضف أول استثمار لك",
       "description": "ابدأ بسهم واحد، أو صندوق، أو محفظة عملات رقمية، أو عقار. يتم تحديث القيم يدوياً للدقة.",
-      "action": "أضف أول استثمار لك"
+      "title": "لا توجد استثمار متتبعة بعد"
     },
     "form": {
-      "title": "إضافة استثمار",
-      "editTitle": "تعديل الاستثمار",
+      "assetType": "نوع الأصل",
+      "create": "إضافة استثمار",
+      "currency": "العملة",
+      "currentValue": "القيمة الحالية",
       "description": "تتبع شيئاً تملكه. أدخل ما دفعته وقيمته اليوم.",
-      "nameRequired": "اسم الاستثمار مطلوب.",
+      "editTitle": "تعديل استثمار",
+      "invested": "المبلغ المستثمر",
       "name": "اسم الاستثمار",
       "namePlaceholder": "مثل: صندوق المؤشر S&P 500، محفظة BTC، الشقة 3ب",
-      "assetType": "نوع الأصل",
-      "currency": "العملة",
-      "invested": "المبلغ المستثمر",
-      "currentValue": "القيمة الحالية",
-      "purchaseDate": "تاريخ الشراء (اختياري)",
+      "nameRequired": "اسم الاستثمار مطلوب.",
       "notes": "ملاحظات (اختياري)",
       "notesPlaceholder": "رمز التداول، الموقع، الكمية، أو تذكير سريع لنفسك.",
-      "create": "إضافة استثمار",
+      "purchaseDate": "تاريخ الشراء (اختياري)",
+      "title": "إضافة استثمار",
       "update": "تحديث الاستثمار"
     },
-    "deleteConfirm": {
-      "title": "حذف الاستثمار؟",
-      "description": "سيؤدي هذا إلى إزالة \"{{name}}\" ولا يمكن التراجع عنه.",
-      "confirm": "حذف الاستثمار"
-    }
+    "holding": {
+      "actions": "إجراءات الاستثمار",
+      "delete": "حذف",
+      "edit": "تعديل",
+      "colInvested": "المدفوع",
+      "colValue": "القيمة",
+      "colGainLoss": "الأرباح / الخسائر"
+    },
+    "loadFailed": "تعذر تحميل الاستثمارات.",
+    "newInvestment": "إضافة استثمار",
+    "saveFailed": "تعذر حفظ الاستثمار.",
+    "summary": {
+      "assetTypes": "أنواع الأصول",
+      "currentValue": "القيمة الحالية",
+      "gainLoss": "الربح / الخسارة",
+      "totalInvested": "إجمالي المستثمر"
+    },
+    "updated": "تم تحديث الاستثمار."
   },
   "exchangeRates": {
     "title": "أسعار الصرف",
@@ -4783,33 +4798,33 @@
     "lastUpdated": "آخر تحديث",
     "convert": "تحويل",
     "converter": {
-      "title": "محول العملات",
-      "subtitle": "حول بين العملات باستخدام لقطة الأسعار المحفوظة.",
-      "providerLabel": "الموفر: {{provider}}",
-      "providerFallback": "الصرف العالمي",
+      "amount": "المبلغ",
       "amountLabel": "المبلغ",
       "amountPlaceholder": "مثل: 100",
-      "fromLabel": "من",
-      "toLabel": "إلى",
-      "resultLabel": "النتيجة",
-      "notAvailable": "غير متاح",
-      "swap": "تبديل",
-      "swapAria": "تبديل العملات من وإلى",
-      "staleNote": "قد تكون الأسعار غير محدثة",
+      "asOf": "بتاريخ",
       "error": "تعذر إجراء التحويل.",
-      "stale": "يتم استخدام سعر أقدم بقليل.",
-      "asOf": "حتى",
-      "amount": "المبلغ",
       "from": "من",
+      "fromLabel": "من",
+      "notAvailable": "غير متاح",
+      "providerFallback": "الصرف العالمي",
+      "providerLabel": "المزود: {{provider}}",
+      "result": "النتيجة",
+      "resultLabel": "النتيجة",
+      "stale": "يتم استخدام سعر أقدم بقليل.",
+      "staleNote": "قد تكون الأسعار غير محدثة",
+      "subtitle": "حول بين العملات باستخدام لقطة الأسعار المحفوظة.",
+      "swap": "تبديل العملات",
+      "swapAria": "تبديل العملات من وإلى",
+      "title": "محول العملات",
       "to": "إلى",
-      "result": "النتيجة"
+      "toLabel": "إلى"
     },
     "amount": "المبلغ",
     "from": "من",
     "to": "إلى",
     "convertedAmount": "المبلغ المحول",
     "rate": "السعر",
-    "ratePair": "{{from}} → {{to}}",
+    "ratePair": "{{from}} ← {{to}}",
     "inverseRate": "السعر العكسي",
     "history": "تاريخ الأسعار",
     "history7D": "آخر 7 أيام",
@@ -4818,14 +4833,14 @@
     "history1Y": "آخر 12 شهراً",
     "historyCustom": "فترة مخصصة",
     "popularPairs": "الأزواج الشائعة",
-    "pairAEDUSD": "AED → USD",
+    "pairAEDUSD": "USD ← AED",
     "pairAEDUSD_short": "AED/USD",
-    "pairAEDEUR": "AED → EUR",
+    "pairAEDEUR": "EUR ← AED",
     "pairAEDEUR_short": "AED/EUR",
-    "pairUSDEUR": "USD → EUR",
+    "pairUSDEUR": "EUR ← USD",
     "pairUSDEUR_short": "USD/EUR",
-    "pairUSDGBP": "USD → GBP",
-    "pairUSDGBP_short": "USD/GBP",
+    "pairUSDGBP": "USD ← GBP",
+    "pairUSDGBP_short": "GBP/USD",
     "trending": "الأكثر تداولاً",
     "highest24h": "أعلى سعر 24س",
     "lowest24h": "أدنى سعر 24س",
@@ -4836,50 +4851,45 @@
     "stale": "الأسعار قد تكون قديمة",
     "refresh": "تحديث الأسعار",
     "refreshing": "جارٍ التحقق من أسعار الصرف المحدثة…",
+    "actions": {
+      "refresh": "تحديث الأسعار"
+    },
     "badge": "الصرف العالمي",
-    "refreshButton": "تحديث الأسعار",
-    "snapshotLoadError": {
-      "fallback": "تعذر تحميل أسعار الصرف."
+    "empty": {
+      "action": "تحديث الأسعار",
+      "description": "تعذر على Smart Pocket تحميل لقطة حديثة لأسعار الصرف. اطلب من مسؤول مساحة العمل مزامنة الأسعار أو حدثها لاحقاً.",
+      "searchDescription": "جرّب رمزاً أو اسم عملة مختلف.",
+      "searchTitle": "لا توجد عملات تطابق بحثك",
+      "title": "أسعار الصرف غير متاحة"
     },
     "fetchError": {
       "generic": "تعذر تحميل الأسعار."
-    },
-    "status": {
-      "fresh": "حديثة",
-      "stale": "قديمة",
-      "unavailable": "غير متاحة"
-    },
-    "meta": {
-      "defaultCurrency": "العملة الافتراضية",
-      "lastUpdated": "آخر تحديث",
-      "notYet": "ليس بعد",
-      "unavailable": "غير متاحة",
-      "status": "الحالة"
     },
     "freshness": {
       "fresh": "الأسعار محدثة",
       "stale": "قد تكون الأسعار أقدم",
       "unavailable": "أسعار الصرف غير متاحة"
     },
-    "actions": {
-      "refresh": "تحديث الأسعار"
+    "meta": {
+      "defaultCurrency": "العملة الافتراضية",
+      "lastUpdated": "آخر تحديث",
+      "notYet": "ليس بعد",
+      "status": "الحالة",
+      "unavailable": "غير متاح"
+    },
+    "refreshButton": "تحديث الأسعار",
+    "snapshotLoadError": {
+      "fallback": "تعذر تحميل أسعار الصرف."
     },
     "table": {
-      "title": "أسعار شائعة",
-      "subtitle": "الأسعار مقابل عملتك الافتراضية ({{code}}).",
-      "searchPlaceholder": "ابحث عن عملة…",
       "colCode": "الرمز",
       "colCurrency": "العملة",
-      "colRate": "شراء 1 {{code}} بـ",
       "colInverse": "العكسي",
-      "truncatedHint": "يتم عرض {{shown}} من أصل {{total}} نتيجة. استخدم حقل البحث لتضييق النتائج."
-    },
-    "empty": {
-      "title": "أسعار الصرف غير متاحة",
-      "description": "تعذر على Smart Pocket تحميل لقطة حديثة لأسعار الصرف. اطلب من مسؤول مساحة العمل مزامنة الأسعار أو حدثها لاحقاً.",
-      "action": "تحديث الأسعار",
-      "searchTitle": "لا توجد عملات تطابق بحثك",
-      "searchDescription": "جرّب رمزاً أو اسم عملة مختلف."
+      "colRate": "شراء 1 {{code}} بـ",
+      "searchPlaceholder": "ابحث عن عملة…",
+      "subtitle": "الأسعار مقابل عملتك الافتراضية ({{code}}).",
+      "title": "أسعار شائعة",
+      "truncatedHint": ""
     }
   },
   "calculator": {
@@ -4901,7 +4911,7 @@
     "totalPayment": "إجمالي المدفوعات",
     "totalInterest": "إجمالي الفوائد",
     "numberOfPayments": "عدد الدفعات",
-    "principal": "المبلغ الأصلي",
+    "principal": "أصل المبلغ",
     "interestRate": "نسبة الفائدة",
     "term": "المدة",
     "termYears": "سنوات",
@@ -4911,44 +4921,44 @@
     "schedule": "جدول الدفعات",
     "summary": "الملخص",
     "badge": "أدوات سريعة",
-    "disclaimer": "التقديرات فقط — النتائج للرجوع السريع ولا تشكل نصيحة مالية.",
-    "savings": {
-      "targetAmount": "المبلغ المستهدف",
-      "currentSaved": "المحفوظ حالياً",
-      "monthlyContribution": "المساهمة الشهرية",
-      "progress": "التقدم",
-      "remaining": "المتبقي",
-      "monthsNeeded": "الأشهر المطلوبة",
-      "complete": "مكتمل",
-      "months": "شهر",
-      "targetDate": "تاريخ الهدف",
-      "enterTarget": "أدخل المبلغ المستهدف",
-      "enterTargetHint": "املأ هدفك والمساهمة الشهرية لتقدير المدة اللازمة."
-    },
     "budget": {
-      "income": "الدخل الشهري",
-      "expenses": "المصروفات الشهرية",
-      "savingsTarget": "هدف المدخرات",
-      "breakdown": "التحليل الشهري",
-      "surplus": "الفائض",
-      "deficit": "العجز",
       "allocated": "المخصص",
-      "remaining": "المتبقي",
+      "breakdown": "التفصيل الشهري",
+      "deficit": "العجز",
       "enterIncome": "أدخل الدخل الشهري",
-      "enterIncomeHint": "أضف الدخل والمصروفات وهدف المدخرات لمعرفة المتبقي."
+      "enterIncomeHint": "أضف الدخل والمصروفات وهدف المدخرات لمعرفة المتبقي.",
+      "expenses": "المصروفات",
+      "income": "الدخل الشهري",
+      "remaining": "المتبقي",
+      "savingsTarget": "المدخرات",
+      "surplus": "الفائض"
     },
+    "disclaimer": "التقديرات فقط — النتائج للرجوع السريع ولا تشكل نصيحة مالية.",
     "loan": {
       "amount": "مبلغ القرض",
+      "enterLoan": "أدخل تفاصيل القرض",
+      "enterLoanHint": "أضف المبلغ والنسبة والمدة لتقدير القسط الشهري.",
+      "estPayment": "القسط المقدر",
+      "months": "أشهر",
+      "perMonth": "شهرياً",
+      "principal": "أصل المبلغ",
       "rate": "الفائدة السنوية (%)",
       "term": "المدة (بالأشهر)",
-      "estPayment": "القسط المقدر",
-      "perMonth": "شهرياً",
-      "months": "أشهر",
-      "principal": "أصل المبلغ",
       "totalInterest": "إجمالي الفوائد",
-      "totalRepaid": "إجمالي المدفوعات",
-      "enterLoan": "أدخل تفاصيل القرض",
-      "enterLoanHint": "أضف المبلغ والنسبة والمدة لتقدير القسط الشهري."
+      "totalRepaid": "إجمالي المدفوعات"
+    },
+    "savings": {
+      "complete": "مكتمل",
+      "currentSaved": "المبلغ المدخر حالياً",
+      "enterTarget": "أدخل المبلغ المستهدف",
+      "enterTargetHint": "املأ هدفك والمساهمة الشهرية لتقدير المدة اللازمة.",
+      "monthlyContribution": "المساهمة الشهرية",
+      "months": "شهر",
+      "monthsNeeded": "الأشهر المطلوبة",
+      "progress": "التقدّم",
+      "remaining": "المتبقي",
+      "targetAmount": "المبلغ المستهدف",
+      "targetDate": "تاريخ الهدف"
     }
   },
   "aiAssistant": {

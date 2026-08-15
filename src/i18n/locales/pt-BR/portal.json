@@ -147,9 +147,9 @@
       "manage": "Gerenciar",
       "reports": "Relatórios",
       "support": "Suporte",
-      "money": "MONEY",
-      "investGrow": "INVEST & GROW",
-      "tools": "TOOLS"
+      "money": "DINHEIRO",
+      "investGrow": "INVESTIR E CRESCER",
+      "tools": "FERRAMENTAS"
     },
     "nav": {
       "transfers": "Transferências",
@@ -162,7 +162,7 @@
       "aiHistory": "Histórico de IA",
       "personalSubscriptions": "Assinaturas Pessoais",
       "support": "Suporte",
-      "faqs": "FAQs",
+      "faqs": "Perguntas Frequentes",
       "dashboard": "Painel",
       "moneyInOut": "Entradas e Saídas",
       "accounts": "Contas",
@@ -174,13 +174,13 @@
       "tagsCategories": "Marcadores e Categorias",
       "savings": "Poupança",
       "investments": "Investimentos",
-      "smartAi": "Assistente Financeiro com IA",
+      "smartAi": "Assistente Inteligente com IA",
       "exchangeRates": "Taxas de Câmbio",
       "calculator": "Calculadora",
       "settings": "Configurações",
       "helpSupport": "Ajuda e Suporte",
       "transactions": "Transações",
-      "dashboardPlural": "Painéis"
+      "dashboardPlural": "Painel"
     },
     "lockedTooltip": "{{label}} · {{restriction}}",
     "expand": "Expandir barra lateral",
@@ -192,7 +192,7 @@
       "new": "Novo"
     },
     "errors": {
-      "smartAiUnavailable": "Assistente Financeiro com IA temporariamente indisponível"
+      "smartAiUnavailable": "Assistente IA temporariamente indisponível"
     }
   },
   "bottomNav": {
@@ -3513,19 +3513,19 @@
     "backAction": "Voltar para painel",
     "badges": {
       "locked": "Bloqueado",
-      "upgrade": "Upgrade",
+      "upgrade": "Atualizar",
       "family": "Família",
       "expired": "Teste expirado"
     },
     "planCodes": {
-      "personal": "Personal",
-      "family": "Family"
+      "personal": "Pessoal",
+      "family": "Família"
     },
     "features": {
       "textAi": "Texto AI",
       "voiceAi": "Voz AI",
-      "receiptIntelligence": "Receipt Intelligence",
-      "aiHistory": "Histórico AI",
+      "receiptIntelligence": "Inteligência de recibos",
+      "aiHistory": "Histórico de IA",
       "managedPeople": "Pessoas Gerenciadas",
       "sharedSpaces": "Espaços Compartilhados",
       "standardReports": "Relatórios Padrão",
@@ -4553,7 +4553,7 @@
     "comingSoonTitle": "Em breve",
     "comingSoonDesc": "Um módulo dedicado de Poupança chegará em breve. Aqui você poderá organizar metas de economia, acompanhar contribuições e monitorar o progresso.",
     "inDevelopment": "Funcionalidade em desenvolvimento",
-    "emptyTitle": "Ainda sem metas de poupança",
+    "emptyTitle": "Ainda sem metas.",
     "emptyDesc": "Crie sua primeira meta de poupança para começar a construir seus objetivos.",
     "addGoal": "Adicionar Meta de Poupança",
     "editGoal": "Editar Meta de Poupança",
@@ -4561,7 +4561,7 @@
     "goalName": "Nome da meta",
     "goalNamePlaceholder": "ex: Fundo de Emergência",
     "targetAmount": "Valor alvo",
-    "currentAmount": "Atualmente economizado",
+    "currentAmount": "Atual poupado",
     "deadline": "Data alvo",
     "monthlyContribution": "Contribuição mensal",
     "progress": "Progresso",
@@ -4593,10 +4593,83 @@
     "linkedAccount": "Conta vinculada",
     "tips": "Dicas de Poupança",
     "suggestions": "Sugestões Inteligentes",
-    "summary": "Resumo da Poupança",
+    "summary": {
+      "activeGoals": "Metas ativas",
+      "monthlyTarget": "Meta mensal",
+      "nextTargetDate": "Próxima data alvo",
+      "totalSaved": "Total poupado"
+    },
     "totalGoals": "Total de metas",
-    "totalSaved": "Total economizado",
-    "nearestDeadline": "Prazo mais próximo"
+    "totalSaved": "Total poupado",
+    "nearestDeadline": "Prazo mais próximo",
+    "accounts": {
+      "subtitle": "Incluído no Total economizado junto com suas metas.",
+      "title": "Contas de poupança existentes"
+    },
+    "badge": "Seus objetivos",
+    "cards": {
+      "monthly": "Mensal",
+      "realData": "Dados reais",
+      "remaining": "Restante",
+      "savedTarget": "Poupado / Meta"
+    },
+    "contrib": {
+      "add": "Adicionar",
+      "added": "Contribuição adicionada.",
+      "afterAdd": "Depois da adição",
+      "amount": "Valor da contribuição",
+      "currentSaved": "Atual poupado",
+      "failed": "Não foi possível adicionar a contribuição.",
+      "positive": "Informe um valor maior que 0.",
+      "title": "Adicionar contribuição"
+    },
+    "created": "Meta criada.",
+    "deleteConfirm": {
+      "confirm": "Excluir meta",
+      "description": "Esta ação remove ",
+      "title": "Excluir meta?"
+    },
+    "deleteFailed": "Não foi possível excluir a meta.",
+    "deleted": "Meta excluída.",
+    "empty": {
+      "action": "Crie sua primeira meta",
+      "description": "Comece com um fundo de emergência, uma viagem ou qualquer objetivo pessoal que queira acompanhar ao longo do tempo.",
+      "title": "Ainda sem metas."
+    },
+    "form": {
+      "category": "Categoria",
+      "create": "Criar meta",
+      "currency": "Moeda",
+      "currentSaved": "Atual poupado",
+      "description": "Defina uma meta, o que você já economizou e uma contribuição mensal opcional.",
+      "editTitle": "Editar meta",
+      "goalName": "Nome da meta",
+      "goalNamePlaceholder": "Fundo de emergência, viagem a Bali…",
+      "linkedAccount": "Conta vinculada (opcional)",
+      "monthlyContribution": "Contribuição mensal",
+      "nameRequired": "O nome da meta é obrigatório.",
+      "noLinkedAccount": "Não vinculado",
+      "notes": "Anotações (opcional)",
+      "notesPlaceholder": "Por que essa meta é importante, ou um lembrete rápido para você mesmo.",
+      "savedTooHigh": "O valor poupado não pode exceder o alvo.",
+      "targetAmount": "Valor alvo",
+      "targetDate": "Data alvo (opcional)",
+      "targetRequired": "O valor alvo deve ser maior que 0.",
+      "title": "Nova meta de poupança",
+      "update": "Atualizar meta"
+    },
+    "goals": {
+      "actions": "Ações da meta",
+      "addContribution": "Adicionar contribuição",
+      "delete": "Excluir",
+      "edit": "Editar",
+      "subtitle": "Crie um objetivo, acompanhe o que você economiza e adicione contribuições conforme avança.",
+      "title": "Metas de poupança"
+    },
+    "loadFailed": "Não foi possível carregar as metas.",
+    "newGoal": "Nova meta de poupança",
+    "saveFailed": "Não foi possível salvar a meta.",
+    "updated": "Meta atualizada."
   },
   "investments": {
     "title": "Investimentos",
@@ -4614,7 +4687,10 @@
     "totalCost": "Custo total",
     "totalGain": "Ganho/perda total",
     "totalGainPercent": "{{percent}}%",
-    "holdings": "Participações",
+    "holdings": {
+      "subtitle": "Adicione o que você possui; valores atualizados manualmente, não dados de mercado ao vivo.",
+      "title": "Investimentos mantidos"
+    },
     "assetAllocation": "Alocação de Ativos",
     "performance": "Desempenho",
     "performance1D": "1 Dia",
@@ -4640,7 +4716,65 @@
     "dividend": "Dividendo",
     "quantity": "Quantidade",
     "pricePerUnit": "Preço por unidade",
-    "fees": "Taxas"
+    "fees": "Taxas",
+    "accounts": {
+      "current": "Atual",
+      "delta": "Variação",
+      "invested": "Investido",
+      "realData": "Dados reais",
+      "subtitle": "Incluídas nos totais acima.",
+      "title": "Contas de investimento existentes"
+    },
+    "badge": "Seus ativos",
+    "created": "Investimento adicionado.",
+    "deleteConfirm": {
+      "confirm": "Excluir investimento",
+      "description": "Isso remove ",
+      "title": "Excluir investimento?"
+    },
+    "deleteFailed": "Não foi possível excluir.",
+    "deleted": "Investimento excluído.",
+    "disclaimer": "A Smart Pocket ajuda você a acompanhar investimentos. Não oferece consultoria financeira.",
+    "empty": {
+      "action": "Adicione seu primeiro investimento",
+      "description": "Comece com uma única ação, um fundo, uma carteira de criptomoedas ou um imóvel. Os valores são atualizados manualmente para maior precisão.",
+      "title": "Ainda sem investimentos."
+    },
+    "form": {
+      "assetType": "Tipo de ativo",
+      "create": "Adicionar investimento",
+      "currency": "Moeda",
+      "currentValue": "Valor atual",
+      "description": "Acompanhe algo que você possui. Insira o que pagou e o que vale hoje.",
+      "editTitle": "Editar investimento",
+      "invested": "Valor investido",
+      "name": "Nome do investimento",
+      "namePlaceholder": "ex. S&P 500 ETF, carteira BTC, Apartamento 3B",
+      "nameRequired": "O nome do investimento é obrigatório.",
+      "notes": "Anotações (opcional)",
+      "notesPlaceholder": "Ticker, localização, quantidade ou um lembrete rápido para você mesmo.",
+      "purchaseDate": "Data de compra (opcional)",
+      "title": "Adicionar investimento",
+      "update": "Atualizar investimento"
+    },
+    "holding": {
+      "actions": "Ações de investimento",
+      "delete": "Excluir",
+      "edit": "Editar",
+      "colInvested": "Investido",
+      "colValue": "Valor",
+      "colGainLoss": "Ganho/Perda"
+    },
+    "loadFailed": "Não foi possível carregar os investimentos.",
+    "newInvestment": "Adicionar investimento",
+    "saveFailed": "Não foi possível salvar.",
+    "summary": {
+      "assetTypes": "Tipos de ativos",
+      "currentValue": "Valor atual",
+      "gainLoss": "Ganho / Perda",
+      "totalInvested": "Total investido"
+    },
+    "updated": "Investimento atualizado."
   },
   "exchangeRates": {
     "title": "Taxas de Câmbio",
@@ -4653,7 +4787,28 @@
     "targetCurrency": "Moeda de destino",
     "lastUpdated": "Última atualização",
     "convert": "Converter",
-    "converter": "Conversor de Moedas",
+    "converter": {
+      "amount": "Valor",
+      "amountLabel": "Valor",
+      "amountPlaceholder": "ex. 100",
+      "asOf": "Em",
+      "error": "Não é possível converter.",
+      "from": "De",
+      "fromLabel": "De",
+      "notAvailable": "Não disponível",
+      "providerFallback": "Global Exchange",
+      "providerLabel": "Provedor: {{provider}}",
+      "result": "Resultado",
+      "resultLabel": "Resultado",
+      "stale": "Usando uma taxa um pouco mais antiga.",
+      "staleNote": "As taxas podem estar desatualizadas",
+      "subtitle": "Converta entre moedas usando o instantâneo de taxas salvo.",
+      "swap": "Trocar moedas",
+      "swapAria": "Trocar as moedas de origem e destino",
+      "title": "Conversor de moedas",
+      "to": "Para",
+      "toLabel": "Para"
+    },
     "amount": "Valor",
     "from": "De",
     "to": "Para",
@@ -4685,7 +4840,47 @@
     "provider": "Provedor",
     "stale": "Taxas podem estar desatualizadas",
     "refresh": "Atualizar taxas",
-    "refreshing": "Atualizando..."
+    "refreshing": "Atualizando...",
+    "actions": {
+      "refresh": "Atualizar taxas"
+    },
+    "badge": "Global Exchange",
+    "empty": {
+      "action": "Atualizar taxas",
+      "description": "Não foi possível carregar as taxas no momento.",
+      "searchDescription": "Experimente outro código ou nome de moeda.",
+      "searchTitle": "Nenhuma moeda corresponde à sua pesquisa",
+      "title": "Taxas de câmbio indisponíveis"
+    },
+    "fetchError": {
+      "generic": "Não foi possível carregar as taxas."
+    },
+    "freshness": {
+      "fresh": "Taxas atualizadas",
+      "stale": "As taxas podem estar desatualizadas",
+      "unavailable": "Taxas indisponíveis"
+    },
+    "meta": {
+      "defaultCurrency": "Moeda padrão",
+      "lastUpdated": "Última atualização",
+      "notYet": "Ainda não",
+      "status": "Status",
+      "unavailable": "Indisponível"
+    },
+    "refreshButton": "Atualizar taxas",
+    "snapshotLoadError": {
+      "fallback": "Falha ao carregar as taxas de câmbio."
+    },
+    "table": {
+      "colCode": "Código",
+      "colCurrency": "Moeda",
+      "colInverse": "Inverso",
+      "colRate": "1 {{code}} compra",
+      "searchPlaceholder": "Pesquisar moeda…",
+      "subtitle": "Taxas em relação à sua moeda padrão ({{code}}).",
+      "title": "Taxas populares",
+      "truncatedHint": ""
+    }
   },
   "calculator": {
     "title": "Calculadora",
@@ -4714,7 +4909,47 @@
     "calculate": "Calcular",
     "reset": "Redefinir",
     "schedule": "Cronograma de Pagamentos",
-    "summary": "Resumo"
+    "summary": "Resumo",
+    "badge": "Ferramentas rápidas",
+    "budget": {
+      "allocated": "Alocado",
+      "breakdown": "Análise mensal",
+      "deficit": "Déficit",
+      "enterIncome": "Informe a renda mensal",
+      "enterIncomeHint": "Adicione receitas, despesas e uma meta de poupança para ver o que resta.",
+      "expenses": "Despesas",
+      "income": "Renda mensal",
+      "remaining": "Restante",
+      "savingsTarget": "Poupança",
+      "surplus": "Saldo positivo"
+    },
+    "disclaimer": "Apenas estimativas — os resultados são para referência rápida e não constituem aconselhamento financeiro.",
+    "loan": {
+      "amount": "Valor do empréstimo",
+      "enterLoan": "Informe os detalhes do empréstimo",
+      "enterLoanHint": "Adicione valor, taxa e prazo para estimar a parcela mensal.",
+      "estPayment": "Pagamento estimado",
+      "months": "meses",
+      "perMonth": "por mês",
+      "principal": "Principal",
+      "rate": "Juros anual (%)",
+      "term": "Prazo (meses)",
+      "totalInterest": "Juros totais",
+      "totalRepaid": "Total pago"
+    },
+    "savings": {
+      "complete": "Completo",
+      "currentSaved": "Atual poupado",
+      "enterTarget": "Informe um valor-alvo",
+      "enterTargetHint": "Preencha sua meta e contribuição mensal para estimar quanto tempo levará.",
+      "monthlyContribution": "Contribuição mensal",
+      "months": "mês",
+      "monthsNeeded": "Meses necessários",
+      "progress": "Progresso",
+      "remaining": "Restante",
+      "targetAmount": "Valor alvo",
+      "targetDate": "Data alvo"
+    }
   },
   "aiAssistant": {
     "title": "Assistente Financeiro com IA",
