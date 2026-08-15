@@ -4,7 +4,7 @@ import Link from 'next/link';
 import AppLogo from '@/components/ui/AppLogo';
 import AppImage from '@/components/ui/AppImage';
 import AppIcon from '@/components/ui/AppIcon';
-import { LayoutDashboard, ArrowLeftRight, Wallet, PieChart, BarChart3, ChevronDown, ChevronLeft, ChevronRight, LogOut, Repeat, Tag, ArrowUpDown, Users, RotateCcw, DollarSign, Home, History, Loader2, ShoppingBag, CreditCard, LifeBuoy, CircleHelp, BriefcaseBusiness, X, Lock, PiggyBank, Calculator, Sparkles, TrendingUp, RefreshCw, Settings } from 'lucide-react';
+import { LayoutDashboard, ArrowLeftRight, Wallet, PieChart, BarChart3, ChevronDown, ChevronLeft, ChevronRight, LogOut, Repeat, Tag, ArrowUpDown, Users, RotateCcw, DollarSign, Home, History, Loader2, ShoppingBag, CreditCard, LifeBuoy, CircleHelp, BriefcaseBusiness, X, Lock, Calculator, Sparkles, TrendingUp, RefreshCw, Settings, Target } from 'lucide-react';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/contexts/AuthContext';
@@ -164,7 +164,7 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
         {
           id: 'nav-savings',
           label: t('sidebar.nav.savings', { ns: 'portal', defaultValue: 'Savings' }),
-          icon: PiggyBank,
+          icon: Target,
           href: '/savings',
           restrictionBadge: shouldShowRestrictedUi(savingsAccess) ? ('upgrade' as const) : undefined,
           newBadge: !shouldShowRestrictedUi(savingsAccess),

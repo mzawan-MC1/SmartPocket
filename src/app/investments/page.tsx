@@ -58,67 +58,36 @@ interface ManualInvestmentRecord {
   updated_at: string;
 }
 
-const CATEGORY_OPTIONS: ReadonlyArray<{
-  id: InvestmentAssetTypeDb;
-  label: string;
-  defaultName: string;
-  description: string;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
-  accent: string;
-}> = [
-  {
-    id: 'stocks',
-    label: 'Stocks',
-    defaultName: 'Stocks / Equities',
-    description: 'Company shares and ETFs you hold.',
-    icon: LineChart,
-    accent: '#2563eb',
-  },
-  {
-    id: 'crypto',
-    label: 'Crypto',
-    defaultName: 'Crypto',
-    description: 'Coins, tokens, and wrapped assets.',
-    icon: Coins,
-    accent: '#f59e0b',
-  },
-  {
-    id: 'property',
-    label: 'Property',
-    defaultName: 'Real estate',
-    description: 'Houses, apartments, REITs, or land.',
-    icon: Briefcase,
-    accent: '#10b981',
-  },
-  {
-    id: 'gold_commodities',
-    label: 'Gold / commodities',
-    defaultName: 'Commodities',
-    description: 'Precious metals, raw materials.',
-    icon: Gem,
-    accent: '#ca8a04',
-  },
-  {
-    id: 'funds',
-    label: 'Funds',
-    defaultName: 'Investment fund',
-    description: 'Mutual funds, index funds, pension pots.',
-    icon: Layers,
-    accent: '#6366f1',
-  },
-  {
-    id: 'other',
-    label: 'Other investments',
-    defaultName: 'Other investment',
-    description: 'Anything else you want to track.',
-    icon: MoreHorizontal,
-    accent: '#6b7280',
-  },
-] as const;
-
-const CATEGORY_BY_ID = Object.fromEntries(
-  CATEGORY_OPTIONS.map((c) => [c.id, c])
-) as Record<InvestmentAssetTypeDb, (typeof CATEGORY_OPTIONS)[number]>;
+const INVESTMENT_CATEGORY_KEYS = {
+  stocks:            { label: 'investments.categories.stocks',            dflt: 'investments.categories.stocksDefault',            desc: 'investments.categories.stocksDescription',            fallbackLabel: 'Stocks',            fallbackDflt: 'Stocks / Equities',       fallbackDesc: 'Company shares and ETFs you hold.',              icon: LineChart,       accent: '#2563eb' },
+  crypto:            { label: 'investments.categories.crypto',            dflt: 'investments.categories.cryptoDefault',            desc: 'investments.categories.cryptoDescription',            fallbackLabel: 'Crypto',            fallbackDflt: 'Crypto',                   fallbackDesc: 'Coins, tokens, and wrapped assets.',             icon: Coins,           accent: '#f59e0b' },
+  property:          { label: 'investments.categories.property',          dflt: 'investments.categories.propertyDefault',          desc: 'investments.categories.propertyDescription',          fallbackLabel: 'Property',          fallbackDflt: 'Real estate',              fallbackDesc: 'Houses, apartments, REITs, or land.',           icon: Briefcase,      accent: '#10b981' },
+  gold_commodities:  { label: 'investments.categories.commodities',       dflt: 'investments.categories.commoditiesDefault',       desc: 'investments.categories.commoditiesDescription',       fallbackLabel: 'Gold / commodities',fallbackDflt: 'Commodities',              fallbackDesc: 'Precious metals, raw materials.',               icon: Gem,             accent: '#ca8a04' },
+  funds:             { label: 'investments.categories.funds',             dflt: 'investments.categories.fundsDefault',             desc: 'investments.categories.fundsDescription',             fallbackLabel: 'Funds',             fallbackDflt: 'Investment fund',          fallbackDesc: 'Mutual funds, index funds, pension pots.',      icon: Layers,          accent: '#6366f1' },
+  other:             { label: 'investments.categories.other',             dflt: 'investments.categories.otherDefault',             desc: 'investments.categories.otherDescription',             fallbackLabel: 'Other investments', fallbackDflt: 'Other investment',         fallbackDesc: 'Anything else you want to track.',              icon: MoreHorizontal,  accent: '#6b7280' },
+} as const;
+type InvestmentAssetKey = keyof typeof INVESTMENT_CATEGORY_KEYS;
+const CATEGORY_OPTIONS: ReadonlyArray<InvestmentAssetKey> = [
+  'stocks','crypto','property','gold_commodities','funds','other',
+];
+function buildInvCategoryByIdMap(t: (k: string, o: {ns:string; defaultValue:string}) => string) {
+  return Object.fromEntries(
+    CATEGORY_OPTIONS.map((id) => {
+      const keys = INVESTMENT_CATEGORY_KEYS[id];
+      return [id, {
+        id,
+        label: t(keys.label, { ns: 'portal', defaultValue: keys.fallbackLabel }),
+        description: t(keys.desc, { ns: 'portal', defaultValue: keys.fallbackDesc }),
+        defaultName: t(keys.dflt, { ns: 'portal', defaultValue: keys.fallbackDflt }),
+        icon: keys.icon,
+        accent: keys.accent,
+      }];
+    })
+  ) as unknown as Record<InvestmentAssetTypeDb, {
+    id: InvestmentAssetTypeDb; label: string; description: string; defaultName: string;
+    icon: React.ComponentType<{ size?: number; className?: string }>; accent: string;
+  }>;
+}
 
 function toNumber(v: number | string | null | undefined): number {
   if (v === null || v === undefined || v === '') return 0;
@@ -178,6 +147,7 @@ export default function InvestmentsPage() {
   const { t, i18n } = useTranslation(['portal', 'common']);
   const { isRTL } = useLanguage();
   const locale = i18n.language ?? 'en';
+  const CATEGORY_BY_ID = useMemo(() => buildInvCategoryByIdMap(t), [t]);
   const { user } = useAuth();
   const { data: refData } = useClientReferenceData();
   const currencies = refData?.snapshot.currencies ?? [];
@@ -579,11 +549,12 @@ export default function InvestmentsPage() {
             </div>
           ) : (
             <div className="space-y-4 p-5 max-[480px]:p-4">
-              {CATEGORY_OPTIONS.map((cat) => {
-                const records = investments.filter((r) => r.asset_type === cat.id);
+              {CATEGORY_OPTIONS.map((catId) => {
+                const cat = CATEGORY_BY_ID[catId];
+                const records = investments.filter((r) => r.asset_type === catId);
                 if (records.length === 0) {
                   return (
-                    <div key={cat.id} className="flex items-center justify-between gap-3 rounded-2xl border border-dashed border-border/80 bg-muted/10 px-4 py-3 max-[480px]:px-3">
+                    <div key={catId} className="flex items-center justify-between gap-3 rounded-2xl border border-dashed border-border/80 bg-muted/10 px-4 py-3 max-[480px]:px-3">
                       <div className="flex min-w-0 items-center gap-3">
                         <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-2xl border border-border bg-card" style={{ color: cat.accent }}>
                           <cat.icon size={17} />
@@ -595,10 +566,10 @@ export default function InvestmentsPage() {
                       </div>
                       <button
                         type="button"
-                        onClick={() => openNew(cat.id)}
+                        onClick={() => openNew(catId)}
                         className="btn-ghost inline-flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-[11.5px] font-800 text-accent"
                       >
-                        <Plus size={13} /> Add
+                        <Plus size={13} /> {t('investments.empty.add', { defaultValue: 'Add' })}
                       </button>
                     </div>
                   );
@@ -869,8 +840,8 @@ export default function InvestmentsPage() {
                   onChange={(e) => setForm({ ...form, assetType: e.target.value as InvestmentAssetTypeDb })}
                   className="input-base w-full"
                 >
-                  {CATEGORY_OPTIONS.map((c) => (
-                    <option key={c.id} value={c.id}>{c.label}</option>
+                  {CATEGORY_OPTIONS.map((catId) => (
+                    <option key={catId} value={catId}>{CATEGORY_BY_ID[catId].label}</option>
                   ))}
                 </select>
               </div>

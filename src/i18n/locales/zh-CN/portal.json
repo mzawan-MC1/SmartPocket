@@ -4566,8 +4566,31 @@
     "monthlyContribution": "月度供款",
     "progress": "进度",
     "percentComplete": "已完成 {{percent}}%",
-    "status": "状态",
-    "categories": "分类",
+    "status": {
+      "notStarted": "未开始",
+      "inProgress": "进行中",
+      "completed": "已完成"
+    },
+    "categories": {
+      "emergencyFund": "紧急备用金",
+      "emergencyFundDescription": "覆盖3–6个月的基本开支。",
+      "emergencyFundDefault": "紧急备用金",
+      "vacation": "旅行",
+      "vacationDescription": "机票、酒店和体验。",
+      "vacationDefault": "旅行",
+      "homeRenovation": "房租或账单",
+      "homeRenovationDescription": "专用于住房和水电气。",
+      "homeRenovationDefault": "房租或账单",
+      "education": "教育",
+      "educationDescription": "课程、图书或学费。",
+      "educationDefault": "教育",
+      "newCar": "车辆或房产",
+      "newCarDescription": "首付或大额购置。",
+      "newCarDefault": "车辆或房产",
+      "other": "其他目标",
+      "otherDescription": "您正在储蓄的其他任何用途。",
+      "otherDefault": "新建储蓄目标"
+    },
     "category": "分类",
     "categoryEmergency": "应急基金",
     "categoryVacation": "度假",
@@ -4701,7 +4724,26 @@
     "performance1Y": "1年",
     "performanceYTD": "年初至今",
     "performanceAll": "全部",
-    "categories": "分类",
+    "categories": {
+      "stocks": "股票",
+      "stocksDefault": "股票/权益",
+      "stocksDescription": "持有的公司股份和ETF。",
+      "crypto": "加密货币",
+      "cryptoDefault": "加密货币",
+      "cryptoDescription": "主币、代币和包装资产。",
+      "property": "房产",
+      "propertyDefault": "不动产",
+      "propertyDescription": "住宅、公寓、房地产投资信托或土地。",
+      "commodities": "黄金/大宗商品",
+      "commoditiesDefault": "大宗商品",
+      "commoditiesDescription": "贵金属、原材料。",
+      "funds": "基金",
+      "fundsDefault": "投资基金",
+      "fundsDescription": "公募基金、指数基金、养老金账户。",
+      "other": "其他投资",
+      "otherDefault": "其他投资",
+      "otherDescription": "您想跟踪的其他任何事项。"
+    },
     "categoryStocks": "股票",
     "categoryBonds": "债券",
     "categoryETFs": "ETF",
@@ -4738,7 +4780,8 @@
     "empty": {
       "action": "添加您的第一笔投资",
       "description": "从单只股票、基金、加密钱包或房产开始。为确保准确性，价值将手动更新。",
-      "title": "暂无追踪的投资。"
+      "title": "暂无追踪的投资。",
+      "add": "添加"
     },
     "form": {
       "assetType": "资ъف类型",
@@ -4949,6 +4992,12 @@
       "remaining": "剩余",
       "targetAmount": "目标金额",
       "targetDate": "目标日期"
+    },
+    "tabs": {
+      "savingsGoal": "储蓄目标",
+      "budget": "预算",
+      "loan": "贷款",
+      "currency": "币种"
     }
   },
   "aiAssistant": {
@@ -4956,6 +5005,14 @@
     "pageDescription": "使用智能AI输入、语音或扫描收据生成准确记录。"
   },
   "common": {
-    "seeAll": "查看全部"
+    "seeAll": "查看全部",
+    "actions": {
+      "cancel": "取消"
+    }
+  },
+  "nav": {
+    "accounts": "账户",
+    "budgets": "预算",
+    "reports": "报告"
   }
 }

@@ -106,12 +106,18 @@ function formatNumber(
 }
 
 function pickDisplayToken(currency: CurrencyReference, options: CurrencyFormattingOptions) {
+  const preferredToken = getRichCurrencyToken(currency);
+  const tokenIsAsset = currency.symbolType === 'asset';
+
+  if (currency.code === 'AED') {
+    return { token: preferredToken, usesCodeToken: false };
+  }
+
   if (options.textOnly || options.displayMode === 'code') {
     return { token: currency.code, usesCodeToken: true };
   }
 
-  const preferredToken = getRichCurrencyToken(currency);
-  const usesCodeToken = currency.symbolType === 'asset' ? false : preferredToken === currency.code;
+  const usesCodeToken = tokenIsAsset ? false : preferredToken === currency.code;
 
   if (options.displayMode === 'symbol') {
     return { token: preferredToken, usesCodeToken };

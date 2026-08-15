@@ -2,7 +2,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
-import { Building2, Wallet, CreditCard, Smartphone, PiggyBank, ArrowRight, Landmark } from 'lucide-react';
+import { Building2, Wallet, CreditCard, Smartphone, ArrowRight, Landmark, Target } from 'lucide-react';
 import { getAccounts, type FinancialAccount } from '@/lib/finance';
 import { useSmartPocketDataChanged } from '@/lib/data-change';
 import EmptyState from '@/components/ui/EmptyState';
@@ -16,7 +16,7 @@ function getAccountIcon(type: string) {
   switch (type) {
     case 'bank': return Building2;
     case 'credit_card': return CreditCard;
-    case 'savings': return PiggyBank;
+    case 'savings': return Target;
     case 'cash': return Wallet;
     case 'digital_wallet': return Smartphone;
     case 'investment': return Landmark;

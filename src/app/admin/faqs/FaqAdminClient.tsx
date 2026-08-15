@@ -114,7 +114,7 @@ const CATEGORY_ICON_LABELS: Record<string, string> = {
   rocket: 'Rocket',
   sparkles: 'Sparkles',
   receipt: 'Receipt',
-  wallet: 'Wallet',
+  wallet: 'Budget',
   'credit-card': 'Card',
   'piggy-bank': 'Budget',
   repeat: 'Recurring',

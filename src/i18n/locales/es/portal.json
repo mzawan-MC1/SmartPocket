@@ -4566,8 +4566,31 @@
     "monthlyContribution": "Aporte mensual",
     "progress": "Progreso",
     "percentComplete": "{{percent}}% completado",
-    "status": "Estado",
-    "categories": "Categorías",
+    "status": {
+      "notStarted": "Sin iniciar",
+      "inProgress": "En progreso",
+      "completed": "Completado"
+    },
+    "categories": {
+      "emergencyFund": "Fondo de emergencia",
+      "emergencyFundDescription": "Cubre 3–6 meses de gastos esenciales.",
+      "emergencyFundDefault": "Fondo de emergencia",
+      "vacation": "Viajes",
+      "vacationDescription": "Vuelos, hoteles y experiencias.",
+      "vacationDefault": "Viajes",
+      "homeRenovation": "Alquiler o facturas",
+      "homeRenovationDescription": "Reservado para vivienda y servicios.",
+      "homeRenovationDefault": "Alquiler o facturas",
+      "education": "Educación",
+      "educationDescription": "Cursos, libros o matrícula.",
+      "educationDefault": "Educación",
+      "newCar": "Coche o vivienda",
+      "newCarDescription": "Entradas o compras grandes.",
+      "newCarDefault": "Coche o vivienda",
+      "other": "Otros objetivos",
+      "otherDescription": "Cualquier otra cosa por la que ahorres.",
+      "otherDefault": "Nuevo objetivo de ahorro"
+    },
     "category": "Categoría",
     "categoryEmergency": "Fondo de emergencia",
     "categoryVacation": "Vacaciones",
@@ -4701,7 +4724,26 @@
     "performance1Y": "1 año",
     "performanceYTD": "Año en curso",
     "performanceAll": "Desde el inicio",
-    "categories": "Categorías",
+    "categories": {
+      "stocks": "Acciones",
+      "stocksDefault": "Acciones / Renta variable",
+      "stocksDescription": "Acciones de empresas y ETFs que posees.",
+      "crypto": "Criptomonedas",
+      "cryptoDefault": "Criptomonedas",
+      "cryptoDescription": "Monedas, tokens y activos envueltos.",
+      "property": "Inmuebles",
+      "propertyDefault": "Bienes raíces",
+      "propertyDescription": "Casas, pisos, REITs o terrenos.",
+      "commodities": "Oro / materias primas",
+      "commoditiesDefault": "Materias primas",
+      "commoditiesDescription": "Metales preciosos, materias primas.",
+      "funds": "Fondos",
+      "fundsDefault": "Fondo de inversión",
+      "fundsDescription": "Fondos de inversión, fondos indexados, planes de pensiones.",
+      "other": "Otras inversiones",
+      "otherDefault": "Otra inversión",
+      "otherDescription": "Cualquier otra cosa que quieras seguir."
+    },
     "categoryStocks": "Acciones",
     "categoryBonds": "Bonos",
     "categoryETFs": "ETF",
@@ -4738,7 +4780,8 @@
     "empty": {
       "action": "Añade tu primera inversión",
       "description": "Empieza con una sola acción, un fondo, una cartera de criptomonedas o una propiedad. Los valores se actualizan manualmente para mayor precisión.",
-      "title": "Aún no hay inversiones."
+      "title": "Aún no hay inversiones.",
+      "add": "Añadir"
     },
     "form": {
       "assetType": "Tipo de activo",
@@ -4949,6 +4992,12 @@
       "remaining": "Restante",
       "targetAmount": "Importe objetivo",
       "targetDate": "Fecha objetivo"
+    },
+    "tabs": {
+      "savingsGoal": "Objetivo de ahorro",
+      "budget": "Presupuesto",
+      "loan": "Préstamo",
+      "currency": "Divisa"
     }
   },
   "aiAssistant": {
@@ -4956,6 +5005,14 @@
     "pageDescription": "Usa la IA Inteligente para escribir, dictar o escanear recibos en registros precisos."
   },
   "common": {
-    "seeAll": "Ver todos"
+    "seeAll": "Ver todos",
+    "actions": {
+      "cancel": "Cancelar"
+    }
+  },
+  "nav": {
+    "accounts": "Cuentas",
+    "budgets": "Presupuestos",
+    "reports": "Informes"
   }
 }

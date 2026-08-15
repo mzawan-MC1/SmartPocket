@@ -10,7 +10,7 @@ import Tabs from '@/components/ui/Tabs';
 import type { TabItem } from '@/components/ui/Tabs';
 import {
   Target,
-  PiggyBank,
+  Wallet,
   Landmark,
   ArrowLeftRight,
   Calculator as CalculatorIcon,
@@ -45,11 +45,11 @@ import { toast } from 'sonner';
 
 type CalculatorTabId = 'savings' | 'budget' | 'loan' | 'currency';
 
-const TAB_ITEMS: ReadonlyArray<TabItem<CalculatorTabId>> = [
-  { id: 'savings', label: 'Savings goal', icon: Target },
-  { id: 'budget', label: 'Budget', icon: PiggyBank },
-  { id: 'loan', label: 'Loan', icon: Landmark },
-  { id: 'currency', label: 'Currency', icon: ArrowLeftRight },
+const TAB_ITEMS_BASE: ReadonlyArray<Omit<TabItem<CalculatorTabId>, 'label'> & { labelKey: string; labelDefault: string }> = [
+  { id: 'savings', labelKey: 'calculator.tabs.savingsGoal', labelDefault: 'Savings goal', icon: Target },
+  { id: 'budget', labelKey: 'calculator.tabs.budget', labelDefault: 'Budget', icon: Wallet },
+  { id: 'loan', labelKey: 'calculator.tabs.loan', labelDefault: 'Loan', icon: Landmark },
+  { id: 'currency', labelKey: 'calculator.tabs.currency', labelDefault: 'Currency', icon: ArrowLeftRight },
 ] as const;
 
 function formatTimestamp(iso: string | null | undefined, locale: string) {
@@ -153,7 +153,7 @@ function SavingsGoalCalculator({
         </div>
         <div className="space-y-1.5">
           <label className="flex items-center gap-1.5 text-xs font-600 uppercase tracking-[0.04em] text-muted-foreground">
-            <PiggyBank size={12} className="text-accent" />
+            <Wallet size={12} className="text-accent" />
             {t('calculator.savings.currentSaved', { defaultValue: 'Current saved' })}
           </label>
           <input
@@ -328,7 +328,7 @@ function BudgetCalculator({
         </div>
         <div className="space-y-1.5">
           <label className="flex items-center gap-1.5 text-xs font-600 uppercase tracking-[0.04em] text-muted-foreground">
-            <PiggyBank size={12} className="text-accent" />
+            <Wallet size={12} className="text-accent" />
             {t('calculator.budget.savingsTarget', { defaultValue: 'Savings target' })}
           </label>
           <input
@@ -433,7 +433,7 @@ function BudgetCalculator({
         </div>
       ) : (
         <EmptyState
-          icon={PiggyBank}
+          icon={Wallet}
           variant="compact"
           tone="secondary"
           title={t('calculator.budget.enterIncome', { defaultValue: 'Enter monthly income' })}
@@ -929,6 +929,14 @@ export default function CalculatorPage() {
     if (accounts.length > 0 && accounts[0].currency) return accounts[0].currency;
     return 'USD';
   }, [accounts]);
+
+  const TAB_ITEMS: ReadonlyArray<TabItem<CalculatorTabId>> = useMemo(
+    () => TAB_ITEMS_BASE.map(({ labelKey, labelDefault, ...rest }) => ({
+      ...rest,
+      label: t(labelKey, { ns: 'portal', defaultValue: labelDefault }),
+    })),
+    [t]
+  );
 
   return (
     <AppLayout activeRoute="/calculator">

@@ -9,7 +9,7 @@ import {
   CreditCard,
   Info,
   Landmark,
-  PiggyBank,
+  Target,
   Wallet,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -89,7 +89,7 @@ function getAccountTypeIcon(accountType: string) {
       return CreditCard;
     case 'savings':
     case 'investment':
-      return PiggyBank;
+      return Target;
     default:
       return Wallet;
   }

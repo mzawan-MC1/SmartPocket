@@ -4,7 +4,7 @@ import {
   Wallet,
   CreditCard,
   Smartphone,
-  PiggyBank,
+  Target,
   Landmark,
 } from 'lucide-react';
 
@@ -25,7 +25,7 @@ export function getIcon(type: string): LucideIcon {
     case 'credit_card':
       return CreditCard;
     case 'savings':
-      return PiggyBank;
+      return Target;
     case 'cash':
       return Wallet;
     case 'digital_wallet':

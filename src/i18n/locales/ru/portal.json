@@ -4583,8 +4583,31 @@
     "monthlyContribution": "Месячный взнос",
     "progress": "Прогресс",
     "percentComplete": "{{percent}}% выполнено",
-    "status": "Статус",
-    "categories": "Категории",
+    "status": {
+      "notStarted": "Не начато",
+      "inProgress": "В процессе",
+      "completed": "Завершено"
+    },
+    "categories": {
+      "emergencyFund": "Резервный фонд",
+      "emergencyFundDescription": "Покрывает 3–6 месяцев основных расходов.",
+      "emergencyFundDefault": "Резервный фонд",
+      "vacation": "Путешествия",
+      "vacationDescription": "Перелёты, отели и впечатления.",
+      "vacationDefault": "Путешествия",
+      "homeRenovation": "Аренда или счета",
+      "homeRenovationDescription": "Откладывается на жильё и коммунальные услуги.",
+      "homeRenovationDefault": "Аренда или счета",
+      "education": "Образование",
+      "educationDescription": "Курсы, книги или обучение.",
+      "educationDefault": "Образование",
+      "newCar": "Автомобиль или жилье",
+      "newCarDescription": "Первоначальные взносы или крупные покупки.",
+      "newCarDefault": "Автомобиль или жилье",
+      "other": "Другие цели",
+      "otherDescription": "Любая другая цель, на которую вы откладываете.",
+      "otherDefault": "Новая цель накоплений"
+    },
     "category": "Категория",
     "categoryEmergency": "Резервный фонд",
     "categoryVacation": "Отпуск",
@@ -4718,7 +4741,26 @@
     "performance1Y": "1 год",
     "performanceYTD": "С начала года",
     "performanceAll": "За всё время",
-    "categories": "Категории",
+    "categories": {
+      "stocks": "Акции",
+      "stocksDefault": "Акции / Доля в капитале",
+      "stocksDescription": "Доли в компаниях и ETF в вашем портфеле.",
+      "crypto": "Криптовалюты",
+      "cryptoDefault": "Криптовалюты",
+      "cryptoDescription": "Монеты, токены и завёраченные активы.",
+      "property": "Недвижимость",
+      "propertyDefault": "Недвижимость",
+      "propertyDescription": "Дома, квартиры, REIT или земльные участки.",
+      "commodities": "Золото / сырьевые товары",
+      "commoditiesDefault": "Товары",
+      "commoditiesDescription": "Драгоценные металлы, сырьёвые материалы.",
+      "funds": "Фонды",
+      "fundsDefault": "Инвестиционный фонд",
+      "fundsDescription": "Паевые, индексные фонды, пенсионные накопления.",
+      "other": "Другие инвестиции",
+      "otherDefault": "Другое инвестиционное активы",
+      "otherDescription": "Любые другие активы для отслеживания."
+    },
     "categoryStocks": "Акции",
     "categoryBonds": "Облигации",
     "categoryETFs": "ETF",
@@ -4755,7 +4797,8 @@
     "empty": {
       "action": "Добавьте свою первую инвестицию",
       "description": "Начните с одной акции, фонда, криптокошельца или недвижимости. Значения обновляются вручную для точности.",
-      "title": "Пока нет отслеживаемых инвестиций."
+      "title": "Пока нет отслеживаемых инвестиций.",
+      "add": "Добавить"
     },
     "form": {
       "assetType": "Тип актива",
@@ -4966,6 +5009,12 @@
       "remaining": "Осталось",
       "targetAmount": "Целевая сумма",
       "targetDate": "Дата цели"
+    },
+    "tabs": {
+      "savingsGoal": "Цель по сбережениям",
+      "budget": "Бюджет",
+      "loan": "Займ",
+      "currency": "Валюта"
     }
   },
   "aiAssistant": {
@@ -4973,6 +5022,14 @@
     "pageDescription": "Используйте умный ИИ, чтобы печатать, говорить или сканировать чеки в точные записи."
   },
   "common": {
-    "seeAll": "Показать все"
+    "seeAll": "Показать все",
+    "actions": {
+      "cancel": "Отмена"
+    }
+  },
+  "nav": {
+    "accounts": "Счета",
+    "budgets": "Бюджеты",
+    "reports": "Отчеты"
   }
 }

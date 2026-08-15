@@ -24,15 +24,21 @@ export default function CurrencyOptionRow({
   trailing,
   className = '',
 }: CurrencyOptionRowProps) {
+  const isAED = currency.code === 'AED';
+  const gridCols = isAED
+    ? 'grid-cols-[1.75rem_minmax(0,1fr)]'
+    : 'grid-cols-[1.5rem_3.5rem_minmax(0,1fr)]';
   const content = (
     <>
-      <div className="grid min-w-0 flex-1 grid-cols-[1.5rem_3.5rem_minmax(0,1fr)] items-center gap-x-2.5">
+      <div className={`grid min-w-0 flex-1 ${gridCols} items-center gap-x-2.5`}>
         <div className="inline-flex h-5 w-6 items-center justify-center overflow-hidden leading-none">
           <CurrencySymbol currency={currency} size="xs" alignment="center" />
         </div>
-        <span className={`whitespace-nowrap text-left text-sm font-700 leading-5 ${selected ? 'selector-value-primary' : 'text-foreground'}`}>
-          {currency.code}
-        </span>
+        {!isAED && (
+          <span className={`whitespace-nowrap text-left text-sm font-700 leading-5 ${selected ? 'selector-value-primary' : 'text-foreground'}`}>
+            {currency.code}
+          </span>
+        )}
         <span className={`min-w-0 truncate text-sm leading-5 ${selected ? 'selector-value-secondary' : 'text-muted-foreground'}`}>
           {currency.name}
         </span>

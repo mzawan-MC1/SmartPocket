@@ -4576,8 +4576,31 @@
     "monthlyContribution": "المساهمة الشهرية",
     "progress": "التقدّم",
     "percentComplete": "اكتمل {{percent}}%",
-    "status": "الحالة",
-    "categories": "الفئات",
+    "status": {
+      "notStarted": "لم يبدأ",
+      "inProgress": "قيد التنفيذ",
+      "completed": "مكتمل"
+    },
+    "categories": {
+      "emergencyFund": "صندوق طوارئي",
+      "emergencyFundDescription": "يغطي 3–6 أشهر من المصاريف الأساسية.",
+      "emergencyFundDefault": "صندوق طوارئي",
+      "vacation": "السفر",
+      "vacationDescription": "الطيران، الفنادق، والتجارب.",
+      "vacationDefault": "السفر",
+      "homeRenovation": "الإيجار أو الفواتير",
+      "homeRenovationDescription": "مخصص للسكن والمرفق.",
+      "homeRenovationDefault": "الإيجار أو الفواتير",
+      "education": "التعليم",
+      "educationDescription": "الدورات التعليمية، الكتب، أو الرسوم الدراسية.",
+      "educationDefault": "التعليم",
+      "newCar": "سيارة أو منزل",
+      "newCarDescription": "الدفعات المقدمة أو المشتريات الكبيرة.",
+      "newCarDefault": "سيارة أو منزل",
+      "other": "أهداف أخرى",
+      "otherDescription": "أي شيء آخر تدخر من أجله.",
+      "otherDefault": "هدف ادخار جديد"
+    },
     "category": "الفئة",
     "categoryEmergency": "صندوق الطوارئ",
     "categoryVacation": "العطلة",
@@ -4711,7 +4734,26 @@
     "performance1Y": "سنة واحدة",
     "performanceYTD": "منذ بداية السنة",
     "performanceAll": "منذ البداية",
-    "categories": "الفئات",
+    "categories": {
+      "stocks": "الأسهم",
+      "stocksDefault": "الأسهم / الأصول",
+      "stocksDescription": "أسهم الشركات وصناديق ETF التي تمتلكها.",
+      "crypto": "العملات الرقمية",
+      "cryptoDefault": "العملات الرقمية",
+      "cryptoDescription": "العملات، الرمزات، والأصول المغلفة.",
+      "property": "العقارات",
+      "propertyDefault": "العقارات",
+      "propertyDescription": "المنازل، الشقق، صندوق REIT، أو الأراضي.",
+      "commodities": "الذهب / السلع الأولية",
+      "commoditiesDefault": "السلع",
+      "commoditiesDescription": "المعادن الكريمة، المواد الأولية.",
+      "funds": "الصناديق",
+      "fundsDefault": "صندوق استثماري",
+      "fundsDescription": "الصناديق الاستثمارية، صناديق المؤشرات، أموال التقاعد.",
+      "other": "استثمارات أخرى",
+      "otherDefault": "استثمار آخر",
+      "otherDescription": "أي شيء آخر تريد تتبعه."
+    },
     "categoryStocks": "الأسهم",
     "categoryBonds": "السندات",
     "categoryETFs": "الصناديق المتداولة ETFs",
@@ -4748,7 +4790,8 @@
     "empty": {
       "action": "أضف أول استثمار لك",
       "description": "ابدأ بسهم واحد، أو صندوق، أو محفظة عملات رقمية، أو عقار. يتم تحديث القيم يدوياً للدقة.",
-      "title": "لا توجد استثمار متتبعة بعد"
+      "title": "لا توجد استثمار متتبعة بعد",
+      "add": "إضافة"
     },
     "form": {
       "assetType": "نوع الأصل",
@@ -4959,6 +5002,12 @@
       "remaining": "المتبقي",
       "targetAmount": "المبلغ المستهدف",
       "targetDate": "تاريخ الهدف"
+    },
+    "tabs": {
+      "savingsGoal": "هدف الادخار",
+      "budget": "الميزانية",
+      "loan": "قرض",
+      "currency": "العملة"
     }
   },
   "aiAssistant": {
@@ -4966,6 +5015,14 @@
     "pageDescription": "استخدم الذكاء الاصطناعي المالي لكتابة الإيصالات أو نطقها أو مسحها ضوئياً لإنشاء سجلات دقيقة."
   },
   "common": {
-    "seeAll": "عرض الكل"
+    "seeAll": "عرض الكل",
+    "actions": {
+      "cancel": "إلغاء"
+    }
+  },
+  "nav": {
+    "accounts": "الحسابات",
+    "budgets": "الميزانيات",
+    "reports": "التقارير"
   }
 }

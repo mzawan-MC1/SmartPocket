@@ -4566,8 +4566,31 @@
     "monthlyContribution": "Aylık katkı",
     "progress": "İlerleme",
     "percentComplete": "%{{percent}} tamamlandı",
-    "status": "Durum",
-    "categories": "Kategoriler",
+    "status": {
+      "notStarted": "Başlanmadı",
+      "inProgress": "Devam ediyor",
+      "completed": "Tamamlandı"
+    },
+    "categories": {
+      "emergencyFund": "Acil durum fonu",
+      "emergencyFundDescription": "3–6 ay temel giderleri kapsar.",
+      "emergencyFundDefault": "Acil durum fonu",
+      "vacation": "Seyahat",
+      "vacationDescription": "Uçuşlar, oteller ve deneyimler.",
+      "vacationDefault": "Seyahat",
+      "homeRenovation": "Kira veya faturalar",
+      "homeRenovationDescription": "Konut ve faturalar için ayrılan.",
+      "homeRenovationDefault": "Kira veya faturalar",
+      "education": "Eğitim",
+      "educationDescription": "Kurslar, kitaplar veya öğrenim ücreti.",
+      "educationDefault": "Eğitim",
+      "newCar": "Araba veya ev",
+      "newCarDescription": "Peşinat veya büyük alışlar.",
+      "newCarDefault": "Araba veya ev",
+      "other": "Diğer hedefler",
+      "otherDescription": "Biriktirdiğiniz diğer herhangi bir şey.",
+      "otherDefault": "Yeni tasarruf hedefi"
+    },
     "category": "Kategori",
     "categoryEmergency": "Acil Durum Fonu",
     "categoryVacation": "Tatil",
@@ -4701,7 +4724,26 @@
     "performance1Y": "1 Yıl",
     "performanceYTD": "Yıl başından beri",
     "performanceAll": "Tüm Zamanlar",
-    "categories": "Kategoriler",
+    "categories": {
+      "stocks": "Hisse Senetleri",
+      "stocksDefault": "Hisseler / Sermaye",
+      "stocksDescription": "Şirket hisseleri ve sahip olduğunuz ETFler.",
+      "crypto": "Kripto",
+      "cryptoDefault": "Kripto",
+      "cryptoDescription": "Coinler, tokenler ve sarmalanmış varlıklar.",
+      "property": "Gayrimenkul",
+      "propertyDefault": "Emlak",
+      "propertyDescription": "Evler, daireler, REITler veya arazi.",
+      "commodities": "Altın / emtialar",
+      "commoditiesDefault": "Emtialar",
+      "commoditiesDescription": "Değerli metaller, hammaddeler.",
+      "funds": "Fonlar",
+      "fundsDefault": "Yatırım fonu",
+      "fundsDescription": "Yatırım fonları, endeks fonları, emeklilik fonları.",
+      "other": "Diğer yatırımlar",
+      "otherDefault": "Diğer yatırım",
+      "otherDescription": "Takip etmek istediğiniz diğer her şey."
+    },
     "categoryStocks": "Hisse Senetleri",
     "categoryBonds": "Tahviller",
     "categoryETFs": "ETF'ler",
@@ -4738,7 +4780,8 @@
     "empty": {
       "action": "İlk yatırımınızı ekleyin",
       "description": "Tek bir hisse senedi, bir fon, bir kripto cüzdanı veya bir gayrimenkul ile başlayın. Doğruluk için değerler manuel olarak güncellenir.",
-      "title": "Henüz takip edilen yatırım yok."
+      "title": "Henüz takip edilen yatırım yok.",
+      "add": "Ekle"
     },
     "form": {
       "assetType": "Varlık türü",
@@ -4949,6 +4992,12 @@
       "remaining": "Kalan",
       "targetAmount": "Hedef tutarı",
       "targetDate": "Hedef tarihi"
+    },
+    "tabs": {
+      "savingsGoal": "Biriktirme hedefi",
+      "budget": "Bütçe",
+      "loan": "Kredi",
+      "currency": "Para birimi"
     }
   },
   "aiAssistant": {
@@ -4956,6 +5005,14 @@
     "pageDescription": "Fişleri doğru kayıtlara yazdırmak, söylemek veya taramak için Akıllı Yapay Zekayı kullanın."
   },
   "common": {
-    "seeAll": "Tümünü gör"
+    "seeAll": "Tümünü gör",
+    "actions": {
+      "cancel": "İptal"
+    }
+  },
+  "nav": {
+    "accounts": "Hesaplar",
+    "budgets": "Bütçeler",
+    "reports": "Raporlar"
   }
 }

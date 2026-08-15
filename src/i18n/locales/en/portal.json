@@ -4566,8 +4566,31 @@
     "monthlyContribution": "Monthly contribution",
     "progress": "Progress",
     "percentComplete": "{{percent}}% complete",
-    "status": "Status",
-    "categories": "Categories",
+    "status": {
+      "notStarted": "Not started",
+      "inProgress": "In progress",
+      "completed": "Completed"
+    },
+    "categories": {
+      "emergencyFund": "Emergency fund",
+      "emergencyFundDescription": "Cover 3–6 months of essential expenses.",
+      "emergencyFundDefault": "Emergency fund",
+      "vacation": "Travel",
+      "vacationDescription": "Flights, hotels, and experiences.",
+      "vacationDefault": "Travel",
+      "homeRenovation": "Rent or bills",
+      "homeRenovationDescription": "Set aside for housing and utilities.",
+      "homeRenovationDefault": "Rent or bills",
+      "education": "Education",
+      "educationDescription": "Courses, books, or tuition.",
+      "educationDefault": "Education",
+      "newCar": "Car or home",
+      "newCarDescription": "Down payments or large purchases.",
+      "newCarDefault": "Car or home",
+      "other": "Other goals",
+      "otherDescription": "Anything else you are saving for.",
+      "otherDefault": "New savings goal"
+    },
     "category": "Category",
     "categoryEmergency": "Emergency Fund",
     "categoryVacation": "Vacation",
@@ -4701,7 +4724,26 @@
     "performance1Y": "1 Year",
     "performanceYTD": "YTD",
     "performanceAll": "All Time",
-    "categories": "Categories",
+    "categories": {
+      "stocks": "Stocks",
+      "stocksDefault": "Stocks / Equities",
+      "stocksDescription": "Company shares and ETFs you hold.",
+      "crypto": "Crypto",
+      "cryptoDefault": "Crypto",
+      "cryptoDescription": "Coins, tokens, and wrapped assets.",
+      "property": "Property",
+      "propertyDefault": "Real estate",
+      "propertyDescription": "Houses, apartments, REITs, or land.",
+      "commodities": "Gold / commodities",
+      "commoditiesDefault": "Commodities",
+      "commoditiesDescription": "Precious metals, raw materials.",
+      "funds": "Funds",
+      "fundsDefault": "Investment fund",
+      "fundsDescription": "Mutual funds, index funds, pension pots.",
+      "other": "Other investments",
+      "otherDefault": "Other investment",
+      "otherDescription": "Anything else you want to track."
+    },
     "categoryStocks": "Stocks",
     "categoryBonds": "Bonds",
     "categoryETFs": "ETFs",
@@ -4738,7 +4780,8 @@
     "empty": {
       "action": "Add your first investment",
       "description": "Start with a single stock, a fund, a crypto wallet, or a property. Values update manually for accuracy.",
-      "title": "No tracked investments yet"
+      "title": "No tracked investments yet",
+      "add": "Add"
     },
     "form": {
       "assetType": "Asset type",
@@ -4949,6 +4992,12 @@
       "remaining": "Remaining",
       "targetAmount": "Target amount",
       "targetDate": "Target date"
+    },
+    "tabs": {
+      "savingsGoal": "Savings goal",
+      "budget": "Budget",
+      "loan": "Loan",
+      "currency": "Currency"
     }
   },
   "aiAssistant": {
@@ -4956,6 +5005,14 @@
     "pageDescription": "Use Smart AI to type, speak, or scan receipts into accurate records."
   },
   "common": {
-    "seeAll": "See all"
+    "seeAll": "See all",
+    "actions": {
+      "cancel": "Cancel"
+    }
+  },
+  "nav": {
+    "accounts": "Accounts",
+    "budgets": "Budgets",
+    "reports": "Reports"
   }
 }

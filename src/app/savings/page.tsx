@@ -10,7 +10,6 @@ import CurrencySelector from '@/components/CurrencySelector';
 import Modal from '@/components/ui/Modal';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import {
-  PiggyBank,
   Plus,
   Shield,
   Plane,
@@ -27,6 +26,7 @@ import {
   Trash2,
   PlusCircle,
   Loader2,
+  Landmark,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -61,67 +61,49 @@ interface SavingsGoalRecord {
   updated_at: string;
 }
 
-const CATEGORY_OPTIONS: ReadonlyArray<{
-  id: SavingsGoalCategoryDb;
-  label: string;
-  defaultValue: string;
-  description: string;
-  icon: React.ComponentType<{ size?: number; className?: string }>;
-  accent: string;
-}> = [
-  {
-    id: 'emergency',
-    label: 'Emergency fund',
-    defaultValue: 'Emergency fund',
-    description: 'Cover 3–6 months of essential expenses.',
-    icon: Shield,
-    accent: '#0ea5e9',
-  },
-  {
-    id: 'travel',
-    label: 'Travel',
-    defaultValue: 'Travel',
-    description: 'Flights, hotels, and experiences.',
-    icon: Plane,
-    accent: '#10b981',
-  },
-  {
-    id: 'rent_or_bills',
-    label: 'Rent or bills',
-    defaultValue: 'Rent or bills',
-    description: 'Set aside for housing and utilities.',
-    icon: Home,
-    accent: '#6366f1',
-  },
-  {
-    id: 'education',
-    label: 'Education',
-    defaultValue: 'Education',
-    description: 'Courses, books, or tuition.',
-    icon: GraduationCap,
-    accent: '#f59e0b',
-  },
-  {
-    id: 'car_or_home',
-    label: 'Car or home',
-    defaultValue: 'Car or home',
-    description: 'Down payments or large purchases.',
-    icon: Car,
-    accent: '#ec4899',
-  },
-  {
-    id: 'other',
-    label: 'Other goals',
-    defaultValue: 'New savings goal',
-    description: 'Anything else you are saving for.',
-    icon: Target,
-    accent: '#6b7280',
-  },
-] as const;
+const SAVINGS_CATEGORY_KEYS = {
+  emergency: { label: 'savings.categories.emergencyFund', desc: 'savings.categories.emergencyFundDescription', dflt: 'savings.categories.emergencyFundDefault', fallbackLabel: 'Emergency fund', fallbackDesc: 'Cover 3–6 months of essential expenses.', fallbackDflt: 'Emergency fund' },
+  travel:    { label: 'savings.categories.vacation',      desc: 'savings.categories.vacationDescription',      dflt: 'savings.categories.vacationDefault',      fallbackLabel: 'Travel',         fallbackDesc: 'Flights, hotels, and experiences.',       fallbackDflt: 'Travel' },
+  rent_or_bills: { label: 'savings.categories.homeRenovation', desc: 'savings.categories.homeRenovationDescription', dflt: 'savings.categories.homeRenovationDefault', fallbackLabel: 'Rent or bills', fallbackDesc: 'Set aside for housing and utilities.', fallbackDflt: 'Rent or bills' },
+  education: { label: 'savings.categories.education',     desc: 'savings.categories.educationDescription',     dflt: 'savings.categories.educationDefault',     fallbackLabel: 'Education',      fallbackDesc: 'Courses, books, or tuition.',              fallbackDflt: 'Education' },
+  car_or_home:{ label: 'savings.categories.newCar',        desc: 'savings.categories.newCarDescription',        dflt: 'savings.categories.newCarDefault',        fallbackLabel: 'Car or home',    fallbackDesc: 'Down payments or large purchases.',        fallbackDflt: 'Car or home' },
+  other:     { label: 'savings.categories.other',         desc: 'savings.categories.otherDescription',         dflt: 'savings.categories.otherDefault',         fallbackLabel: 'Other goals',    fallbackDesc: 'Anything else you are saving for.',        fallbackDflt: 'New savings goal' },
+} as const;
+type SavingsCategoryKey = keyof typeof SAVINGS_CATEGORY_KEYS;
 
-const CATEGORY_BY_ID = Object.fromEntries(
-  CATEGORY_OPTIONS.map((c) => [c.id, c])
-) as Record<SavingsGoalCategoryDb, (typeof CATEGORY_OPTIONS)[number]>;
+const CATEGORY_OPTIONS: ReadonlyArray<SavingsCategoryKey> = [
+  'emergency','travel','rent_or_bills','education','car_or_home','other',
+];
+
+function buildCategoryByIdMap(t: (k: string, o: {ns:string; defaultValue:string}) => string) {
+  return Object.fromEntries(
+    CATEGORY_OPTIONS.map((id) => {
+      const keys = SAVINGS_CATEGORY_KEYS[id];
+      return [id, {
+        id,
+        label: t(keys.label, { ns: 'portal', defaultValue: keys.fallbackLabel }),
+        description: t(keys.desc, { ns: 'portal', defaultValue: keys.fallbackDesc }),
+        defaultValue: t(keys.dflt, { ns: 'portal', defaultValue: keys.fallbackDflt }),
+        icon: ({
+          emergency: Shield,
+          travel: Plane,
+          rent_or_bills: Home,
+          education: GraduationCap,
+          car_or_home: Car,
+          other: Target,
+        } as Record<string, React.ComponentType<{ size?: number; className?: string }>>)[id],
+        accent: ({
+          emergency: '#0ea5e9',
+          travel: '#10b981',
+          rent_or_bills: '#6366f1',
+          education: '#f59e0b',
+          car_or_home: '#ec4899',
+          other: '#6b7280',
+        } as Record<string, string>)[id],
+      }];
+    })
+  ) as Record<SavingsGoalCategoryDb, { id: SavingsGoalCategoryDb; label: string; description: string; defaultValue: string; icon: React.ComponentType<{ size?: number; className?: string }>; accent: string }>;
+}
 
 function toNumber(v: number | string | null | undefined): number {
   if (v === null || v === undefined || v === '') return 0;
@@ -191,6 +173,15 @@ const SAVINGS_CATEGORY_DEFAULT: Record<string, string> = {
   other: 'Other goals',
 };
 
+const SAVINGS_CATEGORY_META: Record<string, { icon: React.ComponentType<{ size?: number; className?: string }>; accent: string }> = {
+  emergency: { icon: Shield, accent: '#2563eb' },
+  travel: { icon: Plane, accent: '#f59e0b' },
+  rent_or_bills: { icon: Home, accent: '#10b981' },
+  education: { icon: GraduationCap, accent: '#6366f1' },
+  car_or_home: { icon: Car, accent: '#8b5cf6' },
+  other: { icon: Target, accent: '#6b7280' },
+};
+
 function GoalCardHeader({
   goal,
   locale,
@@ -199,7 +190,7 @@ function GoalCardHeader({
   locale: string;
 }) {
   const { t } = useTranslation(['portal', 'common']);
-  const meta = CATEGORY_BY_ID[goal.category] ?? CATEGORY_BY_ID.other;
+  const meta = SAVINGS_CATEGORY_META[goal.category] ?? SAVINGS_CATEGORY_META.other;
   const Icon = meta.icon;
   const saved = toNumber(goal.current_saved);
   const target = toNumber(goal.target_amount);
@@ -352,6 +343,7 @@ export default function SavingsPage() {
   const { t, i18n } = useTranslation(['portal', 'common']);
   const { isRTL } = useLanguage();
   const locale = i18n.language ?? 'en';
+  const CATEGORY_BY_ID = useMemo(() => buildCategoryByIdMap(t), [t]);
   const { user } = useAuth();
   const { data: refData } = useClientReferenceData();
   const currencies = refData?.snapshot.currencies ?? [];
@@ -627,7 +619,7 @@ export default function SavingsPage() {
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-2 md:gap-3.5 lg:grid-cols-4">
           <div className="rounded-[22px] border border-border bg-gradient-to-br from-accent/8 via-card to-card card-elevated p-4">
             <div className="flex items-center gap-2 text-[10.5px] font-700 uppercase tracking-[0.12em] text-accent">
-              <PiggyBank size={13} />
+              <Landmark size={13} />
               {t('savings.summary.totalSaved', { defaultValue: 'Total saved' })}
             </div>
             <FormattedCurrencyAmount
@@ -701,7 +693,7 @@ export default function SavingsPage() {
                 return (
                   <div key={account.id} className="flex items-start gap-3 rounded-2xl border border-border bg-muted/20 p-3.5">
                     <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-2xl border border-border bg-card text-accent">
-                      <PiggyBank size={18} />
+                      <Target size={18} />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
@@ -930,8 +922,8 @@ export default function SavingsPage() {
                   onChange={(e) => setForm({ ...form, category: e.target.value as SavingsGoalCategoryDb })}
                   className="input-base w-full"
                 >
-                  {CATEGORY_OPTIONS.map((c) => (
-                    <option key={c.id} value={c.id}>{c.label}</option>
+                  {CATEGORY_OPTIONS.map((catId) => (
+                    <option key={catId} value={catId}>{CATEGORY_BY_ID[catId].label}</option>
                   ))}
                 </select>
               </div>

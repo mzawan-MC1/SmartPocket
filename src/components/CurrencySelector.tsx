@@ -300,12 +300,20 @@ export default function CurrencySelector({
         aria-haspopup="listbox"
       >
         {selectedCurrency ? (
-          <div className="grid min-w-0 grid-cols-[1.25rem_auto] items-center gap-x-2 whitespace-nowrap">
-            <span className="inline-flex h-5 w-5 items-center justify-center overflow-hidden leading-none">
-              <CurrencySymbol currency={selectedCurrency} size="xs" alignment="center" />
-            </span>
-            <span className="selector-value-primary shrink-0 text-sm font-700">{selectedCurrency.code}</span>
-          </div>
+          (() => {
+            const isAED = selectedCurrency.code === 'AED';
+            const cols = isAED ? 'grid-cols-[1.5rem]' : 'grid-cols-[1.25rem_auto]';
+            return (
+              <div className={`grid min-w-0 ${cols} items-center gap-x-2 whitespace-nowrap`}>
+                <span className="inline-flex h-5 w-5 items-center justify-center overflow-hidden leading-none">
+                  <CurrencySymbol currency={selectedCurrency} size="xs" alignment="center" />
+                </span>
+                {!isAED && (
+                  <span className="selector-value-primary shrink-0 text-sm font-700">{selectedCurrency.code}</span>
+                )}
+              </div>
+            );
+          })()
         ) : (
           <span className="selector-placeholder min-w-0 truncate text-sm">
             {loading ? t('currency.loading') : resolvedPlaceholder}
