@@ -5,188 +5,396 @@ import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
 import EmptyState from '@/components/ui/EmptyState';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
+import CurrencySelector from '@/components/CurrencySelector';
+import Modal from '@/components/ui/Modal';
+import ConfirmationModal from '@/components/ui/ConfirmationModal';
 import {
-  Plus,
   TrendingUp,
   TrendingDown,
+  Plus,
   LineChart,
   Briefcase,
   Coins,
-  Home as HomeIcon,
   Gem,
   Layers,
   MoreHorizontal,
-  Info,
   AlertCircle,
+  Sparkles,
+  Edit2,
+  Trash2,
+  Loader2,
+  CalendarDays,
+  DollarSign,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { createClient } from '@/lib/supabase/client';
 import { getAccounts, type FinancialAccount } from '@/lib/finance';
 import { toast } from 'sonner';
+import { useClientReferenceData } from '@/lib/reference-data/client';
+import { getCurrencyByCode } from '@/lib/reference-data/lookups';
 
-interface AssetCategory {
+type InvestmentAssetTypeDb =
+  | 'stocks'
+  | 'crypto'
+  | 'property'
+  | 'gold_commodities'
+  | 'funds'
+  | 'other';
+
+interface ManualInvestmentRecord {
   id: string;
+  user_id: string;
   name: string;
+  asset_type: InvestmentAssetTypeDb;
+  currency: string;
+  amount_invested: number | string;
+  current_value: number | string;
+  purchase_date: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+const CATEGORY_OPTIONS: ReadonlyArray<{
+  id: InvestmentAssetTypeDb;
+  label: string;
+  defaultName: string;
   description: string;
   icon: React.ComponentType<{ size?: number; className?: string }>;
   accent: string;
-  holdings: number;
-  invested: number;
-  currentValue: number;
-}
-
-const ASSET_CATEGORIES: Array<Omit<AssetCategory, 'holdings' | 'invested' | 'currentValue'>> = [
+}> = [
   {
     id: 'stocks',
-    name: 'Stocks',
-    description: 'Shares, ETFs, and equities.',
+    label: 'Stocks',
+    defaultName: 'Stocks / Equities',
+    description: 'Company shares and ETFs you hold.',
     icon: LineChart,
-    accent: '#0ea5e9',
+    accent: '#2563eb',
   },
   {
     id: 'crypto',
-    name: 'Crypto',
-    description: 'Tokens and digital assets.',
+    label: 'Crypto',
+    defaultName: 'Crypto',
+    description: 'Coins, tokens, and wrapped assets.',
     icon: Coins,
-    accent: '#8b5cf6',
-  },
-  {
-    id: 'property',
-    name: 'Property',
-    description: 'Real estate and land holdings.',
-    icon: HomeIcon,
     accent: '#f59e0b',
   },
   {
-    id: 'commodities',
-    name: 'Gold / commodities',
-    description: 'Precious metals, energy, and raw materials.',
-    icon: Gem,
-    accent: '#eab308',
-  },
-  {
-    id: 'funds',
-    name: 'Funds',
-    description: 'Mutual funds, index funds, and managed portfolios.',
-    icon: Layers,
+    id: 'property',
+    label: 'Property',
+    defaultName: 'Real estate',
+    description: 'Houses, apartments, REITs, or land.',
+    icon: Briefcase,
     accent: '#10b981',
   },
   {
-    id: 'other',
-    name: 'Other investments',
-    description: 'Bonds, private equity, collectibles, and more.',
-    icon: MoreHorizontal,
+    id: 'gold_commodities',
+    label: 'Gold / commodities',
+    defaultName: 'Commodities',
+    description: 'Precious metals, raw materials.',
+    icon: Gem,
+    accent: '#ca8a04',
+  },
+  {
+    id: 'funds',
+    label: 'Funds',
+    defaultName: 'Investment fund',
+    description: 'Mutual funds, index funds, pension pots.',
+    icon: Layers,
     accent: '#6366f1',
   },
-];
+  {
+    id: 'other',
+    label: 'Other investments',
+    defaultName: 'Other investment',
+    description: 'Anything else you want to track.',
+    icon: MoreHorizontal,
+    accent: '#6b7280',
+  },
+] as const;
+
+const CATEGORY_BY_ID = Object.fromEntries(
+  CATEGORY_OPTIONS.map((c) => [c.id, c])
+) as Record<InvestmentAssetTypeDb, (typeof CATEGORY_OPTIONS)[number]>;
+
+function toNumber(v: number | string | null | undefined): number {
+  if (v === null || v === undefined || v === '') return 0;
+  const n = typeof v === 'number' ? v : Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function dateToInputValue(iso: string | null | undefined) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (!Number.isFinite(d.getTime())) return '';
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+interface InvestmentFormState {
+  id?: string;
+  name: string;
+  assetType: InvestmentAssetTypeDb;
+  currency: string;
+  amountInvested: string;
+  currentValue: string;
+  purchaseDate: string;
+  notes: string;
+}
+
+function buildInvestmentForm(
+  defaultCurrencyCode: string,
+  copyFrom?: ManualInvestmentRecord | null
+): InvestmentFormState {
+  if (copyFrom) {
+    return {
+      id: copyFrom.id,
+      name: copyFrom.name,
+      assetType: copyFrom.asset_type,
+      currency: copyFrom.currency,
+      amountInvested: String(toNumber(copyFrom.amount_invested)),
+      currentValue: String(toNumber(copyFrom.current_value)),
+      purchaseDate: dateToInputValue(copyFrom.purchase_date),
+      notes: copyFrom.notes ?? '',
+    };
+  }
+  return {
+    name: '',
+    assetType: 'stocks',
+    currency: defaultCurrencyCode,
+    amountInvested: '',
+    currentValue: '',
+    purchaseDate: '',
+    notes: '',
+  };
+}
 
 export default function InvestmentsPage() {
-  const { t } = useTranslation(['portal', 'common']);
+  const { t, i18n } = useTranslation(['portal', 'common']);
   const { isRTL } = useLanguage();
+  const locale = i18n.language ?? 'en';
+  const { user } = useAuth();
+  const { data: refData } = useClientReferenceData();
+  const currencies = refData?.snapshot.currencies ?? [];
+
+  const [investments, setInvestments] = useState<ManualInvestmentRecord[]>([]);
   const [accounts, setAccounts] = useState<FinancialAccount[]>([]);
-  const [loadingAccounts, setLoadingAccounts] = useState(true);
+  const [loading, setLoading] = useState(true);
+
+  const [showForm, setShowForm] = useState(false);
+  const [editInvestment, setEditInvestment] = useState<ManualInvestmentRecord | null>(null);
+  const [form, setForm] = useState<InvestmentFormState | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  const [deleteInv, setDeleteInv] = useState<ManualInvestmentRecord | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [actionsOpenFor, setActionsOpenFor] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!user) {
+      setInvestments([]);
+      setAccounts([]);
+      setLoading(false);
+      return;
+    }
     let cancelled = false;
-    setLoadingAccounts(true);
-    void getAccounts({ activeOnly: true })
-      .then((next) => {
-        if (!cancelled) setAccounts(next);
-      })
-      .catch(() => {
-        if (!cancelled) setAccounts([]);
-      })
+    setLoading(true);
+    Promise.all([loadInvestmentsInternal(user.id, { cancelled }), loadAccountsInternal({ cancelled })])
       .finally(() => {
-        if (!cancelled) setLoadingAccounts(false);
+        if (!cancelled) setLoading(false);
       });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [user]);
+
+  async function loadAccountsInternal(flag: { cancelled: boolean }) {
+    try {
+      const next = await getAccounts({ activeOnly: true });
+      if (!flag.cancelled) setAccounts(next);
+    } catch {
+      if (!flag.cancelled) setAccounts([]);
+    }
+  }
+
+  async function loadInvestmentsInternal(userId: string, flag: { cancelled: boolean }) {
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase
+        .from('manual_investments')
+        .select('*')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      if (!flag.cancelled) setInvestments((data as ManualInvestmentRecord[]) ?? []);
+    } catch (err: any) {
+      if (!flag.cancelled) {
+        setInvestments([]);
+        toast.error(err?.message ?? t('investments.loadFailed', { defaultValue: 'Could not load investments.' }));
+      }
+    }
+  }
+
+  async function reload() {
+    if (!user) return;
+    const flag = { cancelled: false };
+    await loadInvestmentsInternal(user.id, flag);
+  }
 
   const defaultCurrencyCode = useMemo(() => {
-    const first = accounts[0];
-    return (first?.currency || 'USD').toUpperCase();
-  }, [accounts]);
+    if (investments.length > 0) return investments[0].currency;
+    if (accounts.length > 0 && accounts[0].currency) return accounts[0].currency;
+    return 'USD';
+  }, [investments, accounts]);
 
-  const investmentAccounts = accounts.filter(
-    (account) => String(account.account_type || '').toLowerCase() === 'investment'
+  const realInvestmentAccounts = useMemo(
+    () => accounts.filter((a) => a.account_type === 'investment'),
+    [accounts]
   );
 
-  const totalInvestedFromAccounts = investmentAccounts.reduce(
-    (sum, account) => sum + Number(account.opening_balance ?? account.current_balance ?? 0),
+  const totalInvestedAccounts = realInvestmentAccounts.reduce(
+    (s, a) => s + Number(a.opening_balance ?? a.current_balance ?? 0),
     0
   );
-  const currentValueFromAccounts = investmentAccounts.reduce(
-    (sum, account) => sum + Number(account.current_balance ?? account.opening_balance ?? 0),
+  const currentValueAccounts = realInvestmentAccounts.reduce(
+    (s, a) => s + Number(a.current_balance ?? a.opening_balance ?? 0),
     0
   );
+  const totalInvestedManual = investments.reduce((s, r) => s + toNumber(r.amount_invested), 0);
+  const currentValueManual = investments.reduce((s, r) => s + toNumber(r.current_value), 0);
 
-  const totalInvested = totalInvestedFromAccounts;
-  const currentValue = currentValueFromAccounts;
+  const totalInvested = totalInvestedAccounts + totalInvestedManual;
+  const currentValue = currentValueAccounts + currentValueManual;
   const gainLoss = currentValue - totalInvested;
   const gainLossPct = totalInvested > 0 ? (gainLoss / totalInvested) * 100 : 0;
   const gainIsPositive = gainLoss >= 0;
+  const usedCategoryTypes = new Set(investments.map((r) => r.asset_type));
+  realInvestmentAccounts.forEach(() => {
+    // include_accounts_as_one_asset_presence
+  });
+  const assetTypesUsed = Math.min(6, usedCategoryTypes.size + (realInvestmentAccounts.length > 0 ? 1 : 0));
 
-  const categories = useMemo<AssetCategory[]>(() => {
-    const total = currentValueFromAccounts;
-    return ASSET_CATEGORIES.map((base, index) => {
-      const splitShare = total > 0 ? total / ASSET_CATEGORIES.length : 0;
-      const approxValue = index === 0 && investmentAccounts.length > 0 ? total : splitShare;
-      const approxInvested = approxValue * 0.96;
-      return {
-        ...base,
-        holdings: approxValue > 0 ? 1 : 0,
-        invested: approxInvested,
-        currentValue: approxValue,
+  function openNew(assetType?: InvestmentAssetTypeDb) {
+    if (!user) return;
+    const base = buildInvestmentForm(defaultCurrencyCode);
+    if (assetType) {
+      base.assetType = assetType;
+      base.name = CATEGORY_BY_ID[assetType].defaultName;
+    }
+    setEditInvestment(null);
+    setForm(base);
+    setShowForm(true);
+  }
+
+  function openEdit(r: ManualInvestmentRecord) {
+    setEditInvestment(r);
+    setForm(buildInvestmentForm(defaultCurrencyCode, r));
+    setShowForm(true);
+    setActionsOpenFor(null);
+  }
+
+  function openDelete(r: ManualInvestmentRecord) {
+    setDeleteInv(r);
+    setActionsOpenFor(null);
+  }
+
+  async function submitForm() {
+    if (!form || !user) return;
+    setIsSaving(true);
+    try {
+      const invested = toNumber(form.amountInvested);
+      const current = toNumber(form.currentValue);
+      if (!form.name.trim()) {
+        throw new Error(t('investments.form.nameRequired', { defaultValue: 'Investment name is required.' }));
+      }
+      const supabase = createClient();
+      const payload = {
+        user_id: user.id,
+        name: form.name.trim(),
+        asset_type: form.assetType,
+        currency: form.currency,
+        amount_invested: invested,
+        current_value: current,
+        purchase_date: form.purchaseDate || null,
+        notes: form.notes.trim() || null,
       };
-    });
-  }, [currentValueFromAccounts, investmentAccounts.length]);
+      if (editInvestment) {
+        const { error } = await supabase
+          .from('manual_investments')
+          .update(payload)
+          .eq('id', editInvestment.id)
+          .eq('user_id', user.id);
+        if (error) throw error;
+        toast.success(t('investments.updated', { defaultValue: 'Investment updated.' }));
+      } else {
+        const { error } = await supabase.from('manual_investments').insert(payload);
+        if (error) throw error;
+        toast.success(t('investments.created', { defaultValue: 'Investment added.' }));
+      }
+      await reload();
+      setShowForm(false);
+      setEditInvestment(null);
+      setForm(null);
+    } catch (err: any) {
+      toast.error(err?.message ?? t('investments.saveFailed', { defaultValue: 'Could not save investment.' }));
+    } finally {
+      setIsSaving(false);
+    }
+  }
 
-  const activeCategoryTypes = categories.filter((c) => c.holdings > 0).length;
+  async function confirmDelete() {
+    if (!deleteInv || !user) return;
+    setIsDeleting(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from('manual_investments')
+        .delete()
+        .eq('id', deleteInv.id)
+        .eq('user_id', user.id);
+      if (error) throw error;
+      toast.success(t('investments.deleted', { defaultValue: 'Investment deleted.' }));
+      setDeleteInv(null);
+      await reload();
+    } catch (err: any) {
+      toast.error(err?.message ?? t('investments.deleteFailed', { defaultValue: 'Could not delete investment.' }));
+    } finally {
+      setIsDeleting(false);
+    }
+  }
 
   return (
     <AppLayout activeRoute="/investments" hideMobileFooter>
-      <div className="page-section max-[480px]:gap-2.5">
+      <div className="page-section page-shell-readable max-w-[1180px]">
         <PageHeader
           title={t('investments.title', { defaultValue: 'Investments' })}
           description={t('investments.description', {
             defaultValue:
               'Track what you invested, current value, and overall growth in one place.',
           })}
-          badge={
-            <StatusBadge
-              status="info"
-              label={t('investments.badge', { defaultValue: 'Portfolio Tracker' })}
-            />
-          }
+          badge={<StatusBadge status="info" label={t('investments.badge', { defaultValue: 'Your holdings' })} />}
           compact
-          className="rounded-[24px] border border-border/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98)_0%,rgba(248,250,252,0.96)_100%)] px-3.5 py-3 shadow-card-sm max-[480px]:px-3.5 max-[480px]:py-3"
-          actionsClassName="w-full sm:w-auto"
           actions={
-            <div className="flex w-full sm:w-auto">
-              <button
-                onClick={() => {
-                  toast.info(
-                    t('investments.newInvestmentComingSoon', {
-                      defaultValue:
-                        'Adding individual investments is coming soon. Investment accounts from Accounts are used as the source of truth.',
-                    })
-                  );
-                }}
-                className="inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-[18px] bg-[linear-gradient(135deg,#06a6d8_0%,#1294ff_100%)] px-3.5 py-2.5 text-[14px] font-700 text-white shadow-[0_12px_24px_rgba(18,148,255,0.18)] transition-transform duration-150 hover:-translate-y-[1px] hover:brightness-105 sm:w-auto"
-              >
-                <Plus size={16} />{' '}
-                {t('investments.newInvestmentButton', { defaultValue: 'Add investment' })}
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => openNew()}
+              className="btn-primary inline-flex items-center gap-1.5"
+            >
+              <Plus size={15} />
+              {t('investments.newInvestment', { defaultValue: 'Add investment' })}
+            </button>
           }
         />
 
-        {/* Disclaimer */}
-        <div className="card-elevated flex items-start gap-2.5 rounded-[18px] border border-amber-500/20 bg-amber-500/5 px-3 py-2.5">
-          <AlertCircle size={16} className="mt-0.5 shrink-0 text-amber-600" />
-          <p className="text-[12px] leading-5 text-amber-800">
+        <div className="mt-3 inline-flex w-full items-start gap-2 rounded-[22px] border border-amber-500/20 bg-amber-500/5 p-4">
+          <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-600">
+            <AlertCircle size={18} />
+          </div>
+          <p className="text-[12.5px] leading-relaxed font-600 text-amber-900">
             {t('investments.disclaimer', {
               defaultValue:
                 'Smart Pocket helps you track investments. It does not provide financial advice.',
@@ -194,183 +402,124 @@ export default function InvestmentsPage() {
           </p>
         </div>
 
-        {/* Summary Cards */}
-        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
-          {[
-            {
-              id: 'iv-total-invested',
-              label: t('investments.totalInvested', { defaultValue: 'Total invested' }),
-              amount: totalInvested,
-              icon: Briefcase,
-              color: 'text-foreground',
-              iconTone: 'bg-sky-500/10 text-sky-600',
-            },
-            {
-              id: 'iv-current-value',
-              label: t('investments.currentValue', { defaultValue: 'Current value' }),
-              amount: currentValue,
-              icon: LineChart,
-              color: 'text-foreground',
-              iconTone: 'bg-violet-500/10 text-violet-600',
-            },
-            {
-              id: 'iv-gain-loss',
-              label: t('investments.gainLoss', { defaultValue: 'Gain / loss' }),
-              amount: gainLoss,
-              icon: gainIsPositive ? TrendingUp : TrendingDown,
-              color: gainIsPositive ? 'text-positive' : 'text-negative',
-              iconTone: gainIsPositive
-                ? 'bg-emerald-500/10 text-emerald-600'
-                : 'bg-rose-500/10 text-rose-600',
-              suffix:
-                totalInvested > 0 ? (
-                  <span
-                    className={`ml-1.5 text-[11px] font-700 font-tabular ${
-                      gainIsPositive ? 'text-positive' : 'text-negative'
-                    }`}
-                  >
-                    {gainIsPositive ? '+' : ''}
-                    {gainLossPct.toFixed(2)}%
-                  </span>
-                ) : null,
-            },
-            {
-              id: 'iv-asset-types',
-              label: t('investments.assetTypes', { defaultValue: 'Asset types' }),
-              value: `${activeCategoryTypes} / ${categories.length}`,
-              icon: Layers,
-              color: 'text-foreground',
-              iconTone: 'bg-indigo-500/10 text-indigo-600',
-            },
-          ].map((item) => (
-            <div
-              key={item.id}
-              className="card-elevated rounded-[18px] border border-border/80 bg-card px-2.5 py-2.5 shadow-card-sm max-[480px]:px-2.5"
-            >
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <p className="text-[10px] font-700 uppercase tracking-[0.08em] text-muted-foreground">
-                  {item.label}
-                </p>
-                <div
-                  className={`inline-flex h-7 w-7 items-center justify-center rounded-[10px] ${item.iconTone}`}
-                >
-                  <item.icon size={14} />
-                </div>
-              </div>
-              {loadingAccounts ? (
-                <div className="h-5 w-24 animate-pulse rounded bg-muted" />
-              ) : 'amount' in item ? (
-                <div className="flex items-baseline">
-                  <FormattedCurrencyAmount
-                    amount={item.amount ?? 0}
-                    currencyCode={defaultCurrencyCode}
-                    className={`text-[15px] font-800 font-tabular ${item.color}`}
-                    showCode
-                  />
-                  {item.suffix}
-                </div>
-              ) : (
-                <p className={`text-[15px] font-800 font-tabular ${item.color}`}>{item.value}</p>
-              )}
+        <div className="mt-4 grid grid-cols-2 gap-3 md:gap-3.5 lg:grid-cols-4">
+          <div className="rounded-[22px] border border-border bg-gradient-to-br from-violet-500/6 via-card to-card card-elevated p-4">
+            <div className="flex items-center gap-2 text-[10.5px] font-700 uppercase tracking-[0.12em] text-violet-600">
+              <Briefcase size={13} />
+              {t('investments.summary.totalInvested', { defaultValue: 'Total invested' })}
             </div>
-          ))}
-        </div>
-
-        {/* Investment accounts (real data source) */}
-        {investmentAccounts.length > 0 ? (
-          <div className="card-elevated rounded-[20px] border border-border/80 bg-[linear-gradient(180deg,rgba(255,255,255,1)_0%,rgba(248,250,252,0.98)_100%)] p-3 shadow-card-sm max-[480px]:p-3">
-            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <h2 className="text-[14px] font-800 text-foreground">
-                  {t('investments.investmentAccounts.title', {
-                    defaultValue: 'Existing investment accounts',
-                  })}
-                </h2>
-                <p className="text-[11.5px] text-muted-foreground">
-                  {t('investments.investmentAccounts.subtitle', {
-                    defaultValue:
-                      'Balances are sourced from your existing accounts. Individual holdings and per-asset tracking will use these accounts as the source of truth.',
-                  })}
-                </p>
-              </div>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[10.5px] font-700 text-emerald-700">
-                <TrendingUp size={12} />{' '}
-                {t('investments.investmentAccounts.tag', { defaultValue: 'Real data' })}
+            <FormattedCurrencyAmount
+              amount={totalInvested}
+              currencyCode={defaultCurrencyCode}
+              className="mt-1.5 block text-[18px] font-800 text-foreground"
+            />
+          </div>
+          <div className="rounded-[22px] border border-border bg-gradient-to-br from-sky-500/6 via-card to-card card-elevated p-4">
+            <div className="flex items-center gap-2 text-[10.5px] font-700 uppercase tracking-[0.12em] text-sky-600">
+              <DollarSign size={13} />
+              {t('investments.summary.currentValue', { defaultValue: 'Current value' })}
+            </div>
+            <FormattedCurrencyAmount
+              amount={currentValue}
+              currencyCode={defaultCurrencyCode}
+              className="mt-1.5 block text-[18px] font-800 text-foreground"
+            />
+          </div>
+          <div className="rounded-[22px] border border-border bg-gradient-to-br via-card to-card card-elevated p-4"
+            style={{ background: gainIsPositive
+              ? 'linear-gradient(135deg, rgba(16,185,129,0.08), rgba(255,255,255,0) 55%)'
+              : 'linear-gradient(135deg, rgba(244,63,94,0.08), rgba(255,255,255,0) 55%)' }}
+          >
+            <div className={`flex items-center gap-2 text-[10.5px] font-700 uppercase tracking-[0.12em] ${gainIsPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
+              {gainIsPositive ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
+              {t('investments.summary.gainLoss', { defaultValue: 'Gain / loss' })}
+            </div>
+            <div className="mt-1.5 flex flex-wrap items-baseline gap-1.5">
+              <FormattedCurrencyAmount
+                amount={Math.abs(gainLoss)}
+                currencyCode={defaultCurrencyCode}
+                className={`text-[18px] font-800 ${gainIsPositive ? 'text-emerald-600' : 'text-rose-600'}`}
+              />
+              <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-800 ${
+                gainIsPositive
+                  ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700'
+                  : 'border-rose-500/20 bg-rose-500/10 text-rose-700'
+              }`}>
+                {gainIsPositive ? '+' : '−'}{Math.abs(gainLossPct).toFixed(1)}%
               </span>
             </div>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              {investmentAccounts.map((account) => {
-                const invested = Number(account.opening_balance ?? account.current_balance ?? 0);
-                const current = Number(account.current_balance ?? account.opening_balance ?? 0);
-                const delta = current - invested;
+          </div>
+          <div className="rounded-[22px] border border-border bg-gradient-to-br from-amber-500/6 via-card to-card card-elevated p-4">
+            <div className="flex items-center gap-2 text-[10.5px] font-700 uppercase tracking-[0.12em] text-amber-600">
+              <Layers size={13} />
+              {t('investments.summary.assetTypes', { defaultValue: 'Asset types' })}
+            </div>
+            <p className="mt-1.5 text-[18px] font-800 text-foreground">
+              {assetTypesUsed} <span className="text-[13px] font-700 text-muted-foreground">/ 6</span>
+            </p>
+          </div>
+        </div>
+
+        {realInvestmentAccounts.length > 0 && (
+          <div className="mt-5 rounded-[24px] border border-border bg-card card-elevated">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 px-5 py-3.5 max-[480px]:px-4 max-[480px]:py-3">
+              <div>
+                <p className="text-[11px] font-700 uppercase tracking-[0.12em] text-accent">
+                  {t('investments.accounts.title', { defaultValue: 'Existing investment accounts' })}
+                </p>
+                <p className="mt-0.5 text-xs font-600 text-muted-foreground">
+                  {t('investments.accounts.subtitle', {
+                    defaultValue: 'Included in your totals above.',
+                  })}
+                </p>
+              </div>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[11px] font-700 text-emerald-700">
+                <Sparkles size={12} /> Real data
+              </span>
+            </div>
+            <div className="grid grid-cols-1 gap-2.5 p-5 sm:grid-cols-2 max-[480px]:p-4">
+              {realInvestmentAccounts.map((a) => {
+                const meta = getCurrencyByCode(currencies, a.currency);
+                const invested = Number(a.opening_balance ?? a.current_balance ?? 0);
+                const curr = Number(a.current_balance ?? a.opening_balance ?? 0);
+                const delta = curr - invested;
                 const pct = invested > 0 ? (delta / invested) * 100 : 0;
                 const positive = delta >= 0;
                 return (
-                  <div
-                    key={account.id}
-                    className="rounded-[16px] border border-border/80 bg-muted/20 p-2.5"
-                  >
-                    <div className="flex items-start justify-between gap-2">
+                  <div key={a.id} className="rounded-2xl border border-border bg-muted/20 p-3.5">
+                    <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="truncate text-[13px] font-700 text-foreground">
-                          {account.name ||
-                            t('investments.investmentAccounts.untitled', {
-                              defaultValue: 'Investment account',
-                            })}
-                        </p>
-                        <p className="text-[10.5px] text-muted-foreground">
-                          {account.account_number_masked || account.id.slice(0, 8)}
-                        </p>
-                      </div>
-                      <div className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-violet-500/10 text-violet-600">
-                        <Briefcase size={14} />
-                      </div>
-                    </div>
-                    <div className="mt-2 space-y-1.5">
-                      <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
-                        <span>
-                          {t('investments.investmentAccounts.currentValue', {
-                            defaultValue: 'Current value',
-                          })}
-                        </span>
-                        <FormattedCurrencyAmount
-                          amount={current}
-                          currencyCode={account.currency || defaultCurrencyCode}
-                          className="text-[13px] font-800 font-tabular text-foreground"
-                          showCode
-                        />
-                      </div>
-                      <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
-                        <span>
-                          {t('investments.investmentAccounts.performance', {
-                            defaultValue: 'Performance',
-                          })}
-                        </span>
-                        <div className="flex items-baseline gap-1.5">
-                          <span
-                            className={`text-[12px] font-800 font-tabular ${
-                              positive ? 'text-positive' : 'text-negative'
-                            }`}
-                          >
-                            {positive ? '+' : ''}
-                            <FormattedCurrencyAmount
-                              amount={delta}
-                              currencyCode={account.currency || defaultCurrencyCode}
-                              textOnly
-                              compact
-                            />
-                          </span>
-                          {invested > 0 ? (
-                            <span
-                              className={`text-[11px] font-700 font-tabular ${
-                                positive ? 'text-positive' : 'text-negative'
-                              }`}
-                            >
-                              ({positive ? '+' : ''}
-                              {pct.toFixed(2)}%)
-                            </span>
+                        <div className="flex items-center gap-2">
+                          <p className="truncate text-[14px] font-800 text-foreground">{a.name}</p>
+                          {meta ? (
+                            <span className="rounded-full border border-border bg-card px-1.5 py-0.5 text-[10.5px] font-700 text-muted-foreground">{meta.code}</span>
                           ) : null}
                         </div>
+                        <p className="mt-0.5 text-[11px] text-muted-foreground">
+                          {a.account_number_masked || a.id.slice(0, 8)}
+                        </p>
+                      </div>
+                      <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10.5px] font-800 ${
+                        positive
+                          ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700'
+                          : 'border-rose-500/20 bg-rose-500/10 text-rose-700'
+                      }`}>
+                        {positive ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
+                        <span className="ml-1">{positive ? '+' : '−'}{Math.abs(pct).toFixed(1)}%</span>
+                      </span>
+                    </div>
+                    <div className="mt-2.5 grid grid-cols-3 gap-2 text-center">
+                      <div>
+                        <p className="text-[10px] font-700 uppercase tracking-wide text-muted-foreground">Invested</p>
+                        <FormattedCurrencyAmount amount={invested} currencyCode={a.currency} className="mt-0.5 block text-[12.5px] font-800 text-foreground" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-700 uppercase tracking-wide text-muted-foreground">Current</p>
+                        <FormattedCurrencyAmount amount={curr} currencyCode={a.currency} className="mt-0.5 block text-[12.5px] font-800 text-foreground" />
+                      </div>
+                      <div>
+                        <p className="text-[10px] font-700 uppercase tracking-wide text-muted-foreground">Delta</p>
+                        <FormattedCurrencyAmount amount={Math.abs(delta)} currencyCode={a.currency} className={`mt-0.5 block text-[12.5px] font-800 ${positive ? 'text-emerald-600' : 'text-rose-600'}`} />
                       </div>
                     </div>
                   </div>
@@ -378,198 +527,237 @@ export default function InvestmentsPage() {
               })}
             </div>
           </div>
-        ) : null}
+        )}
 
-        {/* Asset Categories */}
-        <div className="space-y-2.5 max-[480px]:space-y-2.5 sm:space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="mt-5 rounded-[24px] border border-border bg-card card-elevated">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 px-5 py-3.5 max-[480px]:px-4 max-[480px]:py-3">
             <div>
-              <h2 className="text-base font-700 text-foreground">
-                {t('investments.categories.title', { defaultValue: 'Asset categories' })}
-              </h2>
-              <p className="text-[11.5px] text-muted-foreground">
-                {t('investments.categories.subtitle', {
-                  defaultValue:
-                    'Common investment types. Categories are illustrative MVP placeholders until the dedicated holdings module is live.',
+              <p className="text-[11px] font-700 uppercase tracking-[0.12em] text-accent">
+                {t('investments.holdings.title', { defaultValue: 'Investment holdings' })}
+              </p>
+              <p className="mt-0.5 text-xs font-600 text-muted-foreground">
+                {t('investments.holdings.subtitle', {
+                  defaultValue: 'Add what you own; values are tracked manually, not live market data.',
                 })}
               </p>
             </div>
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-card px-2.5 py-1 text-[10.5px] font-700 text-muted-foreground">
-              <Layers size={11} />{' '}
-              {t('investments.categories.count', {
-                count: categories.length,
-                defaultValue: '{{count}} types',
-              })}
-            </span>
+            <button
+              type="button"
+              onClick={() => openNew()}
+              className="btn-secondary inline-flex items-center gap-1.5 px-3 py-2 text-xs"
+            >
+              <Plus size={13} />
+              {t('investments.newInvestment', { defaultValue: 'Add investment' })}
+            </button>
           </div>
 
-          {loadingAccounts ? (
-            <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div
-                  key={`skel-inv-${i}`}
-                  className="card-elevated rounded-[20px] border border-border/80 p-3"
-                >
-                  <div className="h-5 w-36 animate-pulse rounded bg-muted mb-3" />
-                  <div className="h-3 w-full animate-pulse rounded bg-muted mb-2" />
-                  <div className="h-3 w-1/2 animate-pulse rounded bg-muted" />
-                </div>
+          {loading ? (
+            <div className="grid grid-cols-1 gap-3 p-5 md:grid-cols-2 xl:grid-cols-3 max-[480px]:p-4">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="h-52 w-full animate-pulse rounded-[22px] bg-muted/40" />
               ))}
             </div>
-          ) : categories.length === 0 ? (
-            <div className="card-elevated rounded-[22px] border border-border/80 p-4 max-[480px]:p-3">
+          ) : investments.length === 0 ? (
+            <div className="p-5">
               <EmptyState
-                icon={Briefcase}
-                title={t('investments.categories.empty.title', {
-                  defaultValue: 'No categories yet',
-                })}
-                description={t('investments.categories.empty.description', {
+                icon={TrendingUp}
+                variant="default"
+                tone="accent"
+                title={t('investments.empty.title', { defaultValue: 'No tracked investments yet' })}
+                description={t('investments.empty.description', {
                   defaultValue:
-                    'Add an investment to start building out your portfolio breakdown.',
+                    'Start with a single stock, a fund, a crypto wallet, or a property. Values update manually for accuracy.',
                 })}
-                variant="compact"
-                tone="neutral"
+                action={{
+                  label: t('investments.empty.action', { defaultValue: 'Add your first investment' }),
+                  onClick: () => openNew('stocks'),
+                }}
               />
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-2.5 md:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3">
-              {categories.map((category) => {
-                const Icon = category.icon;
-                const delta = category.currentValue - category.invested;
-                const pct = category.invested > 0 ? (delta / category.invested) * 100 : 0;
-                const positive = delta >= 0;
-                const pctOfTotal =
-                  currentValue > 0 ? (category.currentValue / currentValue) * 100 : 0;
-                return (
-                  <div
-                    key={category.id}
-                    className="card-elevated rounded-[20px] border border-border/80 p-3 transition-shadow duration-200 hover:shadow-card-md max-[480px]:p-3"
-                  >
-                    <div className="mb-2.5 flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <div
-                          className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px]"
-                          style={{
-                            backgroundColor: `${category.accent}18`,
-                            color: category.accent,
-                          }}
-                        >
-                          <Icon size={16} />
+            <div className="space-y-4 p-5 max-[480px]:p-4">
+              {CATEGORY_OPTIONS.map((cat) => {
+                const records = investments.filter((r) => r.asset_type === cat.id);
+                if (records.length === 0) {
+                  return (
+                    <div key={cat.id} className="flex items-center justify-between gap-3 rounded-2xl border border-dashed border-border/80 bg-muted/10 px-4 py-3 max-[480px]:px-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-2xl border border-border bg-card" style={{ color: cat.accent }}>
+                          <cat.icon size={17} />
                         </div>
                         <div className="min-w-0">
-                          <p className="truncate text-[14px] font-800 text-foreground">
-                            {category.name}
-                          </p>
-                          <p className="truncate text-[10.5px] text-muted-foreground">
-                            {category.description}
-                          </p>
+                          <p className="truncate text-[13px] font-800 text-foreground">{cat.label}</p>
+                          <p className="truncate text-[11px] font-600 text-muted-foreground">{cat.description}</p>
                         </div>
                       </div>
-                      {category.holdings > 0 ? (
-                        <span className="shrink-0 rounded-full border border-violet-500/20 bg-violet-500/10 px-2 py-0.5 text-[10px] font-700 text-violet-700">
-                          {t('investments.categories.hasHoldings', {
-                            count: category.holdings,
-                            defaultValue: '{{count}} holding',
-                          })}
-                        </span>
-                      ) : (
-                        <span className="shrink-0 rounded-full border border-border/80 bg-card px-2 py-0.5 text-[10px] font-700 text-muted-foreground">
-                          {t('investments.categories.notStarted', {
-                            defaultValue: 'Empty',
-                          })}
-                        </span>
-                      )}
+                      <button
+                        type="button"
+                        onClick={() => openNew(cat.id)}
+                        className="btn-ghost inline-flex items-center gap-1 rounded-xl px-2.5 py-1.5 text-[11.5px] font-800 text-accent"
+                      >
+                        <Plus size={13} /> Add
+                      </button>
                     </div>
-
-                    {/* Allocation bar */}
-                    <div className="mb-2.5">
-                      <div className="mb-1.5 flex items-center justify-between gap-2">
-                        <p className="text-[10.5px] text-muted-foreground">
-                          {t('investments.categories.allocation', {
-                            defaultValue: 'Portfolio share',
-                          })}
-                        </p>
-                        <span className="text-[11px] font-700 font-tabular text-muted-foreground">
-                          {pctOfTotal.toFixed(1)}%
-                        </span>
-                      </div>
-                      <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
-                        <div
-                          className="h-full rounded-full transition-all duration-500"
-                          style={{
-                            width: `${Math.min(100, pctOfTotal)}%`,
-                            backgroundColor: category.accent,
-                          }}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <div className="rounded-xl bg-muted/15 px-2.5 py-2">
-                        <p className="text-[10px] text-muted-foreground">
-                          {t('investments.categories.invested', { defaultValue: 'Invested' })}
-                        </p>
-                        <FormattedCurrencyAmount
-                          amount={category.invested}
-                          currencyCode={defaultCurrencyCode}
-                          className="text-[13px] font-800 font-tabular text-foreground"
-                          showCode
-                        />
-                      </div>
-                      <div className="rounded-xl bg-muted/15 px-2.5 py-2 text-right">
-                        <p className="text-[10px] text-muted-foreground">
-                          {t('investments.categories.currentValue', {
-                            defaultValue: 'Value',
-                          })}
-                        </p>
-                        <FormattedCurrencyAmount
-                          amount={category.currentValue}
-                          currencyCode={defaultCurrencyCode}
-                          className="text-[13px] font-800 font-tabular text-foreground"
-                          showCode
-                        />
-                      </div>
-                    </div>
-
-                    {category.holdings > 0 ? (
-                      <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[10.5px] text-muted-foreground">
-                        <span className="inline-flex items-center gap-1">
-                          {positive ? (
-                            <TrendingUp size={11} className="text-positive" />
-                          ) : (
-                            <TrendingDown size={11} className="text-negative" />
-                          )}
-                          <span className="font-700 text-foreground">
-                            <span className={positive ? 'text-positive' : 'text-negative'}>
-                              {positive ? '+' : ''}
-                              <FormattedCurrencyAmount
-                                amount={delta}
-                                currencyCode={defaultCurrencyCode}
-                                textOnly
-                                compact
-                              />
+                  );
+                }
+                const invested = records.reduce((s, r) => s + toNumber(r.amount_invested), 0);
+                const current = records.reduce((s, r) => s + toNumber(r.current_value), 0);
+                const delta = current - invested;
+                const pct = invested > 0 ? (delta / invested) * 100 : 0;
+                const positive = delta >= 0;
+                const totalPctBar = invested > 0 ? (current / invested) * 100 : 0;
+                const Icon = cat.icon;
+                return (
+                  <div key={cat.id} className="overflow-hidden rounded-[22px] border border-border bg-gradient-to-br from-card via-card to-muted/15">
+                    <div className="flex flex-wrap items-start justify-between gap-3 px-5 pb-3 pt-4 max-[480px]:px-4 max-[480px]:pt-3 max-[480px]:pb-2.5">
+                      <div className="flex min-w-0 items-start gap-3">
+                        <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-2xl border border-border" style={{ backgroundColor: `${cat.accent}14`, color: cat.accent }}>
+                          <Icon size={20} />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <h3 className="truncate text-[15px] font-800 text-foreground">{cat.label}</h3>
+                            <StatusBadge
+                              status="info"
+                              label={
+                                records.length === 1
+                                  ? '1 holding'
+                                  : `${records.length} holdings`
+                              }
+                            />
+                          </div>
+                          <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] font-600 text-muted-foreground">
+                            <span className="inline-flex items-center gap-1">
+                              <Briefcase size={11} />
+                              Invested{' '}
+                              <span className="font-800 text-foreground">
+                                <FormattedCurrencyAmount amount={invested} currencyCode={defaultCurrencyCode} textOnly />
+                              </span>
                             </span>
-                          </span>
-                        </span>
-                        {category.invested > 0 ? (
-                          <span
-                            className={`inline-flex items-center gap-1 rounded-full border border-border/70 bg-card px-2 py-0.5 text-[10px] font-700 ${
-                              positive ? 'text-positive' : 'text-negative'
-                            }`}
-                          >
-                            {positive ? '+' : ''}
-                            {pct.toFixed(2)}%
-                          </span>
-                        ) : null}
+                            <span className="inline-flex items-center gap-1">
+                              <DollarSign size={11} />
+                              Value{' '}
+                              <span className="font-800 text-foreground">
+                                <FormattedCurrencyAmount amount={current} currencyCode={defaultCurrencyCode} textOnly />
+                              </span>
+                            </span>
+                            <span className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10.5px] font-800 ${
+                              positive
+                                ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700'
+                                : 'border-rose-500/20 bg-rose-500/10 text-rose-700'
+                            }`}>
+                              {positive ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
+                              <FormattedCurrencyAmount amount={Math.abs(delta)} currencyCode={defaultCurrencyCode} textOnly />
+                              <span className="ml-0.5">
+                                ({positive ? '+' : '−'}{Math.abs(pct).toFixed(1)}%)
+                              </span>
+                            </span>
+                          </div>
+                          {invested > 0 ? (
+                            <div className="mt-2 relative h-2 w-full overflow-hidden rounded-full bg-muted/50">
+                              <div
+                                className="absolute left-0 top-0 h-full rounded-full"
+                                style={{
+                                  width: `${Math.min(140, totalPctBar)}%`,
+                                  background: `linear-gradient(90deg, ${cat.accent}ee 0%, ${cat.accent}99 100%)`,
+                                }}
+                              />
+                              <div className="absolute top-0 h-full w-px bg-border/70" style={{ left: '100%' }} />
+                            </div>
+                          ) : null}
+                        </div>
                       </div>
-                    ) : (
-                      <div className="mt-2 inline-flex items-center gap-1.5 text-[10.5px] text-muted-foreground">
-                        <Info size={11} />{' '}
-                        {t('investments.categories.mvpHint', {
-                          defaultValue: 'No holdings yet; MVP placeholder category.',
-                        })}
-                      </div>
-                    )}
+                    </div>
+                    <div className="grid grid-cols-1 gap-2.5 border-t border-border/50 bg-muted/10 p-4 max-[480px]:p-3 md:grid-cols-2 xl:grid-cols-3">
+                      {records.map((r) => {
+                        const rInvested = toNumber(r.amount_invested);
+                        const rCurrent = toNumber(r.current_value);
+                        const rDelta = rCurrent - rInvested;
+                        const rPct = rInvested > 0 ? (rDelta / rInvested) * 100 : 0;
+                        const rPositive = rDelta >= 0;
+                        const actionsOpen = actionsOpenFor === r.id;
+                        return (
+                          <div key={r.id} className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-3.5">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <p className="truncate text-[13.5px] font-800 text-foreground">{r.name}</p>
+                                </div>
+                                <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10.5px] font-600 text-muted-foreground">
+                                  <span className="rounded-full border border-border bg-muted/40 px-1.5 py-0.5 text-[10px] font-700 text-foreground">
+                                    {r.currency}
+                                  </span>
+                                  {r.purchase_date ? (
+                                    <span className="inline-flex items-center gap-1">
+                                      <CalendarDays size={10.5} />
+                                      {new Intl.DateTimeFormat(locale, { year: 'numeric', month: 'short' }).format(new Date(r.purchase_date))}
+                                    </span>
+                                  ) : null}
+                                </div>
+                              </div>
+                              <div className="relative">
+                                <button
+                                  type="button"
+                                  onClick={() => setActionsOpenFor(actionsOpen ? null : r.id)}
+                                  className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground transition hover:bg-muted/50 hover:text-foreground"
+                                  aria-label={t('investments.holding.actions', { defaultValue: 'Investment actions' })}
+                                >
+                                  <MoreHorizontal size={15} />
+                                </button>
+                                {actionsOpen && (
+                                  <>
+                                    <div className="fixed inset-0 z-30" onClick={() => setActionsOpenFor(null)} />
+                                    <div className={`absolute z-40 mt-1.5 w-36 overflow-hidden rounded-2xl border border-border bg-card shadow-card-lg ${isRTL ? 'left-0' : 'right-0'}`}>
+                                      <button
+                                        type="button"
+                                        onClick={() => openEdit(r)}
+                                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12.5px] font-700 text-foreground transition hover:bg-muted/40"
+                                      >
+                                        <Edit2 size={14} />
+                                        {t('investments.holding.edit', { defaultValue: 'Edit' })}
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => openDelete(r)}
+                                        className="flex w-full items-center gap-2 border-t border-border/60 px-3 py-2 text-left text-[12.5px] font-700 text-rose-600 transition hover:bg-rose-500/10"
+                                      >
+                                        <Trash2 size={14} />
+                                        {t('investments.holding.delete', { defaultValue: 'Delete' })}
+                                      </button>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2 text-center">
+                              <div>
+                                <p className="text-[10px] font-700 uppercase tracking-wide text-muted-foreground">
+                                  Invested
+                                </p>
+                                <FormattedCurrencyAmount amount={rInvested} currencyCode={r.currency} className="mt-0.5 block text-[12px] font-800 text-foreground" />
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-700 uppercase tracking-wide text-muted-foreground">
+                                  Value
+                                </p>
+                                <FormattedCurrencyAmount amount={rCurrent} currencyCode={r.currency} className="mt-0.5 block text-[12px] font-800 text-foreground" />
+                              </div>
+                              <div>
+                                <p className="text-[10px] font-700 uppercase tracking-wide text-muted-foreground">
+                                  Gain/Loss
+                                </p>
+                                <div className={`mt-0.5 flex flex-col items-center gap-0.5 ${rPositive ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                  <FormattedCurrencyAmount amount={Math.abs(rDelta)} currencyCode={r.currency} textOnly className="text-[12px] font-800" />
+                                  <span className="text-[10px] font-800">
+                                    {rPositive ? '+' : '−'}{Math.abs(rPct).toFixed(1)}%
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 );
               })}
@@ -577,6 +765,168 @@ export default function InvestmentsPage() {
           )}
         </div>
       </div>
+
+      {showForm && form && (
+        <Modal
+          isOpen
+          size="lg"
+          onClose={() => {
+            if (!isSaving) {
+              setShowForm(false);
+              setEditInvestment(null);
+              setForm(null);
+            }
+          }}
+          title={editInvestment
+            ? t('investments.form.editTitle', { defaultValue: 'Edit investment' })
+            : t('investments.form.title', { defaultValue: 'Add investment' })}
+          description={t('investments.form.description', {
+            defaultValue: 'Track something you own. Enter what you paid and what it is worth today.',
+          })}
+          stickyFooter
+          closeOnBackdrop={!isSaving}
+          closeOnEscape={!isSaving}
+          footer={
+            <div className={`flex gap-3 p-4 max-[480px]:flex-col-reverse ${isRTL ? 'sm:flex-row-reverse' : 'sm:justify-end'}`}>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowForm(false);
+                  setEditInvestment(null);
+                  setForm(null);
+                }}
+                disabled={isSaving}
+                className="btn-secondary max-[480px]:w-full"
+              >
+                {t('common.actions.cancel', { defaultValue: 'Cancel' })}
+              </button>
+              <button
+                type="button"
+                onClick={() => void submitForm()}
+                disabled={isSaving}
+                className="btn-primary inline-flex items-center gap-1.5 max-[480px]:w-full"
+              >
+                {isSaving ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
+                {editInvestment
+                  ? t('investments.form.update', { defaultValue: 'Update investment' })
+                  : t('investments.form.create', { defaultValue: 'Add investment' })}
+              </button>
+            </div>
+          }
+        >
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="block text-xs font-700 uppercase tracking-wide text-muted-foreground">
+                {t('investments.form.name', { defaultValue: 'Investment name' })}
+              </label>
+              <input
+                type="text"
+                maxLength={160}
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                placeholder={t('investments.form.namePlaceholder', { defaultValue: 'e.g. S&P 500 ETF, BTC wallet, Apartment 3B' })}
+                className="input-base w-full"
+              />
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label className="block text-xs font-700 uppercase tracking-wide text-muted-foreground">
+                  {t('investments.form.assetType', { defaultValue: 'Asset type' })}
+                </label>
+                <select
+                  value={form.assetType}
+                  onChange={(e) => setForm({ ...form, assetType: e.target.value as InvestmentAssetTypeDb })}
+                  className="input-base w-full"
+                >
+                  {CATEGORY_OPTIONS.map((c) => (
+                    <option key={c.id} value={c.id}>{c.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <CurrencySelector
+                  label={t('investments.form.currency', { defaultValue: 'Currency' })}
+                  value={form.currency}
+                  onChange={(code) => setForm({ ...form, currency: code })}
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label className="block text-xs font-700 uppercase tracking-wide text-muted-foreground">
+                  {t('investments.form.invested', { defaultValue: 'Amount invested' })}
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  step="any"
+                  value={form.amountInvested}
+                  onChange={(e) => setForm({ ...form, amountInvested: e.target.value })}
+                  placeholder="5000"
+                  className="input-base w-full"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="block text-xs font-700 uppercase tracking-wide text-muted-foreground">
+                  {t('investments.form.currentValue', { defaultValue: 'Current value' })}
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  step="any"
+                  value={form.currentValue}
+                  onChange={(e) => setForm({ ...form, currentValue: e.target.value })}
+                  placeholder="5800"
+                  className="input-base w-full"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="flex items-center gap-1.5 text-xs font-700 uppercase tracking-wide text-muted-foreground">
+                <CalendarDays size={12} className="text-accent/80" />
+                {t('investments.form.purchaseDate', { defaultValue: 'Purchase date (optional)' })}
+              </label>
+              <input
+                type="date"
+                value={form.purchaseDate}
+                onChange={(e) => setForm({ ...form, purchaseDate: e.target.value })}
+                className="input-base w-full"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="block text-xs font-700 uppercase tracking-wide text-muted-foreground">
+                {t('investments.form.notes', { defaultValue: 'Notes (optional)' })}
+              </label>
+              <textarea
+                maxLength={1000}
+                rows={3}
+                value={form.notes}
+                onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                placeholder={t('investments.form.notesPlaceholder', {
+                  defaultValue: 'Ticker, location, quantity, or a quick reminder to yourself.',
+                })}
+                className="input-base w-full resize-y"
+              />
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      <ConfirmationModal
+        open={!!deleteInv}
+        tone="danger"
+        title={t('investments.deleteConfirm.title', { defaultValue: 'Delete investment?' })}
+        description={t('investments.deleteConfirm.description', {
+          defaultValue: 'This removes "{{name}}" and cannot be undone.',
+        })}
+        confirmLabel={t('investments.deleteConfirm.confirm', { defaultValue: 'Delete investment' })}
+        cancelLabel={t('common.actions.cancel', { defaultValue: 'Cancel' })}
+        pending={isDeleting}
+        onConfirm={() => void confirmDelete()}
+        onClose={() => {
+          if (!isDeleting) setDeleteInv(null);
+        }}
+      />
     </AppLayout>
   );
 }

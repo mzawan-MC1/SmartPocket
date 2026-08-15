@@ -6,6 +6,7 @@ import StatusBadge from '@/components/ui/StatusBadge';
 import EmptyState from '@/components/ui/EmptyState';
 import SearchField from '@/components/ui/SearchField';
 import FormattedCurrencyAmount from '@/components/currency/FormattedCurrencyAmount';
+import CurrencySelector from '@/components/CurrencySelector';
 import {
   RefreshCw,
   ArrowLeftRight,
@@ -435,25 +436,13 @@ export default function ExchangeRatesPage() {
               />
             </div>
             <div>
-              <label className="mb-1.5 block text-[11px] font-700 uppercase tracking-[0.04em] text-muted-foreground">
-                {t('exchangeRates.converter.fromLabel', { defaultValue: 'From' })}
-              </label>
-              <select
+              <CurrencySelector
                 value={fromCurrency}
-                onChange={(event) => setFromCurrency(event.target.value)}
-                className="input-base h-11 text-[13px] font-700"
-              >
-                {[...availableCurrencyCodes].sort().map((code) => (
-                  <option key={code} value={code}>
-                    {code} — {getCurrencyByCode(currencies, code)?.name || code}
-                  </option>
-                ))}
-                {fromCurrency && !availableCurrencyCodes.has(fromCurrency) ? (
-                  <option value={fromCurrency} disabled>
-                    {fromCurrency}
-                  </option>
-                ) : null}
-              </select>
+                onChange={setFromCurrency}
+                label={t('exchangeRates.converter.fromLabel', { defaultValue: 'From' })}
+                allowInactiveSelection
+                className=""
+              />
             </div>
             <div className="hidden md:flex md:justify-center md:pb-2">
               <button
@@ -468,25 +457,13 @@ export default function ExchangeRatesPage() {
               </button>
             </div>
             <div>
-              <label className="mb-1.5 block text-[11px] font-700 uppercase tracking-[0.04em] text-muted-foreground">
-                {t('exchangeRates.converter.toLabel', { defaultValue: 'To' })}
-              </label>
-              <select
+              <CurrencySelector
                 value={toCurrency}
-                onChange={(event) => setToCurrency(event.target.value)}
-                className="input-base h-11 text-[13px] font-700"
-              >
-                {[...availableCurrencyCodes].sort().map((code) => (
-                  <option key={code} value={code}>
-                    {code} — {getCurrencyByCode(currencies, code)?.name || code}
-                  </option>
-                ))}
-                {toCurrency && !availableCurrencyCodes.has(toCurrency) ? (
-                  <option value={toCurrency} disabled>
-                    {toCurrency}
-                  </option>
-                ) : null}
-              </select>
+                onChange={setToCurrency}
+                label={t('exchangeRates.converter.toLabel', { defaultValue: 'To' })}
+                allowInactiveSelection
+                className=""
+              />
             </div>
             <div>
               <label className="mb-1.5 block text-[11px] font-700 uppercase tracking-[0.04em] text-muted-foreground">
@@ -630,7 +607,7 @@ export default function ExchangeRatesPage() {
             </div>
           ) : (
             <div className="card-elevated rounded-[20px] border border-border/80 overflow-hidden">
-              <div className="hidden grid-cols-[auto_1fr_1fr_1fr] gap-2 border-b border-border/80 bg-muted/30 px-3 py-2 text-[10.5px] font-700 uppercase tracking-[0.05em] text-muted-foreground sm:grid">
+              <div className="hidden grid-cols-[auto_1fr_1fr_1fr] gap-2 border-b border-border/80 bg-muted/30 px-4 py-2.5 text-[10.5px] font-700 uppercase tracking-[0.05em] text-muted-foreground sm:grid">
                 <div>
                   {t('exchangeRates.table.colCode', { defaultValue: 'Code' })}
                 </div>
@@ -644,58 +621,72 @@ export default function ExchangeRatesPage() {
                   {t('exchangeRates.table.colInverse', { defaultValue: 'Inverse' })}
                 </div>
               </div>
-              <ul className="divide-y divide-border/70">
-                {rateTableRows.slice(0, 50).map((row) => (
+              <ul className="divide-y divide-border/60">
+                {rateTableRows.slice(0, 50).map((row, idx) => (
                   <li
                     key={row.code}
-                    className="grid grid-cols-2 gap-2 px-3 py-2.5 sm:grid-cols-[auto_1fr_1fr_1fr] sm:items-center sm:gap-2"
+                    className={`grid grid-cols-2 gap-2 px-3 py-3 transition-colors hover:bg-muted/20 sm:grid-cols-[auto_1fr_1fr_1fr] sm:items-center sm:gap-2 sm:px-4 sm:py-2.5 ${
+                      idx % 2 === 1 ? 'bg-muted/[0.035]' : ''
+                    }`}
                   >
-                    <div className="flex items-center gap-2">
-                      <div className="inline-flex h-8 w-8 items-center justify-center rounded-[10px] bg-sky-500/10 text-sky-700">
-                        <span className="text-[11px] font-800 tabular-nums">
+                    <div className="flex items-center gap-2.5">
+                      <div className="inline-flex h-9 w-9 items-center justify-center rounded-[10px] bg-gradient-to-br from-sky-500/12 to-indigo-500/10 text-sky-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)]">
+                        <span className="text-[11px] font-800 tabular-nums tracking-tight">
                           {row.code.slice(0, 2)}
                         </span>
                       </div>
-                      <span className="text-[13px] font-800 text-foreground sm:hidden">
-                        {row.code}
-                      </span>
+                      <div className="flex flex-col sm:hidden">
+                        <span className="text-[13px] font-800 text-foreground leading-none">
+                          {row.code}
+                        </span>
+                      </div>
                     </div>
                     <div className="min-w-0">
                       <p className="hidden truncate text-[13px] font-700 text-foreground sm:block">
-                        {row.code} — {row.name}
+                        <span className="inline-flex mr-1.5 px-1.5 py-0.5 rounded-md bg-muted/40 text-[11.5px] font-800 tracking-tight tabular-nums text-muted-foreground">
+                          {row.code}
+                        </span>
+                        {row.name}
                       </p>
-                      <p className="truncate text-[11.5px] text-muted-foreground sm:hidden">
+                      <p className="truncate text-[11.5px] text-muted-foreground leading-tight sm:hidden">
                         {row.name}
                       </p>
                     </div>
                     <div className="text-left sm:text-right">
-                      <p className="text-[12px] font-700 uppercase tracking-[0.04em] text-muted-foreground sm:hidden">
+                      <p className="text-[11px] font-700 uppercase tracking-[0.03em] text-muted-foreground/80 sm:hidden">
                         {t('exchangeRates.table.colRate', {
                           defaultValue: '1 {{code}} buys',
                           code: defaultCurrencyCode,
                         })}
                       </p>
                       <p className="text-[13.5px] font-800 font-tabular text-foreground">
-                        {row.rateAgainstDefault.toFixed(6)} {row.code}
+                        <span className="text-foreground/95">{row.rateAgainstDefault.toFixed(4)}</span>
+                        <span className="ml-1 text-[11.5px] font-700 text-muted-foreground">
+                          {row.code}
+                        </span>
                       </p>
                     </div>
                     <div className="text-left sm:text-right">
-                      <p className="text-[12px] font-700 uppercase tracking-[0.04em] text-muted-foreground sm:hidden">
+                      <p className="text-[11px] font-700 uppercase tracking-[0.03em] text-muted-foreground/80 sm:hidden">
                         {t('exchangeRates.table.colInverse', { defaultValue: 'Inverse' })}
                       </p>
-                      <p className="text-[13px] font-700 font-tabular text-muted-foreground">
-                        1 {row.code} ={' '}
-                        {row.rateAgainstDefault > 0
-                          ? (1 / row.rateAgainstDefault).toFixed(6)
-                          : '—'}{' '}
-                        {defaultCurrencyCode}
+                      <p className="rounded-md inline-flex sm:block px-0 sm:px-0 bg-transparent text-[12.5px] font-700 font-tabular text-muted-foreground">
+                        <span className="sm:hidden mr-1 text-muted-foreground/80">1 {row.code} = </span>
+                        <span className="sm:hidden">
+                          {row.rateAgainstDefault > 0 ? (1 / row.rateAgainstDefault).toFixed(4) : '—'} {defaultCurrencyCode}
+                        </span>
+                        <span className="hidden sm:inline">
+                          1 {row.code} ={' '}
+                          {row.rateAgainstDefault > 0 ? (1 / row.rateAgainstDefault).toFixed(4) : '—'}{' '}
+                          <span className="text-foreground/60">{defaultCurrencyCode}</span>
+                        </span>
                       </p>
                     </div>
                   </li>
                 ))}
               </ul>
               {rateTableRows.length > 50 ? (
-                <div className="border-t border-border/70 bg-muted/20 px-3 py-2 text-[11px] text-muted-foreground">
+                <div className="border-t border-border/70 bg-muted/20 px-4 py-2 text-[11px] font-600 text-muted-foreground">
                   {t('exchangeRates.table.truncatedHint', {
                     shown: 50,
                     total: rateTableRows.length,

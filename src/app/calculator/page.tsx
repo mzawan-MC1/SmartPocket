@@ -134,9 +134,10 @@ function SavingsGoalCalculator({
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="space-y-2">
-          <label className="block text-xs font-600 uppercase tracking-wide text-muted-foreground">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+        <div className="space-y-1.5">
+          <label className="flex items-center gap-1.5 text-xs font-600 uppercase tracking-[0.04em] text-muted-foreground">
+            <Target size={12} className="text-accent" />
             {t('calculator.savings.targetAmount', { defaultValue: 'Target amount' })}
           </label>
           <input
@@ -149,8 +150,9 @@ function SavingsGoalCalculator({
             className="input-base w-full"
           />
         </div>
-        <div className="space-y-2">
-          <label className="block text-xs font-600 uppercase tracking-wide text-muted-foreground">
+        <div className="space-y-1.5">
+          <label className="flex items-center gap-1.5 text-xs font-600 uppercase tracking-[0.04em] text-muted-foreground">
+            <PiggyBank size={12} className="text-accent" />
             {t('calculator.savings.currentSaved', { defaultValue: 'Current saved' })}
           </label>
           <input
@@ -163,8 +165,9 @@ function SavingsGoalCalculator({
             className="input-base w-full"
           />
         </div>
-        <div className="space-y-2">
-          <label className="block text-xs font-600 uppercase tracking-wide text-muted-foreground">
+        <div className="space-y-1.5">
+          <label className="flex items-center gap-1.5 text-xs font-600 uppercase tracking-[0.04em] text-muted-foreground">
+            <CalendarDays size={12} className="text-accent" />
             {t('calculator.savings.monthlyContribution', { defaultValue: 'Monthly contribution' })}
           </label>
           <input
@@ -180,8 +183,8 @@ function SavingsGoalCalculator({
       </div>
 
       {target > 0 ? (
-        <div className="rounded-[22px] border border-border bg-gradient-to-br from-accent/5 via-card to-card p-5">
-          <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="rounded-[22px] border border-border bg-gradient-to-br from-accent/5 via-card to-card p-4 sm:p-5">
+          <div className="mb-4 flex items-center justify-between gap-3 flex-wrap">
             <div>
               <p className="text-[11px] font-700 uppercase tracking-[0.12em] text-accent">
                 {t('calculator.savings.progress', { defaultValue: 'Progress' })}
@@ -213,9 +216,9 @@ function SavingsGoalCalculator({
             />
           </div>
 
-          <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <div className="rounded-2xl border border-border bg-card p-3.5">
-              <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
+          <div className="mt-5 grid grid-cols-1 gap-2.5 sm:grid-cols-3 sm:gap-3">
+            <div className="rounded-2xl border border-border bg-card p-3 sm:p-3.5">
+              <p className="text-[11px] font-700 uppercase tracking-[0.04em] text-muted-foreground">
                 {t('calculator.savings.remaining', { defaultValue: 'Remaining' })}
               </p>
               <FormattedCurrencyAmount
@@ -224,8 +227,8 @@ function SavingsGoalCalculator({
                 className="mt-1 block text-[15px] font-800 text-foreground"
               />
             </div>
-            <div className="rounded-2xl border border-border bg-card p-3.5">
-              <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
+            <div className="rounded-2xl border border-border bg-card p-3 sm:p-3.5">
+              <p className="text-[11px] font-700 uppercase tracking-[0.04em] text-muted-foreground">
                 {t('calculator.savings.monthsNeeded', { defaultValue: 'Months needed' })}
               </p>
               <p className="mt-1 text-[15px] font-800 text-foreground">
@@ -236,8 +239,8 @@ function SavingsGoalCalculator({
                   : `${monthsNeeded} ${t('calculator.savings.months', { defaultValue: 'mo' })}`}
               </p>
             </div>
-            <div className="rounded-2xl border border-border bg-card p-3.5">
-              <div className="flex items-center gap-1.5 text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
+            <div className="rounded-2xl border border-border bg-card p-3 sm:p-3.5">
+              <div className="flex items-center gap-1.5 text-[11px] font-700 uppercase tracking-[0.04em] text-muted-foreground">
                 <CalendarDays size={12} className="text-accent" />
                 {t('calculator.savings.targetDate', { defaultValue: 'Target date' })}
               </div>
@@ -291,9 +294,10 @@ function BudgetCalculator({
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="space-y-2">
-          <label className="block text-xs font-600 uppercase tracking-wide text-muted-foreground">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+        <div className="space-y-1.5">
+          <label className="flex items-center gap-1.5 text-xs font-600 uppercase tracking-[0.04em] text-muted-foreground">
+            <DollarSign size={12} className="text-emerald-600" />
             {t('calculator.budget.income', { defaultValue: 'Monthly income' })}
           </label>
           <input
@@ -306,8 +310,9 @@ function BudgetCalculator({
             className="input-base w-full"
           />
         </div>
-        <div className="space-y-2">
-          <label className="block text-xs font-600 uppercase tracking-wide text-muted-foreground">
+        <div className="space-y-1.5">
+          <label className="flex items-center gap-1.5 text-xs font-600 uppercase tracking-[0.04em] text-muted-foreground">
+            <Landmark size={12} className="text-rose-600" />
             {t('calculator.budget.expenses', { defaultValue: 'Monthly expenses' })}
           </label>
           <input
@@ -320,8 +325,9 @@ function BudgetCalculator({
             className="input-base w-full"
           />
         </div>
-        <div className="space-y-2">
-          <label className="block text-xs font-600 uppercase tracking-wide text-muted-foreground">
+        <div className="space-y-1.5">
+          <label className="flex items-center gap-1.5 text-xs font-600 uppercase tracking-[0.04em] text-muted-foreground">
+            <PiggyBank size={12} className="text-accent" />
             {t('calculator.budget.savingsTarget', { defaultValue: 'Savings target' })}
           </label>
           <input
@@ -337,7 +343,7 @@ function BudgetCalculator({
       </div>
 
       {income > 0 ? (
-        <div className="rounded-[22px] border border-border bg-gradient-to-br from-emerald-500/5 via-card to-card p-5">
+        <div className="rounded-[22px] border border-border bg-gradient-to-br from-emerald-500/5 via-card to-card p-4 sm:p-5">
           <div className="mb-4 flex items-center justify-between gap-3 flex-wrap">
             <div>
               <p className="text-[11px] font-700 uppercase tracking-[0.12em] text-emerald-600">
@@ -379,9 +385,9 @@ function BudgetCalculator({
             <span>{usagePct.toFixed(0)}%</span>
           </div>
 
-          <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-4">
-            <div className="rounded-2xl border border-border bg-card p-3.5">
-              <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
+          <div className="mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-4 sm:gap-3">
+            <div className="rounded-2xl border border-border bg-card p-3 sm:p-3.5">
+              <p className="text-[11px] font-700 uppercase tracking-[0.04em] text-muted-foreground">
                 {t('calculator.budget.expenses', { defaultValue: 'Expenses' })}
               </p>
               <FormattedCurrencyAmount
@@ -390,8 +396,8 @@ function BudgetCalculator({
                 className="mt-1 block text-[15px] font-800 text-foreground"
               />
             </div>
-            <div className="rounded-2xl border border-border bg-card p-3.5">
-              <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
+            <div className="rounded-2xl border border-border bg-card p-3 sm:p-3.5">
+              <p className="text-[11px] font-700 uppercase tracking-[0.04em] text-muted-foreground">
                 {t('calculator.budget.savingsTarget', { defaultValue: 'Savings' })}
               </p>
               <FormattedCurrencyAmount
@@ -400,8 +406,8 @@ function BudgetCalculator({
                 className="mt-1 block text-[15px] font-800 text-foreground"
               />
             </div>
-            <div className="rounded-2xl border border-border bg-card p-3.5">
-              <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
+            <div className="rounded-2xl border border-border bg-card p-3 sm:p-3.5">
+              <p className="text-[11px] font-700 uppercase tracking-[0.04em] text-muted-foreground">
                 {t('calculator.budget.allocated', { defaultValue: 'Allocated' })}
               </p>
               <FormattedCurrencyAmount
@@ -410,8 +416,8 @@ function BudgetCalculator({
                 className="mt-1 block text-[15px] font-800 text-foreground"
               />
             </div>
-            <div className="rounded-2xl border border-border bg-card p-3.5">
-              <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
+            <div className="rounded-2xl border border-border bg-card p-3 sm:p-3.5">
+              <p className="text-[11px] font-700 uppercase tracking-[0.04em] text-muted-foreground">
                 {t('calculator.budget.remaining', { defaultValue: 'Remaining' })}
               </p>
               <FormattedCurrencyAmount
@@ -468,10 +474,10 @@ function LoanCalculator({
 
   return (
     <div className="space-y-5">
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <div className="space-y-2">
-          <label className="flex items-center gap-1.5 text-xs font-600 uppercase tracking-wide text-muted-foreground">
-            <DollarSign size={12} className="text-accent" />
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+        <div className="space-y-1.5">
+          <label className="flex items-center gap-1.5 text-xs font-600 uppercase tracking-[0.04em] text-muted-foreground">
+            <DollarSign size={12} className="text-violet-600" />
             {t('calculator.loan.amount', { defaultValue: 'Loan amount' })}
           </label>
           <input
@@ -484,9 +490,9 @@ function LoanCalculator({
             className="input-base w-full"
           />
         </div>
-        <div className="space-y-2">
-          <label className="flex items-center gap-1.5 text-xs font-600 uppercase tracking-wide text-muted-foreground">
-            <Percent size={12} className="text-accent" />
+        <div className="space-y-1.5">
+          <label className="flex items-center gap-1.5 text-xs font-600 uppercase tracking-[0.04em] text-muted-foreground">
+            <Percent size={12} className="text-violet-600" />
             {t('calculator.loan.rate', { defaultValue: 'Annual interest (%)' })}
           </label>
           <input
@@ -499,9 +505,9 @@ function LoanCalculator({
             className="input-base w-full"
           />
         </div>
-        <div className="space-y-2">
-          <label className="flex items-center gap-1.5 text-xs font-600 uppercase tracking-wide text-muted-foreground">
-            <CalendarDays size={12} className="text-accent" />
+        <div className="space-y-1.5">
+          <label className="flex items-center gap-1.5 text-xs font-600 uppercase tracking-[0.04em] text-muted-foreground">
+            <CalendarDays size={12} className="text-violet-600" />
             {t('calculator.loan.term', { defaultValue: 'Term (months)' })}
           </label>
           <input
@@ -517,7 +523,7 @@ function LoanCalculator({
       </div>
 
       {P > 0 && n > 0 ? (
-        <div className="rounded-[22px] border border-border bg-gradient-to-br from-violet-500/5 via-card to-card p-5">
+        <div className="rounded-[22px] border border-border bg-gradient-to-br from-violet-500/5 via-card to-card p-4 sm:p-5">
           <div className="mb-4 flex items-center justify-between gap-3 flex-wrap">
             <div>
               <p className="text-[11px] font-700 uppercase tracking-[0.12em] text-violet-600">
@@ -535,9 +541,9 @@ function LoanCalculator({
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <div className="rounded-2xl border border-border bg-card p-3.5">
-              <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
+          <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 sm:gap-3">
+            <div className="rounded-2xl border border-border bg-card p-3 sm:p-3.5">
+              <p className="text-[11px] font-700 uppercase tracking-[0.04em] text-muted-foreground">
                 {t('calculator.loan.principal', { defaultValue: 'Principal' })}
               </p>
               <FormattedCurrencyAmount
@@ -546,8 +552,8 @@ function LoanCalculator({
                 className="mt-1 block text-[15px] font-800 text-foreground"
               />
             </div>
-            <div className="rounded-2xl border border-border bg-card p-3.5">
-              <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
+            <div className="rounded-2xl border border-border bg-card p-3 sm:p-3.5">
+              <p className="text-[11px] font-700 uppercase tracking-[0.04em] text-muted-foreground">
                 {t('calculator.loan.totalInterest', { defaultValue: 'Total interest' })}
                 <span className="ml-1.5 rounded-full bg-muted/60 px-1.5 py-0.5 text-[10px] font-700">
                   {interestPct.toFixed(1)}%
@@ -559,8 +565,8 @@ function LoanCalculator({
                 className="mt-1 block text-[15px] font-800 text-amber-600"
               />
             </div>
-            <div className="rounded-2xl border border-border bg-card p-3.5">
-              <p className="text-[11px] font-700 uppercase tracking-wide text-muted-foreground">
+            <div className="col-span-2 rounded-2xl border border-border bg-card p-3 sm:col-span-1 sm:p-3.5">
+              <p className="text-[11px] font-700 uppercase tracking-[0.04em] text-muted-foreground">
                 {t('calculator.loan.totalRepaid', { defaultValue: 'Total repaid' })}
               </p>
               <FormattedCurrencyAmount
@@ -725,7 +731,7 @@ function CurrencyConverterTab({
 
   return (
     <div className="space-y-5">
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-muted/30 px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-muted/30 px-3.5 py-2.5 sm:px-4 sm:py-3">
         <div className="flex flex-wrap items-center gap-2.5 text-xs font-600">
           <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 ${tone}`}>
             <FreshnessIcon size={13} />
@@ -758,10 +764,11 @@ function CurrencyConverterTab({
         </button>
       </div>
 
-      <div className="rounded-[22px] border border-border bg-card p-5">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-[1.2fr_1fr_auto_1fr_1.2fr] md:items-end">
-          <div className="space-y-2">
-            <label className="block text-xs font-600 uppercase tracking-wide text-muted-foreground">
+      <div className="rounded-[22px] border border-border bg-card p-4 sm:p-5">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-[1.2fr_1fr_auto_1fr_1.2fr] md:items-end md:gap-4">
+          <div className="space-y-1.5 sm:col-span-2 md:col-span-1">
+            <label className="flex items-center gap-1.5 text-xs font-600 uppercase tracking-[0.04em] text-muted-foreground">
+              <DollarSign size={12} className="text-accent" />
               {t('exchangeRates.converter.amount', { defaultValue: 'Amount' })}
             </label>
             <input
@@ -773,8 +780,8 @@ function CurrencyConverterTab({
               className="input-base w-full"
             />
           </div>
-          <div className="space-y-2">
-            <label className="block text-xs font-600 uppercase tracking-wide text-muted-foreground">
+          <div className="space-y-1.5">
+            <label className="block text-xs font-600 uppercase tracking-[0.04em] text-muted-foreground">
               {t('exchangeRates.converter.from', { defaultValue: 'From' })}
             </label>
             <select
@@ -807,8 +814,8 @@ function CurrencyConverterTab({
               <ArrowRightLeft size={17} />
             </button>
           </div>
-          <div className="space-y-2">
-            <label className="block text-xs font-600 uppercase tracking-wide text-muted-foreground">
+          <div className="space-y-1.5">
+            <label className="block text-xs font-600 uppercase tracking-[0.04em] text-muted-foreground">
               {t('exchangeRates.converter.to', { defaultValue: 'To' })}
             </label>
             <select
@@ -831,8 +838,8 @@ function CurrencyConverterTab({
               )}
             </select>
           </div>
-          <div className="space-y-2">
-            <label className="block text-xs font-600 uppercase tracking-wide text-muted-foreground">
+          <div className="space-y-1.5 sm:col-span-2 md:col-span-1">
+            <label className="block text-xs font-600 uppercase tracking-[0.04em] text-muted-foreground">
               {t('exchangeRates.converter.result', { defaultValue: 'Result' })}
             </label>
             <div className="input-base flex flex-col justify-center overflow-hidden">
