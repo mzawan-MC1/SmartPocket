@@ -36,6 +36,14 @@ export function hasSubscriptionFeature(
       return entitlements.standardReports;
     case 'family_reports':
       return entitlements.familyReports;
+    case 'savings':
+      return entitlements.savings;
+    case 'investments':
+      return entitlements.investments;
+    case 'exchange_rates':
+      return entitlements.exchangeRates;
+    case 'calculator':
+      return entitlements.calculator;
     default:
       return false;
   }

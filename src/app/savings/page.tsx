@@ -1,6 +1,7 @@
 'use client';
 import React, { useEffect, useMemo, useState } from 'react';
 import AppLayout from '@/components/AppLayout';
+import SubscriptionFeatureGate from '@/components/subscription/SubscriptionFeatureGate';
 import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
 import EmptyState from '@/components/ui/EmptyState';
@@ -331,7 +332,8 @@ export default function SavingsPage() {
 
   const [deleteGoal, setDeleteGoal] = useState<SavingsGoalRecord | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [actionsOpenFor, setActionsOpenFor] = useState<string | null>(null);
+  const [actionsOpenFor, setActionsOpenFor] = useState<{ id: string; rect: { top: number; right: number; bottom: number; left: number; width: number; height: number } } | null>(null);
+  const actionsButtonRefs = React.useRef<Record<string, HTMLButtonElement | null>>({});
 
   useEffect(() => {
     if (!user) {
@@ -561,7 +563,8 @@ export default function SavingsPage() {
 
   return (
     <AppLayout activeRoute="/savings" hideMobileFooter>
-      <div className="page-section page-shell-readable max-w-[1180px]">
+      <SubscriptionFeatureGate feature="savings">
+        <div className="page-section page-shell-readable max-w-[1180px]">
         <PageHeader
           title={t('savings.title', { defaultValue: 'Savings' })}
           description={t(
@@ -707,7 +710,7 @@ export default function SavingsPage() {
           </div>
 
           {loading ? (
-            <div className="grid grid-cols-1 gap-3 p-5 md:grid-cols-2 xl:grid-cols-3 max-[480px]:p-4">
+            <div className="grid grid-cols-1 gap-4 p-5 md:grid-cols-2 max-[480px]:p-4">
               {[0, 1, 2].map((i) => (
                 <div key={i} className="h-52 w-full animate-pulse rounded-[22px] bg-muted/40" />
               ))}
@@ -730,9 +733,9 @@ export default function SavingsPage() {
               />
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-3 p-5 md:grid-cols-2 xl:grid-cols-3 max-[480px]:p-4">
+            <div className="grid grid-cols-1 gap-4 p-5 md:grid-cols-2 max-[480px]:p-4">
               {goals.map((goal) => {
-                const actionsOpen = actionsOpenFor === goal.id;
+                const actionsOpen = actionsOpenFor?.id === goal.id;
                 return (
                   <div key={goal.id} className="flex flex-col overflow-hidden rounded-[22px] border border-border bg-gradient-to-br from-card via-card to-muted/20">
                     <GoalCardHeader goal={goal} locale={locale} />
@@ -745,31 +748,59 @@ export default function SavingsPage() {
                         <PlusCircle size={13} />
                         {t('savings.goals.addContribution', { defaultValue: 'Add contribution' })}
                       </button>
-                      <div className="relative">
+                      <div>
                         <button
                           type="button"
-                          onClick={() => setActionsOpenFor(actionsOpen ? null : goal.id)}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground transition hover:bg-muted/50 hover:text-foreground"
+                          ref={(node) => { actionsButtonRefs.current[goal.id] = node; }}
+                          onClick={(event) => {
+                            if (actionsOpen) {
+                              setActionsOpenFor(null);
+                              return;
+                            }
+                            const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+                            setActionsOpenFor({ id: goal.id, rect: rect.toJSON() });
+                          }}
+                          className="relative z-40 inline-flex h-8 w-8 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground transition hover:bg-muted/50 hover:text-foreground"
+                          aria-haspopup="menu"
+                          aria-expanded={actionsOpen}
                           aria-label={t('savings.goals.actions', { defaultValue: 'Goal actions' })}
                         >
                           <MoreHorizontal size={15} />
                         </button>
-                        {actionsOpen && (
+                        {actionsOpen && actionsOpenFor && (
                           <>
-                            <div className="fixed inset-0 z-30" onClick={() => setActionsOpenFor(null)} />
-                            <div className={`absolute z-40 mt-1.5 w-40 overflow-hidden rounded-2xl border border-border bg-card shadow-card-lg ${isRTL ? 'left-0' : 'right-0'}`}>
+                            <div
+                              className="fixed inset-0 z-[70]"
+                              onClick={() => setActionsOpenFor(null)}
+                              onContextMenu={(e) => { e.stopPropagation(); setActionsOpenFor(null); }}
+                            />
+                            <div
+                              className={`fixed z-[71] w-44 overflow-hidden rounded-2xl border border-border bg-card shadow-card-lg ${
+                                isRTL ? 'end-2' : 'start-2'
+                              }`}
+                              style={{
+                                top: `${actionsOpenFor.rect.bottom + 6}px`,
+                                ...(isRTL
+                                  ? { right: `${Math.max(8, actionsOpenFor.rect.right - actionsOpenFor.rect.width + 8)}px`, left: 'auto' }
+                                  : { left: `${Math.max(8, actionsOpenFor.rect.right - 176)}px`, right: 'auto' }),
+                                maxWidth: `calc(100vw - 16px)`,
+                              }}
+                              role="menu"
+                            >
                               <button
                                 type="button"
-                                onClick={() => openEditGoal(goal)}
-                                className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12.5px] font-700 text-foreground transition hover:bg-muted/40"
+                                role="menuitem"
+                                onClick={() => { setActionsOpenFor(null); openEditGoal(goal); }}
+                                className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-[12.5px] font-700 text-foreground transition hover:bg-muted/40"
                               >
                                 <Edit2 size={14} />
                                 {t('savings.goals.edit', { defaultValue: 'Edit' })}
                               </button>
                               <button
                                 type="button"
-                                onClick={() => openDelete(goal)}
-                                className="flex w-full items-center gap-2 border-t border-border/60 px-3 py-2 text-left text-[12.5px] font-700 text-rose-600 transition hover:bg-rose-500/10"
+                                role="menuitem"
+                                onClick={() => { setActionsOpenFor(null); openDelete(goal); }}
+                                className="flex w-full items-center gap-2 border-t border-border/60 px-3.5 py-2.5 text-left text-[12.5px] font-700 text-rose-600 transition hover:bg-rose-500/10"
                               >
                                 <Trash2 size={14} />
                                 {t('savings.goals.delete', { defaultValue: 'Delete' })}
@@ -1069,6 +1100,7 @@ export default function SavingsPage() {
           if (!isDeleting) setDeleteGoal(null);
         }}
       />
+      </SubscriptionFeatureGate>
     </AppLayout>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 import React, { useEffect, useMemo, useState } from 'react';
 import AppLayout from '@/components/AppLayout';
+import SubscriptionFeatureGate from '@/components/subscription/SubscriptionFeatureGate';
 import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
 import EmptyState from '@/components/ui/EmptyState';
@@ -192,7 +193,8 @@ export default function InvestmentsPage() {
 
   const [deleteInv, setDeleteInv] = useState<ManualInvestmentRecord | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [actionsOpenFor, setActionsOpenFor] = useState<string | null>(null);
+  const [actionsOpenFor, setActionsOpenFor] = useState<{ id: string; rect: { top: number; right: number; bottom: number; left: number; width: number; height: number } } | null>(null);
+  const actionsButtonRefs = React.useRef<Record<string, HTMLButtonElement | null>>({});
 
   useEffect(() => {
     if (!user) {
@@ -369,7 +371,8 @@ export default function InvestmentsPage() {
 
   return (
     <AppLayout activeRoute="/investments" hideMobileFooter>
-      <div className="page-section page-shell-readable max-w-[1180px]">
+      <SubscriptionFeatureGate feature="investments">
+        <div className="page-section page-shell-readable max-w-[1180px]">
         <PageHeader
           title={t('investments.title', { defaultValue: 'Investments' })}
           description={t('investments.description', {
@@ -675,7 +678,7 @@ export default function InvestmentsPage() {
                         const rDelta = rCurrent - rInvested;
                         const rPct = rInvested > 0 ? (rDelta / rInvested) * 100 : 0;
                         const rPositive = rDelta >= 0;
-                        const actionsOpen = actionsOpenFor === r.id;
+                        const actionsOpen = actionsOpenFor?.id === r.id;
                         return (
                           <div key={r.id} className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-3.5">
                             <div className="flex items-start justify-between gap-2">
@@ -695,31 +698,59 @@ export default function InvestmentsPage() {
                                   ) : null}
                                 </div>
                               </div>
-                              <div className="relative">
+                              <div>
                                 <button
                                   type="button"
-                                  onClick={() => setActionsOpenFor(actionsOpen ? null : r.id)}
-                                  className="inline-flex h-8 w-8 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground transition hover:bg-muted/50 hover:text-foreground"
+                                  ref={(node) => { actionsButtonRefs.current[r.id] = node; }}
+                                  onClick={(event) => {
+                                    if (actionsOpen) {
+                                      setActionsOpenFor(null);
+                                      return;
+                                    }
+                                    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+                                    setActionsOpenFor({ id: r.id, rect: rect.toJSON() });
+                                  }}
+                                  className="relative z-40 inline-flex h-8 w-8 items-center justify-center rounded-xl border border-border bg-card text-muted-foreground transition hover:bg-muted/50 hover:text-foreground"
+                                  aria-haspopup="menu"
+                                  aria-expanded={actionsOpen}
                                   aria-label={t('investments.holding.actions', { defaultValue: 'Investment actions' })}
                                 >
                                   <MoreHorizontal size={15} />
                                 </button>
-                                {actionsOpen && (
+                                {actionsOpen && actionsOpenFor && (
                                   <>
-                                    <div className="fixed inset-0 z-30" onClick={() => setActionsOpenFor(null)} />
-                                    <div className={`absolute z-40 mt-1.5 w-36 overflow-hidden rounded-2xl border border-border bg-card shadow-card-lg ${isRTL ? 'left-0' : 'right-0'}`}>
+                                    <div
+                                      className="fixed inset-0 z-[70]"
+                                      onClick={() => setActionsOpenFor(null)}
+                                      onContextMenu={(e) => { e.stopPropagation(); setActionsOpenFor(null); }}
+                                    />
+                                    <div
+                                      className={`fixed z-[71] w-40 overflow-hidden rounded-2xl border border-border bg-card shadow-card-lg ${
+                                        isRTL ? 'end-2' : 'start-2'
+                                      }`}
+                                      style={{
+                                        top: `${actionsOpenFor.rect.bottom + 6}px`,
+                                        ...(isRTL
+                                          ? { right: `${Math.max(8, actionsOpenFor.rect.right - actionsOpenFor.rect.width + 8)}px`, left: 'auto' }
+                                          : { left: `${Math.max(8, actionsOpenFor.rect.right - 160)}px`, right: 'auto' }),
+                                        maxWidth: `calc(100vw - 16px)`,
+                                      }}
+                                      role="menu"
+                                    >
                                       <button
                                         type="button"
-                                        onClick={() => openEdit(r)}
-                                        className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12.5px] font-700 text-foreground transition hover:bg-muted/40"
+                                        role="menuitem"
+                                        onClick={() => { setActionsOpenFor(null); openEdit(r); }}
+                                        className="flex w-full items-center gap-2 px-3.5 py-2.5 text-left text-[12.5px] font-700 text-foreground transition hover:bg-muted/40"
                                       >
                                         <Edit2 size={14} />
                                         {t('investments.holding.edit', { defaultValue: 'Edit' })}
                                       </button>
                                       <button
                                         type="button"
-                                        onClick={() => openDelete(r)}
-                                        className="flex w-full items-center gap-2 border-t border-border/60 px-3 py-2 text-left text-[12.5px] font-700 text-rose-600 transition hover:bg-rose-500/10"
+                                        role="menuitem"
+                                        onClick={() => { setActionsOpenFor(null); openDelete(r); }}
+                                        className="flex w-full items-center gap-2 border-t border-border/60 px-3.5 py-2.5 text-left text-[12.5px] font-700 text-rose-600 transition hover:bg-rose-500/10"
                                       >
                                         <Trash2 size={14} />
                                         {t('investments.holding.delete', { defaultValue: 'Delete' })}
@@ -927,6 +958,7 @@ export default function InvestmentsPage() {
           if (!isDeleting) setDeleteInv(null);
         }}
       />
+      </SubscriptionFeatureGate>
     </AppLayout>
   );
 }

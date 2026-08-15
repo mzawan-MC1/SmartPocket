@@ -32,6 +32,14 @@ function getFeatureTranslationKey(feature: SubscriptionFeatureCode) {
       return 'standardReports';
     case 'family_reports':
       return 'familyReports';
+    case 'savings':
+      return 'savings';
+    case 'investments':
+      return 'investments';
+    case 'exchange_rates':
+      return 'exchangeRates';
+    case 'calculator':
+      return 'calculator';
     default:
       return 'textAi';
   }
@@ -55,6 +63,14 @@ function planSupportsFeature(plan: PublicSubscriptionPlan, feature: Subscription
       return plan.standardReportsEnabled;
     case 'family_reports':
       return plan.familyReportsEnabled;
+    case 'savings':
+      return plan.savingsEnabled;
+    case 'investments':
+      return plan.investmentsEnabled;
+    case 'exchange_rates':
+      return plan.exchangeRatesEnabled;
+    case 'calculator':
+      return plan.calculatorEnabled;
     default:
       return false;
   }

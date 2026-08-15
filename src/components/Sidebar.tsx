@@ -34,6 +34,7 @@ type NavItem = {
   icon: React.ComponentType<{ size?: number; className?: string }>;
   href: string;
   restrictionBadge?: 'upgrade' | 'family';
+  newBadge?: boolean;
 };
 
 type SectionHeading = {
@@ -67,10 +68,18 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
   const managedPeopleAccess = getSubscriptionFeatureAccess(summary, subscriptionLoading, 'managed_people');
   const sharedSpacesAccess = getSubscriptionFeatureAccess(summary, subscriptionLoading, 'shared_spaces');
   const standardReportsAccess = getSubscriptionFeatureAccess(summary, subscriptionLoading, 'standard_reports');
+  const savingsAccess = getSubscriptionFeatureAccess(summary, subscriptionLoading, 'savings');
+  const investmentsAccess = getSubscriptionFeatureAccess(summary, subscriptionLoading, 'investments');
+  const exchangeRatesAccess = getSubscriptionFeatureAccess(summary, subscriptionLoading, 'exchange_rates');
+  const calculatorAccess = getSubscriptionFeatureAccess(summary, subscriptionLoading, 'calculator');
   const canUseAiHistory = aiHistoryAccess === 'allowed';
   const canUseManagedPeople = managedPeopleAccess === 'allowed';
   const canUseSharedSpaces = sharedSpacesAccess === 'allowed';
   const canUseStandardReports = standardReportsAccess === 'allowed';
+  const canUseSavings = savingsAccess === 'allowed';
+  const canUseInvestments = investmentsAccess === 'allowed';
+  const canUseExchangeRates = exchangeRatesAccess === 'allowed';
+  const canUseCalculator = calculatorAccess === 'allowed';
   const shouldShowRestrictedUi = (state: SubscriptionFeatureAccessState) => state === 'restricted';
   const getRestrictionBadgeLabel = React.useCallback((badge: 'upgrade' | 'family') => (
     badge === 'family'
@@ -152,8 +161,22 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
         icon: TrendingUp,
       },
       items: [
-        { id: 'nav-savings', label: t('sidebar.nav.savings', { ns: 'portal', defaultValue: 'Savings' }), icon: PiggyBank, href: '/savings' },
-        { id: 'nav-investments', label: t('sidebar.nav.investments', { ns: 'portal', defaultValue: 'Investments' }), icon: TrendingUp, href: '/investments' },
+        {
+          id: 'nav-savings',
+          label: t('sidebar.nav.savings', { ns: 'portal', defaultValue: 'Savings' }),
+          icon: PiggyBank,
+          href: '/savings',
+          restrictionBadge: shouldShowRestrictedUi(savingsAccess) ? ('upgrade' as const) : undefined,
+          newBadge: !shouldShowRestrictedUi(savingsAccess),
+        },
+        {
+          id: 'nav-investments',
+          label: t('sidebar.nav.investments', { ns: 'portal', defaultValue: 'Investments' }),
+          icon: TrendingUp,
+          href: '/investments',
+          restrictionBadge: shouldShowRestrictedUi(investmentsAccess) ? ('upgrade' as const) : undefined,
+          newBadge: !shouldShowRestrictedUi(investmentsAccess),
+        },
       ],
     },
     {
@@ -163,8 +186,22 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
       },
       items: [
         { id: 'nav-smart-ai', label: t('sidebar.nav.smartAi', { ns: 'portal', defaultValue: 'Smart AI Assistant' }), icon: Sparkles, href: '#' },
-        { id: 'nav-exchange-rates', label: t('sidebar.nav.exchangeRates', { ns: 'portal', defaultValue: 'Exchange Rates' }), icon: RefreshCw, href: '/exchange-rates' },
-        { id: 'nav-calculator', label: t('sidebar.nav.calculator', { ns: 'portal', defaultValue: 'Calculator' }), icon: Calculator, href: '/calculator' },
+        {
+          id: 'nav-exchange-rates',
+          label: t('sidebar.nav.exchangeRates', { ns: 'portal', defaultValue: 'Exchange Rates' }),
+          icon: RefreshCw,
+          href: '/exchange-rates',
+          restrictionBadge: shouldShowRestrictedUi(exchangeRatesAccess) ? ('upgrade' as const) : undefined,
+          newBadge: !shouldShowRestrictedUi(exchangeRatesAccess),
+        },
+        {
+          id: 'nav-calculator',
+          label: t('sidebar.nav.calculator', { ns: 'portal', defaultValue: 'Calculator' }),
+          icon: Calculator,
+          href: '/calculator',
+          restrictionBadge: shouldShowRestrictedUi(calculatorAccess) ? ('upgrade' as const) : undefined,
+          newBadge: !shouldShowRestrictedUi(calculatorAccess),
+        },
       ],
     },
     {
@@ -230,6 +267,7 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
       ? t('sidebar.lockedTooltip', { ns: 'portal', label: item.label, restriction: restrictionBadgeLabel })
       : item.label;
     const isSmartAiItem = item.id === 'nav-smart-ai';
+    const hasNewBadge = Boolean(item.newBadge) && !itemIsRestricted;
 
     return (
       <li key={item.id}>
@@ -287,6 +325,11 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
                   {restrictionBadgeLabel}
                 </span>
               ) : null}
+              {hasNewBadge ? (
+                <span className="inline-flex flex-shrink-0 items-center rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[9.5px] font-800 uppercase tracking-[0.14em] text-emerald-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.4)]">
+                  New
+                </span>
+              ) : null}
               {pending ? <Loader2 size={13} className="animate-spin flex-shrink-0 text-accent" /> : null}
             </span>
           )}
@@ -297,6 +340,9 @@ export default function Sidebar({ collapsed, onToggle, activeRoute, onNavigateIt
             <span className="absolute end-0 top-0 inline-flex h-4 w-4 items-center justify-center rounded-full bg-white text-muted-foreground ring-1 ring-border/90 z-10">
               <Lock size={9} />
             </span>
+          ) : null}
+          {collapsed && hasNewBadge ? (
+            <span className="absolute end-0 top-0 z-10 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-card shadow-[0_0_0_1px_rgba(16,185,129,0.35)]" />
           ) : null}
           {collapsed && (
             <span className={`pointer-events-none absolute z-50 whitespace-nowrap rounded-md bg-foreground px-2.5 py-1.5 text-xs font-500 text-card opacity-0 shadow-card-md transition-opacity duration-150 group-hover:opacity-100 ${isRTL ? 'right-full me-3' : 'left-full ms-3'}`}>

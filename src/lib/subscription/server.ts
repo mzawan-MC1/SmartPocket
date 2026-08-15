@@ -60,6 +60,10 @@ type RawPlanRow = {
   shared_spaces_enabled: boolean | null;
   standard_reports_enabled: boolean | null;
   family_reports_enabled: boolean | null;
+  savings_enabled: boolean | null;
+  investments_enabled: boolean | null;
+  exchange_rates_enabled: boolean | null;
+  calculator_enabled: boolean | null;
   is_active: boolean | null;
   display_order: number | null;
 };
@@ -151,6 +155,10 @@ const EMPTY_SUBSCRIPTION_SUMMARY: SubscriptionSummary = {
   sharedSpacesEnabled: false,
   standardReportsEnabled: false,
   familyReportsEnabled: false,
+  savingsEnabled: false,
+  investmentsEnabled: false,
+  exchangeRatesEnabled: false,
+  calculatorEnabled: false,
   creditsAllocated: 0,
   creditsConsumed: 0,
   creditsReserved: 0,
@@ -207,6 +215,10 @@ const EMPTY_SUBSCRIPTION_SUMMARY: SubscriptionSummary = {
     sharedSpaces: false,
     standardReports: false,
     familyReports: false,
+    savings: false,
+    investments: false,
+    exchangeRates: false,
+    calculator: false,
     aiHistoryRetentionDays: 0,
   },
 };
@@ -269,6 +281,14 @@ function featureEnabled(summary: SubscriptionSummary, feature: SubscriptionFeatu
       return Boolean(summary.standardReportsEnabled);
     case 'family_reports':
       return Boolean(summary.familyReportsEnabled);
+    case 'savings':
+      return Boolean(summary.savingsEnabled);
+    case 'investments':
+      return Boolean(summary.investmentsEnabled);
+    case 'exchange_rates':
+      return Boolean(summary.exchangeRatesEnabled);
+    case 'calculator':
+      return Boolean(summary.calculatorEnabled);
     default:
       return false;
   }
@@ -342,6 +362,10 @@ function buildEntitlements(summary: SubscriptionSummary) {
     sharedSpaces: Boolean(summary.sharedSpacesEnabled) && isSubscriptionActive(summary),
     standardReports: Boolean(summary.standardReportsEnabled) && isSubscriptionActive(summary),
     familyReports: Boolean(summary.familyReportsEnabled) && isSubscriptionActive(summary),
+    savings: Boolean(summary.savingsEnabled) && isSubscriptionActive(summary),
+    investments: Boolean(summary.investmentsEnabled) && isSubscriptionActive(summary),
+    exchangeRates: Boolean(summary.exchangeRatesEnabled) && isSubscriptionActive(summary),
+    calculator: Boolean(summary.calculatorEnabled) && isSubscriptionActive(summary),
     aiHistoryRetentionDays: Math.max(0, summary.aiHistoryRetentionDays ?? 0),
   };
 }
@@ -520,6 +544,10 @@ function normalizePlan(
     sharedSpacesEnabled: Boolean(row.shared_spaces_enabled),
     standardReportsEnabled: Boolean(row.standard_reports_enabled),
     familyReportsEnabled: Boolean(row.family_reports_enabled),
+    savingsEnabled: Boolean(row.savings_enabled),
+    investmentsEnabled: Boolean(row.investments_enabled),
+    exchangeRatesEnabled: Boolean(row.exchange_rates_enabled),
+    calculatorEnabled: Boolean(row.calculator_enabled),
     isActive: Boolean(row.is_active),
     displayOrder: row.display_order ?? 0,
     featureLimits: featureLimits
@@ -716,6 +744,10 @@ async function loadSummaryForUser(userId: string): Promise<SubscriptionSummary> 
         shared_spaces_enabled,
         standard_reports_enabled,
         family_reports_enabled,
+        savings_enabled,
+        investments_enabled,
+        exchange_rates_enabled,
+        calculator_enabled,
         is_active,
         display_order
       )
@@ -863,6 +895,10 @@ async function loadSummaryForUser(userId: string): Promise<SubscriptionSummary> 
     sharedSpacesEnabled: Boolean(planRow.shared_spaces_enabled),
     standardReportsEnabled: Boolean(planRow.standard_reports_enabled),
     familyReportsEnabled: Boolean(planRow.family_reports_enabled),
+    savingsEnabled: Boolean(planRow.savings_enabled),
+    investmentsEnabled: Boolean(planRow.investments_enabled),
+    exchangeRatesEnabled: Boolean(planRow.exchange_rates_enabled),
+    calculatorEnabled: Boolean(planRow.calculator_enabled),
     planActive,
     subscriptionActive,
     trialExpired,

@@ -1,6 +1,7 @@
 'use client';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import AppLayout from '@/components/AppLayout';
+import SubscriptionFeatureGate from '@/components/subscription/SubscriptionFeatureGate';
 import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
 import EmptyState from '@/components/ui/EmptyState';
@@ -291,7 +292,8 @@ export default function ExchangeRatesPage() {
 
   return (
     <AppLayout activeRoute="/exchange-rates" hideMobileFooter>
-      <div className="page-section max-[480px]:gap-2.5">
+      <SubscriptionFeatureGate feature="exchange_rates">
+        <div className="page-section max-[480px]:gap-2.5">
         <PageHeader
           title={t('exchangeRates.title', { defaultValue: 'Exchange Rates' })}
           description={t('exchangeRates.description', {
@@ -698,7 +700,8 @@ export default function ExchangeRatesPage() {
             </div>
           )}
         </div>
-      </div>
+        </div>
+      </SubscriptionFeatureGate>
     </AppLayout>
   );
 }

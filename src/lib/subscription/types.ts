@@ -18,7 +18,11 @@ export type SubscriptionFeatureCode =
   | 'managed_people'
   | 'shared_spaces'
   | 'standard_reports'
-  | 'family_reports';
+  | 'family_reports'
+  | 'savings'
+  | 'investments'
+  | 'exchange_rates'
+  | 'calculator';
 export type SubscriptionEntitlementErrorCode =
   | 'feature_not_in_plan'
   | 'plan_inactive'
@@ -72,6 +76,10 @@ export interface SubscriptionEntitlements {
   sharedSpaces: boolean;
   standardReports: boolean;
   familyReports: boolean;
+  savings: boolean;
+  investments: boolean;
+  exchangeRates: boolean;
+  calculator: boolean;
   aiHistoryRetentionDays: number;
 }
 
@@ -231,6 +239,10 @@ export interface PublicSubscriptionPlan {
   sharedSpacesEnabled: boolean;
   standardReportsEnabled: boolean;
   familyReportsEnabled: boolean;
+  savingsEnabled: boolean;
+  investmentsEnabled: boolean;
+  exchangeRatesEnabled: boolean;
+  calculatorEnabled: boolean;
   isActive: boolean;
   displayOrder: number;
   featureLimits: SubscriptionFeatureLimit[];
@@ -278,6 +290,10 @@ export interface SubscriptionSummary {
   sharedSpacesEnabled?: boolean;
   standardReportsEnabled?: boolean;
   familyReportsEnabled?: boolean;
+  savingsEnabled?: boolean;
+  investmentsEnabled?: boolean;
+  exchangeRatesEnabled?: boolean;
+  calculatorEnabled?: boolean;
   planActive?: boolean;
   subscriptionActive?: boolean;
   trialExpired?: boolean;

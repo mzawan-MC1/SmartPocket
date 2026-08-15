@@ -1,6 +1,7 @@
 'use client';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import AppLayout from '@/components/AppLayout';
+import SubscriptionFeatureGate from '@/components/subscription/SubscriptionFeatureGate';
 import PageHeader from '@/components/ui/PageHeader';
 import StatusBadge from '@/components/ui/StatusBadge';
 import EmptyState from '@/components/ui/EmptyState';
@@ -931,7 +932,8 @@ export default function CalculatorPage() {
 
   return (
     <AppLayout activeRoute="/calculator">
-      <div className="page-section page-shell-readable max-w-[1100px]">
+      <SubscriptionFeatureGate feature="calculator">
+        <div className="page-section page-shell-readable max-w-[1100px]">
         <PageHeader
           title={t('calculator.title', { defaultValue: 'Calculator' })}
           description={t('calculator.description', {
@@ -980,7 +982,8 @@ export default function CalculatorPage() {
               'Estimates only — results are for quick reference and do not constitute financial advice.',
           })}
         </div>
-      </div>
+        </div>
+      </SubscriptionFeatureGate>
     </AppLayout>
   );
 }
