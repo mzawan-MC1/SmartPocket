@@ -110,9 +110,9 @@ function SavingsGoalCalculator({
   t: (key: string, options?: { defaultValue?: string }) => string;
   locale: string;
 }) {
-  const [targetAmount, setTargetAmount] = useState('');
-  const [currentSaved, setCurrentSaved] = useState('');
-  const [monthlyContribution, setMonthlyContribution] = useState('');
+  const [targetAmount, setTargetAmount] = useState('10000');
+  const [currentSaved, setCurrentSaved] = useState('2500');
+  const [monthlyContribution, setMonthlyContribution] = useState('300');
 
   const target = parseNumber(targetAmount);
   const saved = parseNumber(currentSaved);
@@ -276,9 +276,9 @@ function BudgetCalculator({
   defaultCurrencyCode: string;
   t: (key: string, options?: { defaultValue?: string }) => string;
 }) {
-  const [monthlyIncome, setMonthlyIncome] = useState('');
-  const [expenses, setExpenses] = useState('');
-  const [savingsTarget, setSavingsTarget] = useState('');
+  const [monthlyIncome, setMonthlyIncome] = useState('5000');
+  const [expenses, setExpenses] = useState('3200');
+  const [savingsTarget, setSavingsTarget] = useState('800');
 
   const income = parseNumber(monthlyIncome);
   const exp = parseNumber(expenses);
@@ -446,9 +446,9 @@ function LoanCalculator({
   defaultCurrencyCode: string;
   t: (key: string, options?: { defaultValue?: string }) => string;
 }) {
-  const [loanAmount, setLoanAmount] = useState('');
-  const [interestRate, setInterestRate] = useState('');
-  const [months, setMonths] = useState('');
+  const [loanAmount, setLoanAmount] = useState('25000');
+  const [interestRate, setInterestRate] = useState('6.5');
+  const [months, setMonths] = useState('60');
 
   const P = parseNumber(loanAmount);
   const annualPct = parseNumber(interestRate);
