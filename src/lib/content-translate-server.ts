@@ -162,6 +162,15 @@ async function callOpenRouterTranslation(
   fields: Record<string, string>,
   timeoutMs: number
 ): Promise<{ fieldsOut: Record<string, string> | null; failure: TranslationFailure | null }> {
+  if (process.env.OPENROUTER_ENABLED !== 'true') {
+    return {
+      fieldsOut: null,
+      failure: {
+        stage: 'provider_request_failed',
+        safeMessage: 'OpenRouter provider is disabled. Set OPENROUTER_ENABLED=true to enable content translation.',
+      },
+    };
+  }
   const model = attempt.model;
   if (Object.keys(fields).length === 0) {
     writeAttemptLog({

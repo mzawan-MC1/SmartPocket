@@ -7,6 +7,7 @@ import {
   validateParsedInstruction,
   safeParseJSON,
   FINANCIAL_SYSTEM_PROMPT,
+  normalizeParsedInstructionDefaults,
 } from './ai-types';
 import { createClientId } from './uuid';
 import { getOpenRouterAudioFormat, normalizeVoiceAudioMimeType } from './voice-ai';
@@ -17,6 +18,8 @@ import {
   type TransactionDocumentErrorCode,
   type TransactionDocumentExtraction,
 } from './transaction-documents';
+import { getGeminiClient } from './gemini-client';
+import { getAIConfig } from './ai-provider-config';
 
 export interface TransactionDocumentAIRequest {
   fileName: string;
@@ -108,16 +111,30 @@ function getTransactionDocumentTimeoutMs() {
 }
 
 function getTransactionDocumentMaxTokens(mimeType: string) {
-  return mimeType === 'application/pdf' ? 1800 : 1200;
+  return 8192;
 }
 
 // ─── Config Loader ────────────────────────────────────────────────────────────
 
+function isOpenRouterAllowed(): boolean {
+  return process.env.OPENROUTER_ENABLED === 'true';
+}
+
 export function loadAIConfig(): AIGatewayConfig {
+  // Unified provider-switch: Primary language provider resolves in this priority:
+  //   1. explicit PRIMARY_LANGUAGE_PROVIDER env (strong override)
+  //   2. AI_PROVIDER env
+  //   3. 'gemini' (new default going forward)
+  const aiProviderEnv = process.env.AI_PROVIDER;
+  const primaryFromEnv = process.env.PRIMARY_LANGUAGE_PROVIDER || (
+    aiProviderEnv === 'gemini' || aiProviderEnv === 'openrouter' || aiProviderEnv === 'vps_ai'
+      ? aiProviderEnv
+      : undefined
+  );
   return {
-    aiEnabled:                  process.env.AI_ENABLED === 'true',
+    aiEnabled:                  process.env.AI_ENABLED !== 'false',
     aiMode:                     (process.env.AI_MODE as AIGatewayConfig['aiMode']) || 'cloud_only',
-    primaryLanguageProvider:    process.env.PRIMARY_LANGUAGE_PROVIDER || 'openrouter',
+    primaryLanguageProvider:    primaryFromEnv || 'gemini',
     fallbackLanguageProvider:   process.env.FALLBACK_LANGUAGE_PROVIDER || 'vps_ai',
     primarySttProvider:         process.env.PRIMARY_STT_PROVIDER || 'cloud_stt',
     fallbackSttProvider:        process.env.FALLBACK_STT_PROVIDER || 'vps_stt',
@@ -938,7 +955,14 @@ class OpenRouterLanguageProvider implements LanguageProvider {
     this.timeoutMs = timeoutMs;
   }
 
+  private ensureAllowed(context: string): void {
+    if (!isOpenRouterAllowed()) {
+      throw new Error(`OpenRouter provider is disabled. Set OPENROUTER_ENABLED=true to enable fallback. (${context})`);
+    }
+  }
+
   async parseFinancialInstruction(input: ParseRequest): Promise<ParsedFinancialInstruction> {
+    this.ensureAllowed('parseFinancialInstruction');
     if (!this.apiKey) throw new Error('OpenRouter not configured');
 
     const controller = new AbortController();
@@ -993,6 +1017,9 @@ class OpenRouterLanguageProvider implements LanguageProvider {
   }
 
   async healthCheck(): Promise<ProviderHealthResult> {
+    if (!isOpenRouterAllowed()) {
+      return { provider: 'openrouter', status: 'disabled', checkedAt: new Date().toISOString() };
+    }
     if (!this.apiKey) {
       return { provider: 'openrouter', status: 'not_configured', checkedAt: new Date().toISOString() };
     }
@@ -1198,6 +1225,19 @@ async function processSinglePassVoiceRequest(
     };
   }
 
+  if (!isOpenRouterAllowed()) {
+    return {
+      requestId: createClientId(),
+      status: 'failed',
+      errorMessage: 'AI provider unavailable. Please try again or use manual entry.',
+      errorCategory: 'provider_unavailable',
+      providerUsed: 'gemini',
+      fallbackUsed: false,
+      durationMs: Date.now() - startTime,
+      providerCallCount: 0,
+    };
+  }
+
   const apiKey = process.env.OPENROUTER_API_KEY || '';
   const model = request.voiceModel || process.env.VOICE_MODEL || process.env.OPENROUTER_MODEL || '';
   const format = getOpenRouterAudioFormat(normalizeVoiceAudioMimeType(request.audio.mimeType));
@@ -1359,6 +1399,9 @@ function stripTranscriptFormatting(value: string) {
 export async function transcribeAudioWithOpenRouter(
   input: OpenRouterAudioTranscriptionRequest
 ): Promise<OpenRouterAudioTranscriptionResponse> {
+  if (!isOpenRouterAllowed()) {
+    throw new Error('OpenRouter provider is disabled. Set OPENROUTER_ENABLED=true to enable fallback. (transcribeAudioWithOpenRouter)');
+  }
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), input.timeoutMs || 20000);
 
@@ -1421,6 +1464,9 @@ export async function transcribeAudioWithOpenRouter(
 export async function rewriteTextWithOpenRouter(
   input: OpenRouterTextRewriteRequest
 ): Promise<OpenRouterTextRewriteResponse> {
+  if (!isOpenRouterAllowed()) {
+    throw new Error('OpenRouter provider is disabled. Set OPENROUTER_ENABLED=true to enable fallback. (rewriteTextWithOpenRouter)');
+  }
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), input.timeoutMs || 20000);
 
@@ -1708,10 +1754,730 @@ class VPSSTTProvider implements SpeechProvider {
   }
 }
 
+// ─── Gemini Language Provider (direct Google GenAI) ──────────────────────────
+// Only TEXT parsing. No voice, no receipts/PDFs/images. Those stay in OpenRouter.
+// Falls back to OpenRouter transparently via withFallback when:
+//   - GEMINI_API_KEY missing (constructor throws)
+//   - generateContent call fails (throws)
+//   - response is empty or invalid JSON (throws)
+//   - schema validation via validateParsedInstruction fails (throws)
+
+class GeminiLanguageProvider implements LanguageProvider {
+  name = 'gemini';
+  private timeoutMs: number;
+
+  constructor(timeoutMs = 20000) {
+    this.timeoutMs = timeoutMs;
+  }
+
+  private getTextModelName(): string {
+    const foundation = getAIConfig();
+    return foundation.gemini.models.fast;
+  }
+  private getMultimodalModelName(): string {
+    const foundation = getAIConfig();
+    return foundation.gemini.models.multimodal;
+  }
+
+  private extractCandidateText(result: unknown): string {
+    const r = result as {
+      candidates?: Array<{
+        content?: { parts?: Array<{ text?: string }> };
+        finishReason?: string;
+        finishMessage?: string;
+        safetyRatings?: Array<{ category: string; probability: string }>;
+        tokenCount?: number;
+      }>;
+      promptFeedback?: { blockReason?: string; safetyRatings?: unknown[] };
+      usageMetadata?: unknown;
+    };
+    const candidate = r?.candidates?.[0];
+    const blocked = r?.promptFeedback?.blockReason;
+    if (blocked) {
+      throw new Error(
+        `Gemini response blocked by safety: ${String(blocked)}` +
+          (candidate?.finishMessage ? ` (${String(candidate.finishMessage)})` : ''),
+      );
+    }
+    if (candidate?.finishReason && !['STOP', 'MAX_TOKENS', ''].includes(String(candidate.finishReason))) {
+      if (String(candidate.finishReason).toUpperCase() === 'SAFETY') {
+        throw new Error('Gemini response blocked by safety finish reason');
+      }
+      if (String(candidate.finishReason).toUpperCase() === 'RECITATION') {
+        throw new Error('Gemini response blocked by recitation policy');
+      }
+    }
+    return candidate?.content?.parts
+      ?.map((p) => (typeof p?.text === 'string' ? p.text : ''))
+      .join('') ?? '';
+  }
+
+  private getFinishReason(result: unknown): string | null {
+    const r = result as { candidates?: Array<{ finishReason?: string }> };
+    return r?.candidates?.[0]?.finishReason || null;
+  }
+
+  private getSafetyBlockReason(result: unknown): string | null {
+    const r = result as { promptFeedback?: { blockReason?: string } };
+    return r?.promptFeedback?.blockReason || null;
+  }
+
+  async parseFinancialInstruction(input: ParseRequest): Promise<ParsedFinancialInstruction> {
+    const handle = getGeminiClient();
+    const client = handle.requireClient('smart-entry-text-parse');
+    const model = this.getTextModelName();
+
+    const userMessage = buildUserMessage(input);
+    const systemInstruction = FINANCIAL_SYSTEM_PROMPT;
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+
+    try {
+      const result = await client.models.generateContent({
+        model,
+        contents: [
+          {
+            role: 'user',
+            parts: [{ text: userMessage }],
+          },
+        ],
+        config: {
+          systemInstruction: {
+            role: 'system',
+            parts: [{ text: systemInstruction }],
+          },
+          temperature: 0.1,
+          maxOutputTokens: 2000,
+          responseMimeType: 'application/json',
+          candidateCount: 1,
+          abortSignal: controller.signal,
+        },
+      });
+
+      const finishReason = this.getFinishReason(result);
+      const safetyBlock = this.getSafetyBlockReason(result);
+      if (safetyBlock) {
+        throw new Error(`Gemini text parse blocked by safety (prompt): ${String(safetyBlock)}`);
+      }
+      if (finishReason && ['SAFETY', 'RECITATION'].includes(String(finishReason).toUpperCase())) {
+        throw new Error(`Gemini text parse blocked by finish reason: ${String(finishReason)}`);
+      }
+
+      let candidateText = '';
+      try {
+        candidateText = this.extractCandidateText(result);
+      } catch (extractErr) {
+        throw new Error(extractErr instanceof Error ? extractErr.message : 'Gemini response extract failed');
+      }
+      const content = stripTranscriptFormatting(candidateText.trim());
+      if (!content) {
+        const extra = finishReason ? ` (finishReason=${String(finishReason)})` : '';
+        throw new Error('Empty response from Gemini text parse' + extra);
+      }
+
+      const parsed = safeParseJSON(content);
+      if (!parsed) {
+        const snippet = content.slice(0, 200).replace(/\s+/g, ' ').trim();
+        throw new Error(`Invalid JSON from Gemini text parse: ${snippet || '(empty)'}`);
+      }
+
+      const fallbackReqId = input.requestId || createClientId();
+      const defaultCurrency = input.context?.defaultCurrency;
+      const normalized = normalizeParsedInstructionDefaults(parsed, fallbackReqId, input.language || input.locale || 'en', defaultCurrency || undefined);
+      const validated = validateParsedInstruction(normalized);
+      return {
+        ...validated,
+        providerUsed: 'gemini',
+        modelUsed: model,
+        fallbackUsed: false,
+      };
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  async parseVoiceSinglePass(
+    params: { request: AIAssistantRequest; config: AIGatewayConfig; startTime: number } | AIAssistantRequest,
+  ): ReturnType<typeof processSinglePassVoiceRequest> {
+    const request = 'request' in params ? params.request : (params as AIAssistantRequest);
+    const config = 'config' in params ? params.config : (params as any).config;
+    const startTimeParam = 'startTime' in params ? params.startTime : (params as any).startTime;
+    const handle = getGeminiClient();
+    const client = handle.requireClient('smart-entry-voice-parse');
+    const model = this.getMultimodalModelName();
+    const audio = request.audio;
+    if (!audio) {
+      return {
+        requestId: createClientId(),
+        status: 'failed',
+        errorMessage: 'Voice audio is required for voice entry.',
+        errorCategory: 'invalid_input',
+        durationMs: (Number(startTimeParam) || Date.now()) ? Date.now() - (Number(startTimeParam) || Date.now()) : 0,
+        providerUsed: 'gemini',
+        modelUsed: model,
+        fallbackUsed: false,
+        providerCallCount: 1,
+      };
+    }
+    const displayLanguage = request.displayLanguage || request.language || 'en';
+    const startTime = Number(startTimeParam) || Date.now();
+    const format = getOpenRouterAudioFormat(audio.mimeType || 'audio/webm');
+    if (!format) {
+      return {
+        requestId: createClientId(),
+        status: 'failed',
+        errorMessage: `Unsupported audio mime type: ${audio.mimeType || 'unknown'}`,
+        errorCategory: 'not_configured',
+        durationMs: Date.now() - startTime,
+        providerUsed: 'gemini',
+        modelUsed: model,
+        fallbackUsed: false,
+        providerCallCount: 1,
+      };
+    }
+    const base64Payload = String(audio.audioBase64 || '').trim();
+    if (!base64Payload) {
+      return {
+        requestId: createClientId(),
+        status: 'failed',
+        errorMessage: 'Voice audio payload is empty.',
+        errorCategory: 'invalid_input',
+        durationMs: Date.now() - startTime,
+        providerUsed: 'gemini',
+        modelUsed: model,
+        fallbackUsed: false,
+        providerCallCount: 1,
+      };
+    }
+    const b64Valid = /^[A-Za-z0-9+/=]+$/.test(base64Payload.replace(/\s+/g, ''));
+    if (!b64Valid) {
+      return {
+        requestId: createClientId(),
+        status: 'failed',
+        errorMessage: 'Voice audio payload is not valid base64.',
+        errorCategory: 'invalid_input',
+        durationMs: Date.now() - startTime,
+        providerUsed: 'gemini',
+        modelUsed: model,
+        fallbackUsed: false,
+        providerCallCount: 1,
+      };
+    }
+
+    const normalizedMime = normalizeVoiceAudioMimeType(audio.mimeType || '');
+    const INLINE_AUDIO = new Set(['audio/wav', 'audio/x-wav', 'audio/webm', 'audio/webm;codecs=opus']);
+    const useFilesApi = !INLINE_AUDIO.has(normalizedMime);
+    let voiceFileUri: string | null = null;
+    const tryDeleteVoiceFile = async () => {
+      if (!voiceFileUri) return;
+      try {
+        const anyClient = client as any;
+        if (anyClient && typeof anyClient.files === 'object' && anyClient.files && typeof anyClient.files.delete === 'function') {
+          await anyClient.files.delete(voiceFileUri, { abortSignal: AbortSignal.timeout(4000) });
+        }
+      } catch (_vd) { /* swallow */ }
+      voiceFileUri = null;
+    };
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), config.requestTimeoutMs);
+    try {
+      const part: any = { text: buildVoiceSinglePassUserMessage(request) };
+      const parts: any[] = [part];
+      if (useFilesApi) {
+        const rawBuf = Buffer.from(base64Payload, 'base64');
+        if (rawBuf.length < 512) {
+          return {
+            requestId: createClientId(),
+            status: 'failed',
+            errorMessage: 'Voice audio payload is too small or empty after decoding.',
+            errorCategory: 'invalid_input',
+            durationMs: Date.now() - startTime,
+            providerUsed: 'gemini',
+            modelUsed: model,
+            fallbackUsed: false,
+            providerCallCount: 1,
+          };
+        }
+        const ext = (() => {
+          if (normalizedMime.startsWith('audio/mp4')) return 'm4a';
+          if (normalizedMime === 'audio/mpeg') return 'mp3';
+          if (normalizedMime === 'audio/flac') return 'flac';
+          if (normalizedMime === 'audio/ogg') return 'ogg';
+          return 'bin';
+        })();
+        const defaultMimeForUpload = (() => {
+          if (normalizedMime.startsWith('audio/mp4')) return 'audio/mp4';
+          if (normalizedMime === 'audio/mpeg') return 'audio/mpeg';
+          if (normalizedMime === 'audio/flac') return 'audio/flac';
+          if (normalizedMime === 'audio/ogg') return 'audio/ogg';
+          return 'application/octet-stream';
+        })();
+        const uploadMime = defaultMimeForUpload;
+        const ab = new ArrayBuffer(rawBuf.length);
+        const view = new Uint8Array(ab);
+        for (let i = 0; i < rawBuf.length; i++) view[i] = rawBuf[i];
+        const audioBytes = view as Uint8Array<ArrayBuffer>;
+        const uploaded: any = await client.files.upload({
+          file: new Blob([audioBytes], { type: uploadMime }),
+          config: {
+            mimeType: uploadMime,
+            abortSignal: controller.signal,
+          },
+        });
+        if (!uploaded?.uri) throw new Error('Gemini voice file upload returned no URI');
+        voiceFileUri = String(uploaded.uri);
+        const voiceMaxPoll = Math.min(config.requestTimeoutMs - 6000, 6000);
+        const voicePollDeadline = Date.now() + Math.max(1500, voiceMaxPoll);
+        while (Date.now() < voicePollDeadline && !controller.signal.aborted) {
+          try {
+            const getFn = (client as any)?.files?.get;
+            if (typeof getFn === 'function') {
+              const got = await getFn(voiceFileUri, { abortSignal: AbortSignal.timeout(2500) });
+              const st = got && (got.state || got.status || got.processingState);
+              const finalState = st ? String(st).toUpperCase() : null;
+              if (!finalState || ['ACTIVE', 'PROCESSING_COMPLETE', 'READY', 'UNKNOWN', 'UNSPECIFIED'].includes(finalState || '')) break;
+              if (['FAILED', 'ERROR', 'STATE_UNSPECIFIED'].includes(finalState || '')) throw new Error(`Voice audio processing failed (state=${finalState}')`);
+            } else break;
+          } catch (_vp) { /* transient */ }
+          await new Promise<void>((r) => setTimeout(r, 350));
+        }
+        parts.push({ fileData: { mimeType: uploadMime, fileUri: voiceFileUri } });
+        logTransactionDocumentGateway('info', 'gemini.voice_file.uploaded', {
+          requestId: request.idempotencyKey || request.userId || null,
+          mime: uploadMime,
+          uri: '<REDACTED>',
+        });
+      } else {
+        parts.push({
+          inlineData: {
+            mimeType: format,
+            data: base64Payload,
+          },
+        });
+      }
+      const result = await client.models.generateContent({
+        model,
+        contents: [
+          {
+            role: 'user',
+            parts,
+          },
+        ],
+        config: {
+          systemInstruction: {
+            role: 'system',
+            parts: [{ text: buildVoiceSinglePassSystemPrompt(displayLanguage) }],
+          },
+          temperature: 0,
+          maxOutputTokens: 2000,
+          responseMimeType: 'application/json',
+          candidateCount: 1,
+          abortSignal: controller.signal,
+        },
+      });
+      const voiceFinishReason = this.getFinishReason(result);
+      const voiceSafetyBlock = this.getSafetyBlockReason(result);
+      if (voiceSafetyBlock) {
+        throw new Error(`Gemini voice parse blocked by safety (prompt): ${String(voiceSafetyBlock)}`);
+      }
+      if (voiceFinishReason && ['SAFETY', 'RECITATION'].includes(String(voiceFinishReason).toUpperCase())) {
+        throw new Error(`Gemini voice parse blocked by finish reason: ${String(voiceFinishReason)}`);
+      }
+      let rawText = '';
+      try {
+        rawText = this.extractCandidateText(result);
+      } catch (extractErr) {
+        throw new Error(extractErr instanceof Error ? extractErr.message : 'Gemini voice response extract failed');
+      }
+      const normalized = stripTranscriptFormatting(rawText.trim());
+      if (!normalized) {
+        const extra = voiceFinishReason ? ` (finishReason=${String(voiceFinishReason)})` : '';
+        throw new Error('Empty response from Gemini voice parse' + extra);
+      }
+      if (process.env.DEBUG_GEMINI_RAW === '1') {
+        logTransactionDocumentGateway('info', 'gemini.voice_raw', {
+          requestId: request.idempotencyKey || request.userId || null,
+          rawHead: normalized.slice(0, 1200),
+        });
+      }
+
+      const parsedPayload = safeParseJSON(normalized);
+      if (!parsedPayload) {
+        const snippet = normalized.slice(0, 200).replace(/\s+/g, ' ').trim();
+        throw new Error(`Invalid JSON from Gemini voice parse: ${snippet || '(empty)'}`);
+      }
+
+      const voiceFields = extractVoiceStructuredFields(parsedPayload);
+      const fallbackReqId = request.idempotencyKey || createClientId();
+      const defaultCurrency = request.context?.defaultCurrency;
+      const normalizedParsed = normalizeParsedInstructionDefaults(
+        parsedPayload,
+        fallbackReqId,
+        displayLanguage || request.language || request.locale || 'en',
+        defaultCurrency || undefined,
+      );
+      try {
+        const validated = validateParsedInstruction(normalizedParsed);
+        const transcript = voiceFields.transcript || validated.transcript || voiceFields.originalTranscript;
+        const originalTranscript = voiceFields.originalTranscript || transcript;
+        return {
+          requestId: validated.requestId,
+          status: 'parsed',
+          parsed: {
+            ...validated,
+            transcript,
+            originalTranscript,
+            detectedLanguage: voiceFields.detectedLanguage || validated.language,
+            translationApplied: voiceFields.translationApplied || (Boolean(transcript) && Boolean(originalTranscript) && transcript !== originalTranscript),
+            translationFailed: voiceFields.translationFailed,
+            providerUsed: 'gemini',
+            modelUsed: model,
+            fallbackUsed: false,
+          },
+          transcript,
+          originalTranscript,
+          detectedLanguage: voiceFields.detectedLanguage || validated.language,
+          providerUsed: 'gemini',
+          modelUsed: model,
+          fallbackUsed: false,
+          durationMs: Date.now() - startTime,
+          providerCallCount: 1,
+        };
+      } catch (validationError) {
+        return {
+          requestId: createClientId(),
+          status: 'failed',
+          transcript: voiceFields.transcript || voiceFields.originalTranscript,
+          originalTranscript: voiceFields.originalTranscript || voiceFields.transcript,
+          detectedLanguage: voiceFields.detectedLanguage,
+          errorMessage: sanitizeError(validationError instanceof Error ? validationError.message : 'Invalid structured voice response'),
+          errorCategory: 'invalid_response',
+          providerUsed: 'gemini',
+          modelUsed: model,
+          fallbackUsed: false,
+          durationMs: Date.now() - startTime,
+          providerCallCount: 1,
+        };
+      }
+    } finally {
+      clearTimeout(timer);
+      void tryDeleteVoiceFile();
+    }
+  }
+
+  async parseTransactionDocument(
+    input: TransactionDocumentAIRequest,
+  ): Promise<{
+    parsed: unknown;
+    providerUsed: string;
+    modelUsed?: string;
+    rawOutput?: unknown;
+    inputTokens?: number | null;
+    outputTokens?: number | null;
+    totalTokens?: number | null;
+    estimatedCostUsd?: number | null;
+  }> {
+    const handle = getGeminiClient();
+    const client = handle.requireClient('smart-entry-document-parse');
+    const model = this.getMultimodalModelName();
+    const timeoutMs = getTransactionDocumentTimeoutMs();
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    logTransactionDocumentGateway('info', 'gemini.request.start', {
+      requestId: input.requestId || null,
+      model,
+      fileMimeType: input.fileMimeType,
+      pageCount: input.pageCount ?? null,
+      timeoutMs,
+    });
+
+    const normalizedMime = (input.fileMimeType || '').trim().toLowerCase();
+    let uploadedFileUri: string | null = null;
+    let uploadedFileName: string | null = null;
+    const tryDeleteUpload = async () => {
+      if (!uploadedFileUri) return;
+      try {
+        const anyClient = client as any;
+        if (anyClient && typeof anyClient.files === 'object' && anyClient.files && typeof anyClient.files.delete === 'function') {
+          await anyClient.files.delete(uploadedFileUri, { abortSignal: AbortSignal.timeout(4000) });
+          logTransactionDocumentGateway('info', 'gemini.file.delete', {
+            requestId: input.requestId || null,
+            fileUri: uploadedFileUri,
+          });
+        }
+      } catch (_delErr) {
+        /* swallow - cleanup is best-effort */
+      }
+      uploadedFileUri = null;
+      uploadedFileName = null;
+    };
+
+    try {
+      let filePart: any;
+      if (normalizedMime === 'application/pdf') {
+        const pdfBuf = dataUrlToBuffer(input.fileUrl);
+        if (!pdfBuf || pdfBuf.length < 16) {
+          throw new TransactionDocumentGatewayError(
+            'invalid_document', 'gemini.upload', 'Empty or invalid PDF document payload',
+            { providerUsed: 'gemini', modelUsed: model },
+          );
+        }
+        const pdfHeader = pdfBuf.slice(0, 8).toString('latin1');
+        if (!pdfHeader.startsWith('%PDF-')) {
+          throw new TransactionDocumentGatewayError(
+            'invalid_document', 'gemini.upload', 'File is not a valid PDF (missing %PDF- header)',
+            { providerUsed: 'gemini', modelUsed: model },
+          );
+        }
+        const ab = new ArrayBuffer(pdfBuf.length);
+        const view = new Uint8Array(ab);
+        for (let i = 0; i < pdfBuf.length; i++) view[i] = pdfBuf[i];
+        const pdfBytes = view as Uint8Array<ArrayBuffer>;
+        uploadedFileName = `doc_${input.requestId || createClientId()}.pdf`;
+        const uploaded: any = await client.files.upload({
+          file: new Blob([pdfBytes], { type: 'application/pdf' }),
+          config: {
+            mimeType: 'application/pdf',
+            displayName: uploadedFileName,
+            abortSignal: controller.signal,
+          },
+        });
+        if (!uploaded?.uri) throw new TransactionDocumentGatewayError(
+          'provider_unavailable', 'gemini.upload', 'Gemini file upload returned no URI',
+          { providerUsed: 'gemini', modelUsed: model },
+        );
+        uploadedFileUri = String(uploaded.uri);
+        const maxPollMs = Math.min(timeoutMs - 6000, 6000);
+        const pollingDeadlineMs = Date.now() + Math.max(2000, maxPollMs);
+        const pollingStart = Date.now();
+        let finalState: string | null = null;
+        let lastPolled: any = null;
+        let pollCount = 0;
+        while (Date.now() < pollingDeadlineMs && !controller.signal.aborted) {
+          pollCount++;
+          try {
+            const getFn = (client as any)?.files?.get;
+            if (typeof getFn === 'function') {
+              lastPolled = await getFn(uploadedFileUri, { abortSignal: AbortSignal.timeout(2500) });
+              const state = lastPolled && (lastPolled.state || lastPolled.status || lastPolled.processingState);
+              finalState = state ? String(state).toUpperCase() : null;
+              if (!finalState
+                  || finalState === 'ACTIVE' || finalState === 'PROCESSING_COMPLETE' || finalState === 'READY'
+                  || finalState === 'UNKNOWN' || finalState === 'UNSPECIFIED') break;
+              if (finalState === 'FAILED' || finalState === 'STATE_UNSPECIFIED' || finalState === 'ERROR') break;
+            } else {
+              finalState = 'ACTIVE';
+              break;
+            }
+          } catch (_pollErr) {
+            /* ignore transient poll errors */
+          }
+          await new Promise<void>((r) => setTimeout(r, 450));
+        }
+        if (finalState && ['FAILED', 'ERROR', 'STATE_UNSPECIFIED'].includes(finalState)) {
+          throw new TransactionDocumentGatewayError(
+            'provider_unavailable', 'gemini.upload',
+            `Gemini file processing failed (state=${finalState})`,
+            { providerUsed: 'gemini', modelUsed: model },
+          );
+        }
+        filePart = {
+          fileData: {
+            mimeType: 'application/pdf',
+            fileUri: uploadedFileUri,
+          },
+        };
+        logTransactionDocumentGateway('info', 'gemini.file.uploaded', {
+          requestId: input.requestId || null,
+          fileUri: uploadedFileUri,
+          state: finalState || 'unknown',
+          pollingMs: Date.now() - pollingStart,
+          pollCount,
+        });
+      } else {
+        const IMAGE_MIMES = new Set(['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/heic', 'image/heif']);
+        const { data, mimeType } = dataUrlToInline(input.fileUrl, normalizedMime || 'application/octet-stream');
+        const actualMime = (mimeType || normalizedMime || '').trim().toLowerCase();
+        if (!IMAGE_MIMES.has(actualMime)) {
+          throw new TransactionDocumentGatewayError(
+            'invalid_document', 'gemini.inline',
+            `Unsupported image MIME type: ${actualMime || '(empty)'}. Supported: image/png, image/jpeg, image/webp, image/heic`,
+            { providerUsed: 'gemini', modelUsed: model },
+          );
+        }
+        if (!data || !/^[A-Za-z0-9+/=]+$/.test(String(data).replace(/\s+/g, ''))) {
+          throw new TransactionDocumentGatewayError(
+            'invalid_document', 'gemini.inline',
+            'Image payload is missing or not valid base64',
+            { providerUsed: 'gemini', modelUsed: model },
+          );
+        }
+        const stripped = String(data).replace(/\s+/g, '');
+        if (stripped.length < 32 || stripped.length % 4 !== 0) {
+          throw new TransactionDocumentGatewayError(
+            'invalid_document', 'gemini.inline',
+            `Image payload has invalid base64 length=${stripped.length}`,
+            { providerUsed: 'gemini', modelUsed: model },
+          );
+        }
+        filePart = { inlineData: { mimeType: actualMime, data: stripped } };
+      }
+
+      const userText = buildTransactionDocumentUserMessage(input);
+      const result = await client.models.generateContent({
+        model,
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              { text: userText },
+              filePart,
+            ],
+          },
+        ],
+        config: {
+          systemInstruction: {
+            role: 'system',
+            parts: [{ text: TRANSACTION_DOCUMENT_SYSTEM_PROMPT }],
+          },
+          temperature: 0,
+          maxOutputTokens: getTransactionDocumentMaxTokens(normalizedMime || input.fileMimeType),
+          responseMimeType: 'application/json',
+          candidateCount: 1,
+          abortSignal: controller.signal,
+        },
+      });
+      const docFinish = this.getFinishReason(result);
+      const docSafety = this.getSafetyBlockReason(result);
+      if (docSafety) {
+        throw new TransactionDocumentGatewayError(
+          'safety_blocked', 'gemini.parse',
+          `Gemini document parse blocked by safety: ${String(docSafety)}`,
+          { providerUsed: 'gemini', modelUsed: model },
+        );
+      }
+      if (docFinish && ['SAFETY', 'RECITATION'].includes(String(docFinish).toUpperCase())) {
+        throw new TransactionDocumentGatewayError(
+          'safety_blocked', 'gemini.parse',
+          `Gemini document parse blocked by finish reason: ${String(docFinish)}`,
+          { providerUsed: 'gemini', modelUsed: model },
+        );
+      }
+      let raw = '';
+      try {
+        raw = this.extractCandidateText(result);
+      } catch (extractErr) {
+        throw new TransactionDocumentGatewayError(
+          'invalid_ai_json_response', 'gemini.parse',
+          extractErr instanceof Error ? extractErr.message : 'Gemini candidate extract failed',
+          { providerUsed: 'gemini', modelUsed: model, rawOutput: result },
+        );
+      }
+      if (!raw) {
+        const extra = docFinish ? ` (finishReason=${String(docFinish)})` : '';
+        throw new TransactionDocumentGatewayError(
+          'invalid_ai_json_response', 'gemini.parse',
+          'Empty response from Gemini document parse' + extra,
+          { providerUsed: 'gemini', modelUsed: model, rawOutput: result },
+        );
+      }
+      if (process.env.DEBUG_GEMINI_RAW === '1') {
+        logTransactionDocumentGateway('info', 'gemini.doc_raw', {
+          requestId: input.requestId || null,
+          mime: input.fileMimeType || null,
+          rawHead: raw.slice(0, 1600),
+          finishReason: docFinish || null,
+        });
+      }
+      const prepared = extractTransactionDocumentContentText(raw);
+      const parsed = safeParseJSON(prepared);
+      if (!parsed) {
+        const snippet = prepared.slice(0, 200).replace(/\s+/g, ' ').trim();
+        throw new TransactionDocumentGatewayError(
+          'invalid_ai_json_response', 'gemini.parse',
+          `Invalid JSON from Gemini document parse: ${snippet || '(empty)'}`,
+          { providerUsed: 'gemini', modelUsed: model, rawOutput: raw },
+        );
+      }
+      logTransactionDocumentGateway('info', 'gemini.parse.success', {
+        requestId: input.requestId || null,
+        model,
+      });
+      return {
+        parsed,
+        providerUsed: 'gemini',
+        modelUsed: model,
+        rawOutput: result,
+        inputTokens: null,
+        outputTokens: null,
+        totalTokens: null,
+        estimatedCostUsd: null,
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error || '');
+      const isTimeout = errorMessage.toLowerCase().includes('abort') || errorMessage.toLowerCase().includes('timeout');
+      const code = error instanceof TransactionDocumentGatewayError
+        ? error.code
+        : isTimeout ? 'provider_timeout' : 'provider_unavailable';
+      logTransactionDocumentGateway('error', 'gemini.request.failed', {
+        requestId: input.requestId || null,
+        model,
+        code,
+        providerError: sanitizeError(errorMessage) || null,
+      });
+      if (error instanceof TransactionDocumentGatewayError) throw error;
+      throw new TransactionDocumentGatewayError(
+        code,
+        'gemini.request',
+        isTimeout ? 'Gemini request timed out' : `Gemini document request failed: ${sanitizeError(errorMessage)}`,
+        { providerUsed: 'gemini', modelUsed: model },
+      );
+    } finally {
+      clearTimeout(timer);
+      void tryDeleteUpload();
+    }
+  }
+
+  async healthCheck(): Promise<ProviderHealthResult> {
+    const handle = getGeminiClient();
+    if (!handle.configured || !handle.apiKeyPresent) {
+      return { provider: 'gemini', status: 'not_configured', checkedAt: new Date().toISOString() };
+    }
+    const start = Date.now();
+    try {
+      const client = handle.requireClient('health-check');
+      const model = handle.getModels().fast;
+      const timeout = AbortSignal.timeout(Math.min(this.timeoutMs, 8000));
+      await client.models.generateContent({
+        model,
+        contents: [{ role: 'user', parts: [{ text: 'ping' }] }],
+        config: { temperature: 0, maxOutputTokens: 1, candidateCount: 1, abortSignal: timeout },
+      });
+      return {
+        provider: 'gemini',
+        status: 'healthy',
+        responseTimeMs: Date.now() - start,
+        checkedAt: new Date().toISOString(),
+      };
+    } catch (e) {
+      return {
+        provider: 'gemini',
+        status: 'offline',
+        responseTimeMs: Date.now() - start,
+        errorCategory: 'connection_failed',
+        checkedAt: new Date().toISOString(),
+      };
+    }
+  }
+}
+
 // ─── Provider Factory ─────────────────────────────────────────────────────────
 
 export function createLanguageProvider(name: string, timeoutMs: number): LanguageProvider {
   switch (name) {
+    case 'gemini':     return new GeminiLanguageProvider(timeoutMs);
     case 'openrouter': return new OpenRouterLanguageProvider(timeoutMs);
     case 'vps_ai':     return new VPSLanguageProvider(timeoutMs);
     case 'mock':
@@ -1789,6 +2555,31 @@ export async function processAIRequest(
 
   try {
     if (request.type === 'voice' && request.audio) {
+      const [primaryLang, fallbackLang] = getProviderOrder(config);
+      const primaryProvider = createLanguageProvider(primaryLang, config.requestTimeoutMs) as any;
+      const fallbackProvider = createLanguageProvider(fallbackLang, config.requestTimeoutMs) as any;
+      try {
+        if (typeof primaryProvider.parseVoiceSinglePass === 'function') {
+          const r: AIAssistantResponse = await primaryProvider.parseVoiceSinglePass({
+            request,
+            config,
+            startTime,
+            ...request,
+          });
+          return r;
+        }
+      } catch (e) {
+        if (!config.enableAutoFallback || primaryLang === fallbackLang) throw e;
+      }
+      if (typeof fallbackProvider.parseVoiceSinglePass === 'function') {
+        const r: AIAssistantResponse = await fallbackProvider.parseVoiceSinglePass({
+          request,
+          config,
+          startTime,
+          ...request,
+        });
+        return { ...r, fallbackUsed: true };
+      }
       return await processSinglePassVoiceRequest(request, config, startTime);
     }
 
@@ -1934,9 +2725,27 @@ export async function processTransactionDocumentAIRequest(
       fileMimeType: normalizedMimeType,
       pageCount: request.pageCount ?? null,
     });
-    const [primaryLang] = getProviderOrder(config);
-    const result = await parseTransactionDocumentWithProvider(primaryLang, { ...request, requestId });
-    const fallbackUsed = false;
+    const [primaryLangRaw, fallbackLang] = getProviderOrder(config);
+    const primaryLang = primaryLangRaw;
+    let parseResult: {
+      parsed: unknown;
+      providerUsed: string;
+      modelUsed?: string;
+      rawOutput?: unknown;
+      inputTokens?: number | null;
+      outputTokens?: number | null;
+      totalTokens?: number | null;
+      estimatedCostUsd?: number | null;
+    };
+    let fallbackUsed = false;
+    try {
+      parseResult = await parseTransactionDocumentWithProvider(primaryLang, { ...request, requestId });
+    } catch (primaryError) {
+      if (!config.enableAutoFallback || primaryLang === fallbackLang) throw primaryError;
+      parseResult = await parseTransactionDocumentWithProvider(fallbackLang, { ...request, requestId });
+      fallbackUsed = true;
+    }
+    const result = parseResult;
 
     logTransactionDocumentGateway('info', 'document-ai.parse_response.start', {
       requestId,
@@ -2043,13 +2852,31 @@ export async function runHealthChecks(_config: AIGatewayConfig): Promise<Provide
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function getProviderOrder(config: AIGatewayConfig): [string, string] {
-  switch (config.aiMode) {
-    case 'cloud_only':    return [config.primaryLanguageProvider, config.primaryLanguageProvider];
-    case 'vps_only':      return [config.fallbackLanguageProvider, config.fallbackLanguageProvider];
-    case 'vps_primary':   return [config.fallbackLanguageProvider, config.primaryLanguageProvider];
-    case 'cloud_primary':
-    default:              return [config.primaryLanguageProvider, config.fallbackLanguageProvider];
+  const [basePrimary, baseFallback] = (() => {
+    switch (config.aiMode) {
+      case 'cloud_only':    return [config.primaryLanguageProvider, config.primaryLanguageProvider] as [string, string];
+      case 'vps_only':      return [config.fallbackLanguageProvider, config.fallbackLanguageProvider] as [string, string];
+      case 'vps_primary':   return [config.fallbackLanguageProvider, config.primaryLanguageProvider] as [string, string];
+      case 'cloud_primary':
+      default:              return [config.primaryLanguageProvider, config.fallbackLanguageProvider] as [string, string];
+    }
+  })();
+
+  // Only upgrade fallback to OpenRouter if:
+  //   (a) primary is gemini,
+  //   (b) fallback is not already openrouter / gemini,
+  //   (c) OPENROUTER_ENABLED === 'true' explicitly (strict opt-in),
+  //   (d) OPENROUTER_API_KEY is actually set.
+  // Otherwise fall back to whatever the user configured (usually vps_ai).
+  // This satisfies the requirement: no silent fallback to OpenRouter when disabled.
+  if (basePrimary === 'gemini' && baseFallback !== 'openrouter' && baseFallback !== 'gemini') {
+    const openrouterApiKey = process.env.OPENROUTER_API_KEY;
+    const openrouterEnabled = process.env.OPENROUTER_ENABLED === 'true';
+    if (openrouterEnabled && openrouterApiKey && openrouterApiKey.length > 0) {
+      return [basePrimary, 'openrouter'];
+    }
   }
+  return [basePrimary, baseFallback];
 }
 
 async function parseTransactionDocumentWithProvider(
@@ -2066,6 +2893,10 @@ async function parseTransactionDocumentWithProvider(
   estimatedCostUsd?: number | null;
 }> {
   switch (providerName) {
+    case 'gemini': {
+      const provider = new GeminiLanguageProvider(getTransactionDocumentTimeoutMs());
+      return provider.parseTransactionDocument(input);
+    }
     case 'openrouter':
       return parseTransactionDocumentWithOpenRouter(input);
     case 'vps_ai':
@@ -2113,6 +2944,14 @@ async function parseTransactionDocumentWithOpenRouter(
   totalTokens?: number | null;
   estimatedCostUsd?: number | null;
 }> {
+  if (!isOpenRouterAllowed()) {
+    throw new TransactionDocumentGatewayError(
+      'openrouter_not_configured',
+      'openrouter.request',
+      'OpenRouter provider is disabled. Set OPENROUTER_ENABLED=true to enable fallback.',
+      { providerUsed: 'openrouter' }
+    );
+  }
   const apiKey = process.env.OPENROUTER_API_KEY || '';
   if (!apiKey) {
     throw new TransactionDocumentGatewayError(
@@ -2490,19 +3329,19 @@ function buildTransactionDocumentUserContent(input: TransactionDocumentAIRequest
 }
 
 function buildTransactionDocumentUserMessage(input: TransactionDocumentAIRequest) {
-  const message: Record<string, unknown> = {
+  const context: Record<string, unknown> = {
     requestId: input.requestId || createClientId(),
   };
 
   const normalizedLanguage = input.language?.trim();
   if (normalizedLanguage) {
-    message.languageHint = normalizedLanguage;
+    context.languageHint = normalizedLanguage;
   }
   if (typeof input.pageCount === 'number') {
-    message.pageCount = input.pageCount;
+    context.pageCount = input.pageCount;
   }
   if (input.context?.defaultCurrency) {
-    message.defaultCurrency = input.context.defaultCurrency.trim().toUpperCase();
+    context.defaultCurrency = input.context.defaultCurrency.trim().toUpperCase();
   }
   if (input.context?.categories?.length) {
     const expenseCategories: string[] = [];
@@ -2520,13 +3359,21 @@ function buildTransactionDocumentUserMessage(input: TransactionDocumentAIRequest
     }
 
     if (expenseCategories.length) {
-      message.expenseCategories = expenseCategories;
+      context.expenseCategories = expenseCategories;
     }
     if (incomeCategories.length) {
-      message.incomeCategories = incomeCategories;
+      context.incomeCategories = incomeCategories;
     }
   }
-  return JSON.stringify(message);
+  const contextJson = JSON.stringify(context, null, 0);
+  return `Extract structured transaction data from the attached document (receipt/invoice/bill/expense note) and return ONLY the extraction JSON matching the required system schema.
+
+The following context object contains helpful hints (requestId to echo back, language hint, default currency for ambiguous amounts, allowed category labels) — use them as guidance only, do NOT copy this context object verbatim into your output, do NOT include fields like "languageHint" or "pageCount" or "expenseCategories" at the top level of your response. Instead, return ONLY the extraction result with fields: requestId (echo), language (detected BCP-47 code of document contents or default languageHint), documentKind, confidence, warnings[], transactions[], missingFields[] (if any), requiresClarification.
+
+CONTEXT HINTS (do not echo back as a template):
+${contextJson}
+
+EXTRACTION RESULT:`;
 }
 
 function buildMockDocumentExtraction(input: TransactionDocumentAIRequest): TransactionDocumentExtraction {
@@ -2830,10 +3677,39 @@ function inferExpenseCategory(text: string): string {
 }
 
 function extractCurrency(text: string): string | null {
-  if (text.includes('aed') || text.includes('dirham')) return 'AED';
-  if (text.includes('usd') || text.includes('dollar'))  return 'USD';
-  if (text.includes('eur') || text.includes('euro'))    return 'EUR';
+  const lower = text.toLowerCase();
+  if (lower.includes('aed') || lower.includes('dirham')) return 'AED';
+  if (lower.includes('usd') || lower.includes('dollar'))  return 'USD';
+  if (lower.includes('eur') || lower.includes('euro'))    return 'EUR';
+  if (lower.includes('gbp') || lower.includes('pound'))   return 'GBP';
   return null;
+}
+
+function dataUrlToInline(dataUrl: string, fallbackMimeType: string): { mimeType: string; data: string } {
+  if (!dataUrl || !dataUrl.startsWith('data:')) {
+    return { mimeType: fallbackMimeType, data: dataUrl || '' };
+  }
+  const comma = dataUrl.indexOf(',');
+  const header = dataUrl.slice(0, comma);
+  const body = comma === -1 ? '' : dataUrl.slice(comma + 1);
+  const mimeMatch = header.match(/^data:([^;]+)/);
+  const mimeType = mimeMatch ? mimeMatch[1] : fallbackMimeType;
+  const isBase64 = /;\s*base64\s*$/i.test(header);
+  if (isBase64) {
+    return { mimeType, data: body };
+  }
+  const decoded = decodeURIComponent(body);
+  const buf = Buffer.from(decoded, 'utf-8');
+  return { mimeType, data: buf.toString('base64') };
+}
+
+function dataUrlToBuffer(dataUrl: string): Buffer {
+  if (!dataUrl || !dataUrl.startsWith('data:')) {
+    return Buffer.from(typeof dataUrl === 'string' ? dataUrl : '', 'utf-8');
+  }
+  const { data } = dataUrlToInline(dataUrl, 'application/octet-stream');
+  if (!data) return Buffer.alloc(0);
+  return Buffer.from(data, 'base64');
 }
 
 function extractAccount(text: string): string | null {

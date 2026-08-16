@@ -362,7 +362,7 @@ export interface LanguageProvider {
 
 export interface ProviderHealthResult {
   provider: string;
-  status: 'healthy' | 'degraded' | 'offline' | 'not_configured';
+  status: 'healthy' | 'degraded' | 'offline' | 'not_configured' | 'disabled';
   responseTimeMs?: number;
   modelUsed?: string;
   errorCategory?: string;
@@ -584,6 +584,108 @@ export function validateParsedInstruction(raw: unknown): ParsedFinancialInstruct
   }
 
   return obj as unknown as ParsedFinancialInstruction;
+}
+
+function num01(x: unknown, fallback = 0.85): number {
+  const n = typeof x === 'number' && Number.isFinite(x) ? x : NaN;
+  if (Number.isNaN(n)) return fallback;
+  return Math.max(0, Math.min(1, n));
+}
+
+export function normalizeParsedInstructionDefaults(
+  raw: unknown,
+  fallbackRequestId: string,
+  fallbackLanguage = 'en',
+  defaultCurrency?: string,
+): unknown {
+  const obj = raw && typeof raw === 'object' ? (raw as Record<string, unknown>) : null;
+  if (!obj) {
+    return {
+      requestId: fallbackRequestId,
+      language: fallbackLanguage,
+      confidence: 0.6,
+      overallIntent: 'unclear' as const,
+      actions: [],
+      warnings: [],
+      missingFields: [],
+      requiresClarification: true,
+    };
+  }
+  const reqId = typeof obj.requestId === 'string' && obj.requestId.trim()
+    ? obj.requestId
+    : fallbackRequestId;
+  const language = typeof obj.language === 'string' && obj.language.trim()
+    ? obj.language
+    : fallbackLanguage;
+  const confidence = num01(obj.confidence, 0.7);
+  const validIntents: OverallIntent[] = [
+    'personal_transaction', 'managed_person_transaction', 'transfer',
+    'reimbursement', 'settlement', 'budget', 'recurring_transaction',
+    'personal_subscription_create', 'personal_subscription_update',
+    'personal_subscription_payment', 'personal_subscription_cancel',
+    'multiple_actions', 'unclear',
+  ];
+  const rawIntent = typeof obj.overallIntent === 'string' ? obj.overallIntent.trim() : '';
+  const overallIntent = validIntents.includes(rawIntent as OverallIntent)
+    ? rawIntent as OverallIntent
+    : (Array.isArray(obj.actions) && obj.actions.length >= 2
+        ? 'multiple_actions' as OverallIntent
+        : (Array.isArray(obj.actions) && obj.actions.length === 1
+            ? 'personal_transaction' as OverallIntent
+            : 'unclear' as OverallIntent));
+  const rawActions = Array.isArray(obj.actions) ? obj.actions : [];
+  const actionDefaults: Record<string, unknown> = {
+    warnings: [],
+    missingFields: [],
+  };
+  const validActionTypes: ActionType[] = [
+    'income', 'expense', 'money_received_from_person', 'money_returned_to_person',
+    'expense_from_held_balance', 'expense_paid_for_person', 'expense_paid_by_person',
+    'reimbursement_payment', 'settlement', 'transfer', 'budget', 'recurring_transaction',
+    'personal_subscription_create', 'personal_subscription_update',
+    'personal_subscription_payment', 'personal_subscription_cancel',
+    'create_account', 'create_managed_person', 'loan_received', 'loan_repayment',
+  ];
+  const actions = rawActions.map((item) => {
+    if (!item || typeof item !== 'object') return null;
+    const a = item as Record<string, unknown>;
+    const inferredType = (() => {
+      if (validActionTypes.includes(String(a.actionType || '') as ActionType)) return String(a.actionType);
+      if (/income|received|refund|salary|earn/i.test(String(a.type || a.transactionType || ''))) return 'income';
+      if (typeof a.amount === 'number' && a.amount < 0) { a.amount = -a.amount; return 'expense'; }
+      return 'expense';
+    })();
+    const hasAmount = typeof a.amount === 'number' && Number.isFinite(a.amount);
+    const currencyRaw = String(a.currencyCode || a.currency || defaultCurrency || '').trim() || null;
+    return {
+      ...actionDefaults,
+      ...a,
+      actionType: inferredType,
+      amount: hasAmount ? Number(a.amount) : (a.amount ?? null),
+      currency: currencyRaw,
+      currencyCode: currencyRaw,
+      confidence: num01(a.confidence, 0.75),
+      warnings: Array.isArray(a.warnings) ? a.warnings as string[] : [],
+    } as unknown;
+  }).filter(Boolean) as unknown[];
+
+  const out: Record<string, unknown> = { ...obj };
+  out.requestId = reqId;
+  out.language = language;
+  out.confidence = confidence;
+  out.overallIntent = overallIntent;
+  out.actions = actions;
+  out.warnings = Array.isArray(obj.warnings) ? obj.warnings as string[] : [];
+  out.missingFields = Array.isArray(obj.missingFields) ? obj.missingFields as string[] : [];
+  out.requiresClarification = obj.requiresClarification === true
+    || (actions.length === 0)
+    || (out.missingFields as string[]).length > 0;
+  if (typeof obj.transcript === 'string') out.transcript = obj.transcript;
+  if (typeof obj.originalTranscript === 'string') out.originalTranscript = obj.originalTranscript;
+  if (typeof obj.detectedLanguage === 'string') out.detectedLanguage = obj.detectedLanguage;
+  if (typeof obj.translationApplied === 'boolean') out.translationApplied = obj.translationApplied;
+  if (typeof obj.translationFailed === 'boolean') out.translationFailed = obj.translationFailed;
+  return out;
 }
 
 /**

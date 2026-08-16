@@ -68,7 +68,7 @@ export interface RuntimeVoiceTranscriptionConfig extends VoiceTranscriptionStatu
 export interface VoiceProviderHealthCheckResult {
   provider: string;
   code: VoiceTranscriptionHealthCode;
-  status: 'healthy' | 'degraded' | 'offline' | 'not_configured';
+  status: 'healthy' | 'degraded' | 'offline' | 'not_configured' | 'disabled';
   checkedAt: string;
   responseTimeMs: number;
   errorCategory?: string;
@@ -102,6 +102,8 @@ function mapHealthCodeToStatus(code: VoiceTranscriptionHealthCode): VoiceProvide
   switch (code) {
     case 'ready':
       return 'healthy';
+    case 'openrouter_disabled':
+      return 'disabled';
     case 'voice_model_audio_unsupported':
     case 'openrouter_auth_failed':
       return 'degraded';
@@ -181,6 +183,7 @@ function resolveSelectedVoiceModel(settings: AISettingsRow | null) {
 }
 
 function resolveVoiceConfig(settings: AISettingsRow | null, healthRow: ProviderHealthRow | null) {
+  const openrouterEnabled = process.env.OPENROUTER_ENABLED === 'true';
   const serverAiEnabled = process.env.AI_ENABLED === 'true';
   const adminAiEnabled = settings?.ai_enabled === true;
   const enableTranscriptRetention = settings?.enable_transcript_retention === true;
@@ -192,7 +195,9 @@ function resolveVoiceConfig(settings: AISettingsRow | null, healthRow: ProviderH
   const openrouterConfigured = Boolean(apiKey && baseUrl);
 
   let code: VoiceTranscriptionHealthCode = 'ready';
-  if (!aiEnabled || !openrouterConfigured) {
+  if (!openrouterEnabled) {
+    code = 'openrouter_disabled';
+  } else if (!aiEnabled || !openrouterConfigured) {
     code = 'openrouter_not_configured';
   } else if (!resolvedModel.model) {
     code = 'voice_model_missing';

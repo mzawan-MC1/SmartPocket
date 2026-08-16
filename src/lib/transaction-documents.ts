@@ -90,7 +90,9 @@ export type TransactionDocumentErrorCode =
   | 'receipt_no_documents_included'
   | 'receipt_allowance_exhausted'
   | 'duplicate_request_in_progress'
-  | 'save_failed';
+  | 'save_failed'
+  | 'invalid_document'
+  | 'safety_blocked';
 
 export interface TransactionDocumentLineItemDraft {
   name: string;

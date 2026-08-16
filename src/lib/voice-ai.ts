@@ -24,6 +24,7 @@ export type VoiceTranscriptionProvider = typeof VOICE_AI_GATEWAY;
 
 export type VoiceTranscriptionHealthCode =
   | 'ready'
+  | 'openrouter_disabled'
   | 'openrouter_not_configured'
   | 'voice_model_missing'
   | 'voice_model_audio_unsupported'
@@ -37,6 +38,7 @@ export type VoiceTranscriptionErrorCode =
   | 'empty_audio'
   | 'unsupported_audio_type'
   | 'audio_too_large'
+  | 'openrouter_disabled'
   | 'openrouter_not_configured'
   | 'voice_model_missing'
   | 'voice_model_audio_unsupported'

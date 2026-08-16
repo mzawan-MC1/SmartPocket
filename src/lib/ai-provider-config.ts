@@ -114,7 +114,7 @@ export function resolveAIProviderConfig(): AIProviderConfig {
       apiKey: readEnv('GEMINI_API_KEY'),
       baseUrl: readEnv('GEMINI_BASE_URL'),
       models: {
-        fast: readEnv('GEMINI_FAST_MODEL', 'gemini-3.5-flash-lite') as string,
+        fast: (readEnv('GEMINI_TEXT_MODEL') || readEnv('GEMINI_FAST_MODEL', 'gemini-3.5-flash-lite')) as string,
         reasoning: readEnv('GEMINI_REASONING_MODEL', 'gemini-3.5-flash') as string,
         multimodal: readEnv('GEMINI_MULTIMODAL_MODEL', 'gemini-3.5-flash') as string,
       },
