@@ -4,6 +4,10 @@ import { AlertTriangle, CheckCircle2, Clock3, Info, Sparkles, XCircle } from 'lu
 type StatusTone =
   | 'configured'
   | 'healthy'
+  | 'degraded'
+  | 'offline'
+  | 'disabled'
+  | 'not_configured'
   | 'ready'
   | 'success'
   | 'missing'
@@ -24,6 +28,10 @@ interface StatusBadgeProps {
 const styles: Record<StatusTone, { label: string; className: string; icon: React.ReactNode }> = {
   configured: { label: 'Configured', className: 'bg-info-soft text-info border border-info/20', icon: <CheckCircle2 size={12} /> },
   healthy: { label: 'Healthy', className: 'bg-positive-soft text-positive border border-positive/20', icon: <CheckCircle2 size={12} /> },
+  degraded: { label: 'Degraded', className: 'bg-warning-soft text-warning border border-warning/20', icon: <AlertTriangle size={12} /> },
+  offline: { label: 'Offline', className: 'bg-negative-soft text-negative border border-negative/20', icon: <XCircle size={12} /> },
+  disabled: { label: 'Disabled', className: 'bg-secondary text-secondary-foreground border border-border', icon: <Info size={12} /> },
+  not_configured: { label: 'Not tested', className: 'bg-muted text-muted-foreground border border-border', icon: <Info size={12} /> },
   ready: { label: 'Ready', className: 'bg-positive-soft text-positive border border-positive/20', icon: <CheckCircle2 size={12} /> },
   success: { label: 'Success', className: 'bg-positive-soft text-positive border border-positive/20', icon: <CheckCircle2 size={12} /> },
   missing: { label: 'Missing', className: 'bg-muted text-muted-foreground border border-border', icon: <AlertTriangle size={12} /> },

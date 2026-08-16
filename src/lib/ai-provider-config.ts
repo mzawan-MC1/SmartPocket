@@ -40,6 +40,7 @@ export interface AIProviderConfig {
     mode: 'cloud_only' | 'vps_only' | 'cloud_primary' | 'vps_primary';
     mockMode: boolean;
     requestTimeoutMs: number;
+    voiceHealthTimeoutMs: number;
     maxRetries: number;
     confidenceThreshold: number;
     maxDailyRequestsPerUser: number;
@@ -138,6 +139,7 @@ export function resolveAIProviderConfig(): AIProviderConfig {
       mode: runtimeMode,
       mockMode: readEnvBool('AI_MOCK_MODE', false),
       requestTimeoutMs: readEnvInt('AI_REQUEST_TIMEOUT_MS', 20000),
+      voiceHealthTimeoutMs: readEnvInt('AI_VOICE_HEALTH_TIMEOUT_MS', 30000),
       maxRetries: readEnvInt('AI_MAX_RETRIES', 1),
       confidenceThreshold: readEnvFloat('AI_CONFIDENCE_THRESHOLD', 0.8),
       maxDailyRequestsPerUser: readEnvInt('AI_MAX_DAILY_REQUESTS_PER_USER', 100),

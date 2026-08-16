@@ -395,6 +395,24 @@ function ProviderHealthBadge({ status }: { status: string }) {
   );
 }
 
+type VoiceCardStatusTone = 'healthy' | 'degraded' | 'offline' | 'missing' | 'not_configured' | 'disabled' | 'not_required';
+function resolveVoiceCardBadge(
+  configurationReady: boolean | undefined,
+  liveHealth: { status?: string | null } | undefined,
+  providerVoiceCode: string | undefined
+): VoiceCardStatusTone {
+  if (configurationReady === false) {
+    if (providerVoiceCode === 'gemini_model_missing' || providerVoiceCode === 'voice_model_missing') return 'missing';
+    return 'missing';
+  }
+  const h = liveHealth?.status;
+  if (h === 'healthy') return 'healthy';
+  if (h === 'degraded') return 'degraded';
+  if (h === 'offline') return 'offline';
+  if (h === 'not_configured') return 'not_configured';
+  return 'not_configured';
+}
+
 export default function AdminAISettingsPage() {
   const [settings, setSettings] = useState<AISettings>(DEFAULT_SETTINGS);
   const [health, setHealth] = useState<ProviderHealth[]>([]);
@@ -911,21 +929,11 @@ export default function AdminAISettingsPage() {
                   </div>
                 </div>
                 <StatusBadge
-                  status={
-                    serverConfig?.voiceTranscription.configurationReady
-                      ? 'healthy'
-                      : voiceGateway === 'gemini' && serverConfig?.voiceTranscription.code === 'gemini_model_missing'
-                        ? 'missing'
-                        : serverConfig?.voiceTranscription.code === 'gemini_provider_unavailable'
-                            || serverConfig?.voiceTranscription.code === 'gemini_auth_failed'
-                            || serverConfig?.voiceTranscription.code === 'gemini_request_timeout'
-                            || serverConfig?.voiceTranscription.code === 'gemini_rate_limited'
-                            || serverConfig?.voiceTranscription.code === 'openrouter_provider_unavailable'
-                            || serverConfig?.voiceTranscription.code === 'openrouter_auth_failed'
-                            || serverConfig?.voiceTranscription.code === 'voice_model_audio_unsupported'
-                          ? 'configured'
-                          : 'missing'
-                  }
+                  status={resolveVoiceCardBadge(
+                    serverConfig?.voiceTranscription.configurationReady,
+                    geminiVoiceHealth,
+                    serverConfig?.voiceTranscription.code
+                  )}
                 />
               </div>
               <div className="p-3 bg-muted/50 rounded-xl mb-3">
@@ -1035,13 +1043,13 @@ export default function AdminAISettingsPage() {
                 />
               </div>
               <div className="mt-3 text-xs text-muted-foreground">
-                OpenRouter configured: <span className="font-700 text-foreground">{serverConfig?.openrouterConfigured ? 'Yes' : 'No'}</span>
+                OpenRouter configured: <span className="font-700 text-foreground">{!openrouterEnabled ? 'Disabled' : serverConfig?.openrouterConfigured ? 'Yes' : 'No'}</span>
               </div>
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
                 <p className="text-xs text-muted-foreground">
-                  Latest health: <span className="font-700 text-foreground">{openrouterHealth?.status || 'Not checked'}</span>
+                  Latest health: <span className="font-700 text-foreground">{!openrouterEnabled ? 'Disabled' : (openrouterHealth?.status || 'Not checked')}</span>
                 </p>
-                <button onClick={() => handleTestProvider('openrouter')} disabled={testingProvider === 'openrouter' || !openrouterEnabled} className="btn-secondary text-sm">
+                <button onClick={() => handleTestProvider('openrouter')} disabled={testingProvider === 'openrouter' || !openrouterEnabled || isOpenRouterDisabled} className="btn-secondary text-sm">
                   {testingProvider === 'openrouter' ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
                   Test Connection
                 </button>
@@ -1059,7 +1067,7 @@ export default function AdminAISettingsPage() {
                   </div>
                 </div>
                 {isOpenRouterDisabled ? (
-                  <StatusBadge status="info" label="Disabled" />
+                  <StatusBadge status="disabled" label="Disabled" />
                 ) : (
                   <StatusBadge
                     status={
@@ -1076,8 +1084,9 @@ export default function AdminAISettingsPage() {
               </div>
               <div className="p-3 bg-muted/50 rounded-xl mb-3">
                 <p className="text-xs text-muted-foreground">
-                  Legacy voice transcription reuses the existing <code className="bg-muted px-1 rounded text-xs">OPENROUTER_API_KEY</code> and{' '}
-                  <code className="bg-muted px-1 rounded text-xs">OPENROUTER_BASE_URL</code>.
+                  {isOpenRouterDisabled
+                    ? 'OpenRouter is disabled globally via OPENROUTER_ENABLED=false. Voice fallback through this legacy gateway is inactive.'
+                    : 'Legacy voice transcription reuses the existing <code className="bg-muted px-1 rounded text-xs">OPENROUTER_API_KEY</code> and <code className="bg-muted px-1 rounded text-xs">OPENROUTER_BASE_URL</code>.'}
                 </p>
               </div>
               <div className="space-y-3">
@@ -1089,7 +1098,7 @@ export default function AdminAISettingsPage() {
                     onChange={e => update('voice_model', e.target.value)}
                     placeholder={settings.openrouter_model || 'google/gemini-2.5-flash'}
                     className="input-base text-sm w-full"
-                    disabled={voiceGateway !== 'openrouter'}
+                    disabled={isOpenRouterDisabled || voiceGateway !== 'openrouter'}
                   />
                   <p className="mt-1 text-xs text-muted-foreground">
                     Leave blank to reuse the general OpenRouter model.
@@ -1097,40 +1106,47 @@ export default function AdminAISettingsPage() {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-xl border border-border/60 bg-secondary/35 p-3 text-xs text-muted-foreground">
                   <div>
-                    Gateway: <span className="font-700 text-foreground">{voiceGateway ? capitalize(voiceGateway) : 'openrouter'}</span>
+                    Gateway: <span className="font-700 text-foreground">{isOpenRouterDisabled ? 'Disabled' : voiceGateway ? capitalize(voiceGateway) : 'openrouter'}</span>
                   </div>
                   <div>
-                    OpenRouter configured: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.openrouterConfigured ? 'Yes' : 'No'}</span>
+                    OpenRouter configured: <span className="font-700 text-foreground">{isOpenRouterDisabled ? 'Disabled' : serverConfig?.voiceTranscription.openrouterConfigured ? 'Yes' : 'No'}</span>
                   </div>
                   <div>
-                    Voice model: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.model || 'Missing'}</span>
+                    Legacy voice model: <span className="font-700 text-foreground">{settings.voice_model || settings.openrouter_model || 'Not set'}</span>
                   </div>
                   <div>
-                    Model source: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.modelSource || 'none'}</span>
+                    Model source: <span className="font-700 text-foreground">{isOpenRouterDisabled ? 'N/A' : serverConfig?.voiceTranscription.modelSource || 'none'}</span>
                   </div>
                   <div>
-                    Audio capable: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.modelAudioCapable === null ? 'Unknown' : serverConfig?.voiceTranscription.modelAudioCapable ? 'Yes' : 'No'}</span>
+                    Legacy status: <span className="font-700 text-foreground">{isOpenRouterDisabled ? 'Disabled' : serverConfig?.voiceTranscription.ready ? 'Ready' : 'Not ready'}</span>
                   </div>
                   <div>
-                    Voice ready: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.ready ? 'Yes' : 'No'}</span>
+                    Max recording: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.maxAudioSeconds || settings.max_audio_seconds}s</span>
                   </div>
-                  <div>
-                    Last health check: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.lastHealthCheck?.status || 'Not checked'}</span>
-                  </div>
-                  <div>
-                    Supported formats: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.supportedAudioFormats || 'Not available'}</span>
-                  </div>
-                  <div>
-                    Maximum recording: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.maxAudioSeconds || settings.max_audio_seconds}s</span>
-                  </div>
-                  <div>
-                    Status code: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.code || 'unknown'}</span>
-                  </div>
+                  {!isOpenRouterDisabled && (
+                    <>
+                      <div>
+                        Audio capable: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.modelAudioCapable === null ? 'Unknown' : serverConfig?.voiceTranscription.modelAudioCapable ? 'Yes' : 'No'}</span>
+                      </div>
+                      <div>
+                        Voice ready: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.ready ? 'Yes' : 'No'}</span>
+                      </div>
+                      <div>
+                        Last health check: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.lastHealthCheck?.status || 'Not checked'}</span>
+                      </div>
+                      <div>
+                        Supported formats: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.supportedAudioFormats || 'Not available'}</span>
+                      </div>
+                      <div>
+                        Status code: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.code || 'unknown'}</span>
+                      </div>
+                    </>
+                  )}
                 </div>
               </div>
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
                 <p className="text-xs text-muted-foreground">
-                  Latest health: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.lastHealthCheck?.status || openrouterVoiceHealth?.status || 'Not checked'}</span>
+                  Latest health: <span className="font-700 text-foreground">{isOpenRouterDisabled ? 'Disabled' : (openrouterVoiceHealth?.status || serverConfig?.voiceTranscription.lastHealthCheck?.status || 'Not checked')}</span>
                 </p>
                 <button onClick={() => handleTestProvider('openrouter_voice')} disabled={testingProvider === 'openrouter_voice' || isOpenRouterDisabled} className="btn-secondary text-sm">
                   {testingProvider === 'openrouter_voice' ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}

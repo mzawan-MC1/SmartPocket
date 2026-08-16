@@ -1758,6 +1758,39 @@ class VPSSTTProvider implements SpeechProvider {
 //   - response is empty or invalid JSON (throws)
 //   - schema validation via validateParsedInstruction fails (throws)
 
+export function extractGeminiCandidateText(result: unknown): string {
+  const r = result as {
+    candidates?: Array<{
+      content?: { parts?: Array<{ text?: string }> };
+      finishReason?: string;
+      finishMessage?: string;
+      safetyRatings?: Array<{ category: string; probability: string }>;
+      tokenCount?: number;
+    }>;
+    promptFeedback?: { blockReason?: string; safetyRatings?: unknown[] };
+    usageMetadata?: unknown;
+  };
+  const candidate = r?.candidates?.[0];
+  const blocked = r?.promptFeedback?.blockReason;
+  if (blocked) {
+    throw new Error(
+      `Gemini response blocked by safety: ${String(blocked)}` +
+        (candidate?.finishMessage ? ` (${String(candidate.finishMessage)})` : ''),
+    );
+  }
+  if (candidate?.finishReason && !['STOP', 'MAX_TOKENS', ''].includes(String(candidate.finishReason))) {
+    if (String(candidate.finishReason).toUpperCase() === 'SAFETY') {
+      throw new Error('Gemini response blocked by safety finish reason');
+    }
+    if (String(candidate.finishReason).toUpperCase() === 'RECITATION') {
+      throw new Error('Gemini response blocked by recitation policy');
+    }
+  }
+  return candidate?.content?.parts
+    ?.map((p) => (typeof p?.text === 'string' ? p.text : ''))
+    .join('') ?? '';
+}
+
 class GeminiLanguageProvider implements LanguageProvider {
   name = 'gemini';
   private timeoutMs: number;
@@ -1776,36 +1809,7 @@ class GeminiLanguageProvider implements LanguageProvider {
   }
 
   private extractCandidateText(result: unknown): string {
-    const r = result as {
-      candidates?: Array<{
-        content?: { parts?: Array<{ text?: string }> };
-        finishReason?: string;
-        finishMessage?: string;
-        safetyRatings?: Array<{ category: string; probability: string }>;
-        tokenCount?: number;
-      }>;
-      promptFeedback?: { blockReason?: string; safetyRatings?: unknown[] };
-      usageMetadata?: unknown;
-    };
-    const candidate = r?.candidates?.[0];
-    const blocked = r?.promptFeedback?.blockReason;
-    if (blocked) {
-      throw new Error(
-        `Gemini response blocked by safety: ${String(blocked)}` +
-          (candidate?.finishMessage ? ` (${String(candidate.finishMessage)})` : ''),
-      );
-    }
-    if (candidate?.finishReason && !['STOP', 'MAX_TOKENS', ''].includes(String(candidate.finishReason))) {
-      if (String(candidate.finishReason).toUpperCase() === 'SAFETY') {
-        throw new Error('Gemini response blocked by safety finish reason');
-      }
-      if (String(candidate.finishReason).toUpperCase() === 'RECITATION') {
-        throw new Error('Gemini response blocked by recitation policy');
-      }
-    }
-    return candidate?.content?.parts
-      ?.map((p) => (typeof p?.text === 'string' ? p.text : ''))
-      .join('') ?? '';
+    return extractGeminiCandidateText(result);
   }
 
   private getFinishReason(result: unknown): string | null {
