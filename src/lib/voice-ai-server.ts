@@ -3,11 +3,13 @@ import 'server-only';
 import { createAdminClient } from '@/lib/supabase/admin';
 import {
   VOICE_AI_MAX_AUDIO_BYTES,
-  VOICE_AI_GATEWAY,
   VOICE_AI_SUPPORTED_AUDIO_FORMATS_LABEL,
   type VoiceTranscriptionHealthCode,
+  type VoiceAiGateway,
 } from '@/lib/voice-ai';
 import { getOpenRouterBaseUrl } from '@/lib/ai-gateway';
+import { getAIConfig, isOpenRouterEnabled } from '@/lib/ai-provider-config';
+import { getGeminiClient } from '@/lib/gemini-client';
 
 type AISettingsRow = {
   ai_enabled: boolean | null;
@@ -47,7 +49,7 @@ export interface VoiceTranscriptionStatusSnapshot {
   enableTranscriptRetention: boolean;
   ready: boolean;
   code: VoiceTranscriptionHealthCode;
-  gateway: typeof VOICE_AI_GATEWAY;
+  gateway: VoiceAiGateway;
   model: string | null;
   modelSource: 'voice_model' | 'openrouter_model' | 'env' | 'none';
   modelAudioCapable: boolean | null;
@@ -81,6 +83,7 @@ const DEFAULT_MAX_AUDIO_SECONDS = Math.max(
   parseInt(process.env.AI_MAX_AUDIO_SECONDS || '120', 10) || 120
 );
 
+const VOICE_GEMINI_PROVIDER_KEY = 'gemini_voice';
 const VOICE_OPENROUTER_PROVIDER_KEY = 'openrouter_voice';
 
 function firstNonEmpty(...values: Array<string | null | undefined>) {
@@ -106,6 +109,7 @@ function mapHealthCodeToStatus(code: VoiceTranscriptionHealthCode): VoiceProvide
       return 'disabled';
     case 'voice_model_audio_unsupported':
     case 'openrouter_auth_failed':
+    case 'gemini_model_missing':
       return 'degraded';
     case 'openrouter_provider_unavailable':
       return 'offline';
@@ -164,6 +168,13 @@ function inferPersistedAudioCapability(row: ProviderHealthRow | null) {
 }
 
 function resolveSelectedVoiceModel(settings: AISettingsRow | null) {
+  const aiConfig = getAIConfig();
+
+  const geminiMultimodal = firstNonEmpty(aiConfig.gemini.models.multimodal);
+  if (geminiMultimodal) {
+    return { model: geminiMultimodal, source: 'env' as const };
+  }
+
   const voiceModel = firstNonEmpty(settings?.voice_model);
   if (voiceModel) {
     return { model: voiceModel, source: 'voice_model' as const };
@@ -183,34 +194,93 @@ function resolveSelectedVoiceModel(settings: AISettingsRow | null) {
 }
 
 function resolveVoiceConfig(settings: AISettingsRow | null, healthRow: ProviderHealthRow | null) {
-  const openrouterEnabled = process.env.OPENROUTER_ENABLED === 'true';
+  const aiConfig = getAIConfig();
+  const primaryProvider = aiConfig.language.primary;
   const serverAiEnabled = process.env.AI_ENABLED === 'true';
   const adminAiEnabled = settings?.ai_enabled === true;
   const enableTranscriptRetention = settings?.enable_transcript_retention === true;
   const aiEnabled = serverAiEnabled && adminAiEnabled;
   const maxAudioSeconds = Math.max(10, settings?.max_audio_seconds || DEFAULT_MAX_AUDIO_SECONDS);
   const resolvedModel = resolveSelectedVoiceModel(settings);
-  const baseUrl = firstNonEmpty(process.env.OPENROUTER_BASE_URL, getOpenRouterBaseUrl());
-  const apiKey = firstNonEmpty(process.env.OPENROUTER_API_KEY);
-  const openrouterConfigured = Boolean(apiKey && baseUrl);
 
   let code: VoiceTranscriptionHealthCode = 'ready';
-  if (!openrouterEnabled) {
-    code = 'openrouter_disabled';
-  } else if (!aiEnabled || !openrouterConfigured) {
-    code = 'openrouter_not_configured';
-  } else if (!resolvedModel.model) {
-    code = 'voice_model_missing';
+  let gateway: VoiceAiGateway = 'gemini';
+  let baseUrl = '';
+  let apiKey = '';
+  let model = resolvedModel.model || null;
+  let modelSource = resolvedModel.source;
+  let attemptedGemini = false;
+
+  const geminiApiOk = Boolean(aiConfig.gemini.apiKey);
+  const multimodalOk = Boolean(aiConfig.gemini.models.multimodal);
+  if (primaryProvider === 'gemini' || (typeof aiConfig.gemini.apiKey === 'string' && aiConfig.gemini.apiKey.trim() !== '')) {
+    attemptedGemini = true;
+    gateway = 'gemini';
+    model = aiConfig.gemini.models.multimodal || null;
+    modelSource = 'env';
+    if (!geminiApiOk) {
+      code = 'gemini_api_key_missing';
+      baseUrl = '';
+      apiKey = '';
+    } else if (!multimodalOk) {
+      code = 'gemini_model_missing';
+      baseUrl = '';
+      apiKey = aiConfig.gemini.apiKey || '';
+    } else {
+      code = 'ready';
+      baseUrl = '';
+      apiKey = aiConfig.gemini.apiKey || '';
+    }
   }
+
+  if (code !== 'ready' && aiConfig.openrouter.enabled === true && Boolean(aiConfig.openrouter.apiKey)) {
+    gateway = 'openrouter';
+    const openrouterEnabled = isOpenRouterEnabled();
+    const openrouterBaseUrl = firstNonEmpty(aiConfig.openrouter.baseUrl, getOpenRouterBaseUrl());
+    const openrouterApiKey = firstNonEmpty(aiConfig.openrouter.apiKey);
+    const openrouterConfigured = Boolean(openrouterApiKey && openrouterBaseUrl);
+
+    baseUrl = openrouterBaseUrl;
+    apiKey = openrouterApiKey;
+    model = resolvedModel.model || null;
+    modelSource = resolvedModel.source;
+
+    if (!openrouterEnabled) {
+      code = 'openrouter_disabled';
+    } else if (!aiEnabled || !openrouterConfigured) {
+      code = 'openrouter_not_configured';
+    } else if (!resolvedModel.model) {
+      code = 'voice_model_missing';
+    } else {
+      code = 'ready';
+    }
+  }
+
+  if (code !== 'ready' && gateway === 'gemini' && !attemptedGemini) {
+    code = 'gemini_not_configured';
+  }
+
+  if (!aiEnabled) {
+    if (gateway === 'gemini') {
+      code = 'gemini_not_configured';
+    } else {
+      code = 'openrouter_not_configured';
+    }
+  }
+
+  const openrouterConfigured = Boolean(
+    aiConfig.openrouter.apiKey &&
+    (aiConfig.openrouter.baseUrl || getOpenRouterBaseUrl())
+  );
 
   return {
     aiEnabled,
     adminAiEnabled,
     serverAiEnabled,
     enableTranscriptRetention,
-    gateway: VOICE_AI_GATEWAY,
-    model: resolvedModel.model || null,
-    modelSource: resolvedModel.source,
+    gateway,
+    model: model || null,
+    modelSource,
     modelAudioCapable: inferPersistedAudioCapability(healthRow),
     baseUrl,
     apiKey,
@@ -226,6 +296,8 @@ async function loadSettingsAndHealth() {
     return {
       settings: null,
       healthRow: null,
+      geminiHealthRow: null,
+      openrouterHealthRow: null,
     };
   }
 
@@ -235,15 +307,29 @@ async function loadSettingsAndHealth() {
     .eq('singleton_key', 'global')
     .maybeSingle();
 
-  const { data: healthRow } = await admin
+  const { data: geminiHealthRow } = await admin
+    .from('ai_provider_health')
+    .select('provider, status, last_checked_at, last_success_at, last_failure_at, last_error_category, response_time_ms, model_used')
+    .eq('provider', VOICE_GEMINI_PROVIDER_KEY)
+    .maybeSingle();
+
+  const { data: openrouterHealthRow } = await admin
     .from('ai_provider_health')
     .select('provider, status, last_checked_at, last_success_at, last_failure_at, last_error_category, response_time_ms, model_used')
     .eq('provider', VOICE_OPENROUTER_PROVIDER_KEY)
     .maybeSingle();
 
+  const aiConfig = getAIConfig();
+  const useGemini = aiConfig.language.primary === 'gemini' || Boolean(aiConfig.gemini.apiKey);
+  const healthRow = useGemini
+    ? (geminiHealthRow as ProviderHealthRow | null) ?? null
+    : (openrouterHealthRow as ProviderHealthRow | null) ?? null;
+
   return {
     settings: (settings as AISettingsRow | null) ?? null,
-    healthRow: (healthRow as ProviderHealthRow | null) ?? null,
+    healthRow,
+    geminiHealthRow: (geminiHealthRow as ProviderHealthRow | null) ?? null,
+    openrouterHealthRow: (openrouterHealthRow as ProviderHealthRow | null) ?? null,
   };
 }
 
@@ -278,7 +364,7 @@ function statusFromRuntimeConfig(
     enableTranscriptRetention: runtimeConfig.enableTranscriptRetention,
     ready: overrides?.ready ?? runtimeConfig.ready,
     code: overrides?.code ?? runtimeConfig.code,
-    gateway: VOICE_AI_GATEWAY,
+    gateway: runtimeConfig.gateway,
     model: overrides?.model ?? runtimeConfig.model,
     modelSource: overrides?.modelSource ?? runtimeConfig.modelSource,
     modelAudioCapable: overrides?.modelAudioCapable ?? runtimeConfig.modelAudioCapable,
@@ -321,7 +407,7 @@ export async function loadRuntimeVoiceTranscriptionConfig(): Promise<RuntimeVoic
     enableTranscriptRetention: resolved.enableTranscriptRetention,
     ready: resolved.code === 'ready',
     code: resolved.code,
-    gateway: VOICE_AI_GATEWAY,
+    gateway: resolved.gateway,
     model: resolved.model,
     modelSource: resolved.modelSource,
     modelAudioCapable: resolved.modelAudioCapable,
@@ -340,6 +426,67 @@ export async function loadRuntimeVoiceTranscriptionConfig(): Promise<RuntimeVoic
 export async function runVoiceTranscriptionHealthCheck(): Promise<VoiceProviderHealthCheckResult> {
   const runtimeConfig = await loadRuntimeVoiceTranscriptionConfig();
   const checkedAt = new Date().toISOString();
+  const aiConfig = getAIConfig();
+
+  if (runtimeConfig.gateway === 'gemini' && runtimeConfig.code !== 'ready') {
+    return {
+      provider: VOICE_GEMINI_PROVIDER_KEY,
+      code: runtimeConfig.code,
+      status: mapHealthCodeToStatus(runtimeConfig.code),
+      checkedAt,
+      responseTimeMs: 0,
+      errorCategory: runtimeConfig.code,
+      modelUsed: runtimeConfig.model,
+      modelAudioCapable: runtimeConfig.modelAudioCapable,
+    };
+  }
+
+  if (runtimeConfig.gateway === 'gemini' && runtimeConfig.code === 'ready') {
+    const start = Date.now();
+    try {
+      const geminiHandle = getGeminiClient();
+      const client = geminiHandle.requireClient('voice health check');
+      const modelName = aiConfig.gemini.models.multimodal;
+
+      const result = await client.models.generateContent({
+        model: modelName,
+        contents: [{ role: 'user', parts: [{ text: 'reply JSON {"ok":true}' }] }],
+        config: {
+          temperature: 0,
+          maxOutputTokens: 30,
+          responseMimeType: 'application/json',
+          abortSignal: AbortSignal.timeout(7000),
+        },
+      });
+
+      const responseTimeMs = Date.now() - start;
+      void result;
+
+      return {
+        provider: VOICE_GEMINI_PROVIDER_KEY,
+        code: 'ready',
+        status: 'healthy',
+        checkedAt,
+        responseTimeMs,
+        modelUsed: runtimeConfig.model,
+        modelAudioCapable: true,
+      };
+    } catch (err) {
+      const errAny = err as any;
+      const msg = (errAny && errAny.message) ? String(errAny.message) : String(err || '');
+      const isAuth = /\b(401|403|UNAUTHENTICATED|PERMISSION_DENIED|invalid authentication credentials|API key not valid)\b/i.test(msg);
+      const isTimeout = /\b(timeout|timed out|DEADLINE_EXCEEDED|AbortError|TimeoutError)\b/i.test(msg);
+      return {
+        provider: VOICE_GEMINI_PROVIDER_KEY,
+        code: isAuth ? 'gemini_auth_failed' : (isTimeout ? 'gemini_request_timeout' : 'gemini_provider_unavailable'),
+        status: 'offline',
+        checkedAt,
+        responseTimeMs: Date.now() - start,
+        errorCategory: isAuth ? 'auth_error' : (isTimeout ? 'timeout' : 'network_error'),
+        modelUsed: runtimeConfig.model,
+      };
+    }
+  }
 
   if (runtimeConfig.code !== 'ready' || !runtimeConfig.model) {
     return {

@@ -418,6 +418,7 @@ export interface AIAssistantResponse {
   detectedLanguage?: string;
   errorMessage?: string;
   errorCategory?: string;
+  errorCode?: string;
   providerUsed?: string;
   modelUsed?: string;
   fallbackUsed?: boolean;

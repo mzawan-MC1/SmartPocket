@@ -1,8 +1,14 @@
 import { NextResponse } from 'next/server';
 import { applySupabaseCookies, createRouteHandlerSupabaseClient } from '@/lib/supabase/server';
 import { loadVoiceTranscriptionStatus } from '@/lib/voice-ai-server';
+import { resolveAIProviderConfig } from '@/lib/ai-provider-config';
 
 type AIConfigStatusResponse = {
+  provider: 'gemini' | 'openrouter' | 'vps_ai' | 'mock';
+  geminiApiKeyConfigured: boolean;
+  geminiTextModel: string;
+  geminiMultimodalModel: string;
+  geminiConfigured: boolean;
   openrouterConfigured: boolean;
   openrouterBaseUrlConfigured: boolean;
   supabaseServiceConfigured: boolean;
@@ -59,6 +65,7 @@ export async function GET() {
   const aiEnabledRaw = process.env.AI_ENABLED;
   const aiModeRaw = process.env.AI_MODE;
   const aiMockModeRaw = process.env.AI_MOCK_MODE;
+  const aiCfg = resolveAIProviderConfig();
 
   const mode: AIConfigStatusResponse['mode'] =
     aiModeRaw === 'vps_only' || aiModeRaw === 'cloud_primary' || aiModeRaw === 'vps_primary' || aiModeRaw === 'cloud_only'
@@ -72,6 +79,11 @@ export async function GET() {
   );
 
   const body: AIConfigStatusResponse = {
+    provider: aiCfg.language.primary,
+    geminiApiKeyConfigured: Boolean(aiCfg.gemini.apiKey),
+    geminiTextModel: aiCfg.gemini.models.fast || '',
+    geminiMultimodalModel: aiCfg.gemini.models.multimodal || '',
+    geminiConfigured: Boolean(aiCfg.gemini.apiKey) && Boolean(aiCfg.gemini.models.fast) && Boolean(aiCfg.gemini.models.multimodal),
     openrouterConfigured: Boolean(openrouterApiKey),
     openrouterBaseUrlConfigured: Boolean(openrouterBaseUrl || 'https://openrouter.ai/api/v1'),
     supabaseServiceConfigured: Boolean(supabaseServiceRoleKey),

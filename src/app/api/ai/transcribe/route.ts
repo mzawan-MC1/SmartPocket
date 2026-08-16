@@ -241,6 +241,12 @@ function getStoredVoiceErrorCode(value: string | null | undefined): AIErrorPaylo
     case 'openrouter_auth_failed':
     case 'openrouter_provider_unavailable':
     case 'transcription_failed':
+    case 'gemini_not_configured':
+    case 'gemini_model_missing':
+    case 'gemini_api_key_missing':
+    case 'gemini_auth_failed':
+    case 'gemini_provider_unavailable':
+    case 'gemini_request_timeout':
       return value;
     default:
       return 'transcription_failed';
@@ -250,6 +256,7 @@ function getStoredVoiceErrorCode(value: string | null | undefined): AIErrorPaylo
 function getStoredVoiceErrorStatus(code: AIErrorPayload['code']) {
   switch (code) {
     case 'timeout':
+    case 'gemini_request_timeout':
       return 504;
     case 'voice_not_in_plan':
       return 403;
@@ -260,11 +267,16 @@ function getStoredVoiceErrorStatus(code: AIErrorPayload['code']) {
     case 'audio_too_large':
       return 413;
     case 'openrouter_provider_unavailable':
+    case 'gemini_provider_unavailable':
       return 503;
     case 'openrouter_not_configured':
     case 'voice_model_missing':
     case 'voice_model_audio_unsupported':
     case 'openrouter_auth_failed':
+    case 'gemini_not_configured':
+    case 'gemini_model_missing':
+    case 'gemini_api_key_missing':
+    case 'gemini_auth_failed':
       return 409;
     default:
       return 409;
@@ -606,13 +618,19 @@ async function persistVoiceRequest(args: {
 function getVoiceFailureStatus(errorCode: string | undefined) {
   switch (errorCode) {
     case 'timeout':
+    case 'gemini_request_timeout':
       return 504;
     case 'openrouter_auth_failed':
     case 'openrouter_not_configured':
     case 'voice_model_missing':
     case 'voice_model_audio_unsupported':
+    case 'gemini_not_configured':
+    case 'gemini_model_missing':
+    case 'gemini_api_key_missing':
+    case 'gemini_auth_failed':
       return 409;
     case 'openrouter_provider_unavailable':
+    case 'gemini_provider_unavailable':
       return 503;
     case 'invalid_response':
       return 422;
@@ -884,6 +902,10 @@ export async function POST(req: NextRequest) {
                     || storedCode === 'voice_model_missing'
                     || storedCode === 'voice_model_audio_unsupported'
                     || storedCode === 'openrouter_auth_failed'
+                    || storedCode === 'gemini_not_configured'
+                    || storedCode === 'gemini_model_missing'
+                    || storedCode === 'gemini_api_key_missing'
+                    || storedCode === 'gemini_auth_failed'
                     ? 'configuration'
                     : 'technical',
             existingRequest.data.error_message || 'Voice transcription is temporarily unavailable.',
@@ -958,54 +980,60 @@ export async function POST(req: NextRequest) {
     }
 
     if (!runtimeConfig.ready) {
-      const voiceErrorCode =
-        runtimeConfig.code === 'openrouter_auth_failed'
-          ? 'openrouter_auth_failed'
-          : runtimeConfig.code === 'openrouter_provider_unavailable'
-            ? 'openrouter_provider_unavailable'
-            : runtimeConfig.code === 'voice_model_missing'
-              ? 'voice_model_missing'
-              : runtimeConfig.code === 'voice_model_audio_unsupported'
-                ? 'voice_model_audio_unsupported'
-                : 'openrouter_not_configured';
+      const code = runtimeConfig.code;
+      const isMissingOrNotConfigured =
+        code.includes('missing') || code.includes('not_configured');
+      const isModelOrAudioIssue =
+        code.includes('_model_') || code.includes('_audio_');
+      const isUnavailableOrAuth =
+        code.includes('_provider_unavailable') || code.includes('_auth_failed');
+
+      const voiceErrorCode = code;
+      const category = isUnavailableOrAuth ? 'technical' : 'configuration';
+      const message = isMissingOrNotConfigured
+        ? 'The AI service has not been configured by the administrator. Use text entry for now.'
+        : isModelOrAudioIssue
+          ? 'The selected AI model does not support voice transcription. Use text entry for now.'
+          : 'Voice transcription is temporarily unavailable.';
+      const httpStatus = isUnavailableOrAuth ? 503 : 409;
+
       return NextResponse.json(
         buildError(
-          voiceErrorCode,
-          runtimeConfig.code === 'openrouter_provider_unavailable' || runtimeConfig.code === 'openrouter_auth_failed'
-            ? 'technical'
-            : 'configuration',
-          runtimeConfig.code === 'openrouter_provider_unavailable'
-            ? 'Voice transcription is temporarily unavailable.'
-            : runtimeConfig.code === 'openrouter_auth_failed'
-              ? 'Voice transcription is temporarily unavailable.'
-              : runtimeConfig.code === 'voice_model_missing' || runtimeConfig.code === 'voice_model_audio_unsupported'
-                ? 'The selected AI model does not support voice transcription. Use text entry for now.'
-                : 'The AI service has not been configured by the administrator. Use text entry for now.',
+          voiceErrorCode as any,
+          category,
+          message,
           requestId
         ),
-        { status: runtimeConfig.code === 'openrouter_provider_unavailable' ? 503 : 409 }
+        { status: httpStatus }
       );
     }
 
     if (!runtimeConfig.model) {
+      const code = runtimeConfig.code;
+      const isMissingOrNotConfigured =
+        code.includes('missing') || code.includes('not_configured');
+      const isModelOrAudioIssue =
+        code.includes('_model_') || code.includes('_audio_');
+      const isUnavailableOrAuth =
+        code.includes('_provider_unavailable') || code.includes('_auth_failed');
+
+      const voiceErrorCode = code;
+      const category = isUnavailableOrAuth ? 'technical' : 'configuration';
+      const message = isMissingOrNotConfigured
+        ? 'The AI service has not been configured by the administrator. Use text entry for now.'
+        : isModelOrAudioIssue
+          ? 'The selected AI model does not support voice transcription. Use text entry for now.'
+          : 'Voice transcription is temporarily unavailable.';
+      const httpStatus = isUnavailableOrAuth ? 503 : 409;
+
       return NextResponse.json(
         buildError(
-          runtimeConfig.code === 'openrouter_auth_failed'
-            ? 'openrouter_auth_failed'
-            : runtimeConfig.code === 'voice_model_missing'
-              ? 'voice_model_missing'
-              : runtimeConfig.code === 'voice_model_audio_unsupported'
-                ? 'voice_model_audio_unsupported'
-                : 'openrouter_not_configured',
-          runtimeConfig.code === 'openrouter_auth_failed' ? 'technical' : 'configuration',
-          runtimeConfig.code === 'voice_model_missing' || runtimeConfig.code === 'voice_model_audio_unsupported'
-            ? 'The selected AI model does not support voice transcription. Use text entry for now.'
-            : runtimeConfig.code === 'openrouter_auth_failed'
-              ? 'Voice transcription is temporarily unavailable.'
-              : 'The AI service has not been configured by the administrator. Use text entry for now.',
+          voiceErrorCode as any,
+          category,
+          message,
           requestId
         ),
-        { status: 409 }
+        { status: httpStatus }
       );
     }
 

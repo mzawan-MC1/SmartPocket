@@ -6,6 +6,7 @@ import {
   persistVoiceTranscriptionHealth,
   runVoiceTranscriptionHealthCheck,
 } from '@/lib/voice-ai-server';
+import { getAIConfig } from '@/lib/ai-provider-config';
 
 export async function GET() {
   try {
@@ -44,12 +45,23 @@ export async function GET() {
     }
 
     const config = loadAIConfig();
-    const [openrouterHealth, vpsAiHealth, voiceOpenRouterHealth] = await Promise.all([
-      createLanguageProvider('openrouter', 5000).healthCheck(),
+    const aiCfg = getAIConfig();
+    const [geminiHealth, openrouterHealthConditional, vpsAiHealth, voiceHealth] = await Promise.all([
+      createLanguageProvider('gemini', 5000).healthCheck(),
+      aiCfg.openrouter.enabled
+        ? createLanguageProvider('openrouter', 5000).healthCheck()
+        : Promise.resolve({
+            provider: 'openrouter',
+            status: 'disabled' as const,
+            checkedAt: new Date().toISOString(),
+            responseTimeMs: 0,
+            errorCategory: 'openrouter_disabled',
+            modelUsed: null as string | null,
+          }),
       createLanguageProvider('vps_ai', 5000).healthCheck(),
       runVoiceTranscriptionHealthCheck(),
     ]);
-    const healthResults = [openrouterHealth, vpsAiHealth, voiceOpenRouterHealth];
+    const healthResults = [geminiHealth, openrouterHealthConditional, vpsAiHealth, voiceHealth];
 
     // Update health records in DB (admin-only table)
     for (const result of healthResults) {
@@ -80,7 +92,7 @@ export async function GET() {
     }
 
     await Promise.all([
-      persistVoiceTranscriptionHealth(voiceOpenRouterHealth),
+      persistVoiceTranscriptionHealth(voiceHealth),
     ]);
 
     return applySupabaseCookies(NextResponse.json({

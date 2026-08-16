@@ -114,29 +114,40 @@ export async function GET() {
   }
 
   if (!transcription.ready) {
-    const error = transcription.code === 'openrouter_auth_failed'
-      ? buildVoiceError(
-          'openrouter_auth_failed',
-          'technical',
-          'Voice transcription is temporarily unavailable.'
-        )
-      : transcription.code === 'openrouter_provider_unavailable'
-        ? buildVoiceError(
-            'openrouter_provider_unavailable',
-            'technical',
-            'Voice transcription is temporarily unavailable.'
-          )
-        : transcription.code === 'voice_model_missing' || transcription.code === 'voice_model_audio_unsupported'
-          ? buildVoiceError(
-              transcription.code,
-              'configuration',
-              'The selected AI model does not support voice transcription. Use text entry for now.'
-            )
-          : buildVoiceError(
-              'openrouter_not_configured',
-              'configuration',
-              'The AI service has not been configured by the administrator. Use text entry for now.'
-            );
+    const code = transcription.code;
+    const isMissingOrNotConfigured =
+      (code.startsWith('gemini_') && (code !== 'gemini_model_missing')) ||
+      code === 'openrouter_not_configured' ||
+      code === 'openrouter_disabled';
+    const isModelOrAudioIssue =
+      code === 'gemini_model_missing' || code === 'voice_model_missing' ||
+      code === 'voice_model_audio_unsupported';
+    const isUnavailableOrAuth =
+      code === 'openrouter_provider_unavailable' || code === 'openrouter_auth_failed' ||
+      code === 'gemini_provider_unavailable' || code === 'gemini_auth_failed' || code === 'gemini_request_timeout';
+
+    let error: AIErrorPayload;
+    if (isMissingOrNotConfigured) {
+      error = buildVoiceError(
+        code as AIErrorPayload['code'],
+        'configuration',
+        'The AI service has not been configured by the administrator. Use text entry for now.'
+      );
+    } else if (isModelOrAudioIssue) {
+      error = buildVoiceError(
+        code as AIErrorPayload['code'],
+        'configuration',
+        'The selected AI model does not support voice transcription. Use text entry for now.'
+      );
+    } else {
+      error = buildVoiceError(
+        code as AIErrorPayload['code'],
+        'technical',
+        'Voice transcription is temporarily unavailable.'
+      );
+    }
+
+    const httpStatus = isUnavailableOrAuth ? 503 : 409;
 
     return applySupabaseCookies(
       NextResponse.json({
@@ -144,7 +155,7 @@ export async function GET() {
         usage,
         transcription,
         error,
-      }, { status: error.code === 'openrouter_provider_unavailable' ? 503 : 409 }),
+      }, { status: httpStatus }),
       cookieMutations
     );
   }

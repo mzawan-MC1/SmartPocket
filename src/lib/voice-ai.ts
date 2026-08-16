@@ -18,9 +18,10 @@ export const VOICE_AI_BROWSER_RECORDING_MIME_CANDIDATES = [
 ] as const;
 
 export const VOICE_AI_SUPPORTED_AUDIO_FORMATS_LABEL = 'WebM (Opus), MP4 (AAC/M4A), MP3, WAV';
-export const VOICE_AI_GATEWAY = 'openrouter' as const;
 
-export type VoiceTranscriptionProvider = typeof VOICE_AI_GATEWAY;
+export type VoiceAiGateway = 'gemini' | 'openrouter';
+
+export type VoiceTranscriptionProvider = VoiceAiGateway;
 
 export type VoiceTranscriptionHealthCode =
   | 'ready'
@@ -29,7 +30,13 @@ export type VoiceTranscriptionHealthCode =
   | 'voice_model_missing'
   | 'voice_model_audio_unsupported'
   | 'openrouter_auth_failed'
-  | 'openrouter_provider_unavailable';
+  | 'openrouter_provider_unavailable'
+  | 'gemini_not_configured'
+  | 'gemini_model_missing'
+  | 'gemini_api_key_missing'
+  | 'gemini_auth_failed'
+  | 'gemini_provider_unavailable'
+  | 'gemini_request_timeout';
 
 export type VoiceTranscriptionErrorCode =
   | 'voice_not_in_plan'
@@ -44,7 +51,13 @@ export type VoiceTranscriptionErrorCode =
   | 'voice_model_audio_unsupported'
   | 'openrouter_auth_failed'
   | 'openrouter_provider_unavailable'
-  | 'transcription_failed';
+  | 'transcription_failed'
+  | 'gemini_not_configured'
+  | 'gemini_model_missing'
+  | 'gemini_api_key_missing'
+  | 'gemini_auth_failed'
+  | 'gemini_provider_unavailable'
+  | 'gemini_request_timeout';
 
 export interface VoiceRecorderSubmission {
   file: File;

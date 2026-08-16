@@ -40,6 +40,12 @@ function buildExtractReferenceId(extractRequestId: string) {
   return `RX-${extractRequestId.replace(/-/g, '').slice(0, 8).toUpperCase()}`;
 }
 
+function arrayBufferToDataUrl(buffer: ArrayBuffer, mimeType: string): string {
+  const safeMime = typeof mimeType === 'string' && mimeType.trim() ? mimeType.trim() : 'application/octet-stream';
+  const b64 = Buffer.from(buffer).toString('base64');
+  return `data:${safeMime};base64,${b64}`;
+}
+
 function normalizeSurface(value: FormDataEntryValue | null): TransactionDocumentSourceSurface {
   return value === 'smart_entry' ? 'smart_entry' : 'add_transaction';
 }
@@ -657,11 +663,12 @@ export async function POST(request: NextRequest) {
       mimeType: fileEntry.type,
       sourceSurface,
     });
+    const documentDataUrl = arrayBufferToDataUrl(fileBuffer, fileEntry.type || 'application/octet-stream');
     const extractionResponse = await processTransactionDocumentAIRequest({
       requestId: jobId,
       fileName: fileEntry.name,
       fileMimeType: fileEntry.type,
-      fileUrl: previewUrl,
+      fileUrl: documentDataUrl,
       language,
       pageCount: validation.pageCount,
       sourceSurface,

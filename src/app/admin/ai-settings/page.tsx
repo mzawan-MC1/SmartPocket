@@ -35,7 +35,7 @@ interface AISettings {
 
 interface ProviderHealth {
   provider: string;
-  status: 'healthy' | 'degraded' | 'offline' | 'not_configured';
+  status: 'healthy' | 'degraded' | 'offline' | 'not_configured' | 'disabled';
   last_checked_at: string | null;
   last_success_at: string | null;
   last_failure_at: string | null;
@@ -56,6 +56,11 @@ interface AdminStats {
 }
 
 interface ServerAIConfigStatus {
+  provider: 'gemini' | 'openrouter' | 'vps_ai' | 'mock';
+  geminiApiKeyConfigured: boolean;
+  geminiTextModel: string;
+  geminiMultimodalModel: string;
+  geminiConfigured: boolean;
   openrouterConfigured: boolean;
   openrouterBaseUrlConfigured: boolean;
   supabaseServiceConfigured: boolean;
@@ -66,7 +71,7 @@ interface ServerAIConfigStatus {
   voiceTranscription: {
     ready: boolean;
     code: string;
-    gateway: string;
+    gateway: 'gemini' | 'openrouter';
     model: string | null;
     modelSource: string;
     modelAudioCapable: boolean | null;
@@ -122,10 +127,18 @@ interface ConfigStatus {
   vps: 'configured' | 'missing' | 'test_failed' | 'healthy' | 'checking';
 }
 
-const ACTIVE_PROVIDER_NAMES = new Set(['openrouter', 'vps_ai', 'openrouter_voice']);
+const ACTIVE_PROVIDER_NAMES = new Set(['gemini', 'gemini_voice', 'openrouter', 'openrouter_voice', 'vps_ai']);
+
+function capitalize(s: string) {
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
 
 function getProviderDisplayName(provider: string) {
   switch (provider) {
+    case 'gemini':
+      return 'Gemini';
+    case 'gemini_voice':
+      return 'Gemini Voice';
     case 'openrouter':
       return 'OpenRouter';
     case 'vps_ai':
@@ -150,6 +163,17 @@ function ConfigStatusPanel({
 
   const isCloudOnly = serverConfig?.mode === 'cloud_only';
 
+  let geminiStatus: ConfigStatus['openrouter'] = 'checking';
+  if (serverConfig) {
+    if (!serverConfig.geminiConfigured) geminiStatus = 'missing';
+    else {
+      const geminiHealth = health.find(h => h.provider === 'gemini');
+      if (geminiHealth?.status === 'healthy') geminiStatus = 'healthy';
+      else if (geminiHealth?.status === 'offline' || geminiHealth?.status === 'degraded') geminiStatus = 'test_failed';
+      else geminiStatus = 'configured';
+    }
+  }
+
   let openrouterStatus: ConfigStatus['openrouter'] = 'checking';
   if (serverConfig) {
     if (!serverConfig.openrouterConfigured) openrouterStatus = 'missing';
@@ -169,6 +193,9 @@ function ConfigStatusPanel({
       voiceStatus = (
         serverConfig.voiceTranscription?.code === 'openrouter_provider_unavailable'
         || serverConfig.voiceTranscription?.code === 'openrouter_auth_failed'
+        || serverConfig.voiceTranscription?.code === 'gemini_provider_unavailable'
+        || serverConfig.voiceTranscription?.code === 'gemini_auth_failed'
+        || serverConfig.voiceTranscription?.code === 'gemini_model_missing'
         || serverConfig.voiceTranscription?.code === 'voice_model_audio_unsupported'
       ) ? 'test_failed' : 'missing';
     } else if (voiceHealth?.status === 'healthy') {
@@ -202,12 +229,17 @@ function ConfigStatusPanel({
     missing:          { color: 'text-muted-foreground', icon: <AlertTriangle size={14} />, label: 'Missing' },
     test_failed:      { color: 'text-negative', icon: <XCircle size={14} />, label: 'Test Failed' },
     checking:         { color: 'text-warning',  icon: <Loader2 size={14} className="animate-spin" />, label: 'Checking…' },
+    disabled:         { color: 'text-muted-foreground', icon: <AlertTriangle size={14} />, label: 'Disabled' },
   };
 
+  const geminiRowStatus = statusMap[geminiStatus];
   const orStatus = statusMap[openrouterStatus];
   const sbStatus = statusMap[supabaseStatus];
   const voiceRowStatus = statusMap[voiceStatus];
   const vpsRowStatus = statusMap[vpsStatus];
+
+  const gateway = serverConfig?.voiceTranscription.gateway;
+  const gatewayLabel = gateway ? capitalize(gateway) : '';
 
   return (
     <div className="card p-5 mb-4">
@@ -217,19 +249,28 @@ function ConfigStatusPanel({
       </h3>
       {serverConfig && (
         <div className="mb-3 text-xs text-muted-foreground">
-          Mode: <span className="text-foreground font-600">{serverConfig.mode}</span> · Model:{' '}
-          <span className="text-foreground font-600">{serverConfig.model}</span>
+          Mode: <span className="text-foreground font-600">{serverConfig.mode}</span> · Primary:{' '}
+          <span className="text-foreground font-600">{capitalize(serverConfig.provider)}</span> · Text:{' '}
+          <span className="text-foreground font-600">{serverConfig.geminiTextModel || 'Not set'}</span> · Multimodal:{' '}
+          <span className="text-foreground font-600">{serverConfig.geminiMultimodalModel || 'Not set'}</span>
         </div>
       )}
       {serverConfig?.voiceTranscription && (
         <div className="mb-3 rounded-xl border border-border/60 bg-secondary/35 p-3 text-xs text-muted-foreground">
           <div className="grid gap-1 sm:grid-cols-2">
             <div>
-              Gateway: <span className="font-600 text-foreground">{serverConfig.voiceTranscription.gateway}</span>
+              Gateway: <span className="font-600 text-foreground">{gatewayLabel}</span>
             </div>
-            <div>
-              OpenRouter configured: <span className="font-600 text-foreground">{serverConfig.voiceTranscription.openrouterConfigured ? 'Yes' : 'No'}</span>
-            </div>
+            {gateway === 'openrouter' && (
+              <div>
+                OpenRouter configured: <span className="font-600 text-foreground">{serverConfig.voiceTranscription.openrouterConfigured ? 'Yes' : 'No'}</span>
+              </div>
+            )}
+            {gateway === 'gemini' && (
+              <div>
+                Gemini API Key Configured: <span className="font-600 text-foreground">{serverConfig.geminiApiKeyConfigured ? 'Yes' : 'No'}</span>
+              </div>
+            )}
             <div>
               Voice model: <span className="font-600 text-foreground">{serverConfig.voiceTranscription.model || 'Missing'}</span>
             </div>
@@ -248,12 +289,16 @@ function ConfigStatusPanel({
             <div>
               Max audio: <span className="font-600 text-foreground">{serverConfig.voiceTranscription.maxAudioSeconds}s / {(serverConfig.voiceTranscription.maxAudioBytes / (1024 * 1024)).toFixed(0)} MB</span>
             </div>
-            <div>
-              OpenRouter key: <span className="font-600 text-foreground">{serverConfig.voiceTranscription.apiKeyConfigured ? 'Configured' : 'Missing'}</span>
-            </div>
-            <div>
-              Base URL: <span className="font-600 text-foreground">{serverConfig.voiceTranscription.baseUrlConfigured ? 'Configured' : 'Missing'}</span>
-            </div>
+            {gateway === 'openrouter' && (
+              <div>
+                OpenRouter key: <span className="font-600 text-foreground">{serverConfig.voiceTranscription.apiKeyConfigured ? 'Configured' : 'Missing'}</span>
+              </div>
+            )}
+            {gateway === 'openrouter' && (
+              <div>
+                Base URL: <span className="font-600 text-foreground">{serverConfig.voiceTranscription.baseUrlConfigured ? 'Configured' : 'Missing'}</span>
+              </div>
+            )}
             <div>
               Last health: <span className="font-600 text-foreground">{voiceHealth?.status || 'Not checked'}</span>
             </div>
@@ -270,10 +315,17 @@ function ConfigStatusPanel({
       )}
       <div className="space-y-2">
         <div className="flex items-center justify-between py-2 border-b border-border/50">
-          <span className="text-sm text-foreground">OpenRouter API Key</span>
+          <span className="text-sm text-foreground">Gemini API Key</span>
+          <span className={`flex items-center gap-1.5 text-xs font-600 ${geminiRowStatus.color}`}>
+            {geminiRowStatus.icon}
+            {serverConfig?.geminiConfigured ? 'Configured' : 'Missing'}
+          </span>
+        </div>
+        <div className="flex items-center justify-between py-2 border-b border-border/50">
+          <span className="text-sm text-foreground">OpenRouter API Key (Legacy Fallback)</span>
           <span className={`flex items-center gap-1.5 text-xs font-600 ${orStatus.color}`}>
             {orStatus.icon}
-            {orStatus.label}
+            {serverConfig?.openrouterConfigured ? (serverConfig.provider === 'openrouter' ? 'Configured' : 'Disabled') : 'Missing'}
           </span>
         </div>
         <div className="flex items-center justify-between py-2 border-b border-border/50">
@@ -318,6 +370,7 @@ function ProviderHealthBadge({ status }: { status: string }) {
     offline:        { color: 'bg-negative-soft text-negative', icon: <XCircle size={12} />, label: 'Offline' },
     not_configured: { color: 'bg-muted text-muted-foreground', icon: <AlertTriangle size={12} />, label: 'Missing' },
     configured:     { color: 'bg-positive-soft text-positive', icon: <CheckCircle size={12} />, label: 'Configured' },
+    disabled:       { color: 'bg-muted text-muted-foreground', icon: <AlertTriangle size={12} />, label: 'Disabled' },
   };
   const s = map[status] || map.not_configured;
   return (
@@ -414,6 +467,7 @@ export default function AdminAISettingsPage() {
 
   const handleTestProvider = async (provider: string) => {
     setTestingProvider(provider);
+    const displayName = getProviderDisplayName(provider);
     try {
       const response = await fetch('/api/ai/test-provider', {
         method: 'POST',
@@ -423,15 +477,15 @@ export default function AdminAISettingsPage() {
 
       const result = await response.json();
       if (result.status === 'healthy') {
-        toast.success(`${provider}: Connection successful`);
+        toast.success(`${displayName}: Connection successful`);
       } else if (result.status === 'not_configured') {
-        toast.warning(`${provider}: Not configured — set environment variables on the server`);
+        toast.warning(`${displayName}: Not configured — set environment variables on the server`);
       } else {
-        toast.error(`${provider}: ${result.status}`);
+        toast.error(`${displayName}: ${result.status}`);
       }
       await loadData();
     } catch {
-      toast.error(`Test failed for ${provider}`);
+      toast.error(`Test failed for ${displayName}`);
     } finally {
       setTestingProvider(null);
     }
@@ -459,20 +513,37 @@ export default function AdminAISettingsPage() {
   ] as const;
 
   const isCloudOnlyMode = serverConfig?.mode === 'cloud_only';
-  const visibleHealth = health.filter((item) => ACTIVE_PROVIDER_NAMES.has(item.provider));
-  const openrouterHealth = visibleHealth.find((item) => item.provider === 'openrouter');
-  const vpsAiHealth = visibleHealth.find((item) => item.provider === 'vps_ai');
-  const voiceOpenRouterHealth = visibleHealth.find((item) => item.provider === 'openrouter_voice');
-  const hasHealthyProvider = visibleHealth.some((item) => item.status === 'healthy');
+  const providerHealthRows = health.filter((item) => ACTIVE_PROVIDER_NAMES.has(item.provider));
+  const geminiHealth = providerHealthRows.find((item) => item.provider === 'gemini');
+  const geminiVoiceHealth = providerHealthRows.find((item) => item.provider === 'gemini_voice');
+  const openrouterHealth = providerHealthRows.find((item) => item.provider === 'openrouter');
+  const openrouterVoiceHealth = providerHealthRows.find((item) => item.provider === 'openrouter_voice');
+  const vpsAiHealth = providerHealthRows.find((item) => item.provider === 'vps_ai');
+
+  const providerList: Array<'gemini' | 'gemini_voice' | 'openrouter' | 'openrouter_voice' | 'vps_ai'> = ['gemini', 'gemini_voice', 'openrouter', 'openrouter_voice', 'vps_ai'];
+  const healthyProviderCount = providerList.filter(p => {
+    const h = providerHealthRows.find(r => r.provider === p);
+    return h?.status === 'healthy' || h?.status === 'disabled';
+  }).length;
+  const geminiProvidersGood = ['gemini', 'gemini_voice'].every(p => {
+    const h = providerHealthRows.find(r => r.provider === p);
+    return h?.status === 'healthy';
+  });
+  const openrouterEnabled = openrouterHealth?.status !== 'disabled';
+
+  const voiceGateway = serverConfig?.voiceTranscription.gateway;
+  const voiceLabel = voiceGateway === 'gemini' ? 'Gemini Voice Ready' : 'OpenRouter Voice Ready';
 
   const checklistItems = [
-    { id: 'supabase', label: 'Supabase server key', done: Boolean(serverConfig?.supabaseServiceConfigured) },
-    { id: 'openrouter-key', label: 'OpenRouter key', done: Boolean(serverConfig?.openrouterConfigured) },
-    { id: 'openrouter-connection', label: 'OpenRouter connection', done: openrouterHealth?.status === 'healthy' },
-    { id: 'voice-ready', label: 'Voice transcription ready', done: Boolean(serverConfig?.voiceTranscription.ready) },
-    { id: 'ai-enabled', label: 'AI enabled', done: Boolean(serverConfig?.aiEnabled && settings.ai_enabled) },
-    { id: 'confirmation', label: 'Confirmation enabled', done: settings.require_confirmation },
-    { id: 'provider-health', label: 'Provider health', done: hasHealthyProvider },
+    { id: 'supabase', label: 'Supabase Service Role Key Configured', done: Boolean(serverConfig?.supabaseServiceConfigured) },
+    { id: 'gemini-key', label: 'Gemini API Key Configured', done: Boolean(serverConfig?.geminiApiKeyConfigured) },
+    { id: 'gemini-text', label: 'Gemini Text Model Configured', done: Boolean(serverConfig?.geminiTextModel) },
+    { id: 'gemini-multimodal', label: 'Gemini Multimodal Model Configured', done: Boolean(serverConfig?.geminiMultimodalModel) },
+    { id: 'gemini-connection', label: 'Gemini Connection Verified', done: geminiHealth?.status === 'healthy', unverified: !geminiHealth },
+    { id: 'voice-ready', label: voiceLabel, done: Boolean(serverConfig?.voiceTranscription.ready) },
+    { id: 'ai-enabled', label: 'AI Enabled', done: Boolean(serverConfig?.aiEnabled && settings.ai_enabled) },
+    { id: 'confirmation', label: 'Confirmation Enabled', done: settings.require_confirmation },
+    { id: 'provider-health', label: 'Provider Health Overall', done: geminiProvidersGood || healthyProviderCount >= 2 },
   ];
 
   const checklistComplete = checklistItems.filter((item) => item.done).length;
@@ -516,7 +587,11 @@ export default function AdminAISettingsPage() {
       <div className="w-full page-section">
         <PageHeader
           title="AI Settings"
-          description="Configure Smart Pocket AI providers, connection health, confirmation rules, and usage controls without exposing server secrets."
+          description={
+            serverConfig?.provider === 'gemini'
+              ? 'Smart Pocket AI currently uses Google Gemini as the primary provider. OpenRouter is available as a legacy fallback.'
+              : 'Configure Smart Pocket AI providers, connection health, confirmation rules, and usage controls without exposing server secrets.'
+          }
           badge={<StatusBadge status={overallStatus.tone} label={overallStatus.label} />}
           actions={
             <button
@@ -536,17 +611,23 @@ export default function AdminAISettingsPage() {
           action={<StatusBadge status="info" label={serverConfig?.mode === 'cloud_only' ? 'Cloud Only' : (serverConfig?.mode || settings.ai_mode)} />}
         >
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-            {checklistItems.map((item) => (
-              <div key={item.id} className="rounded-2xl border border-border bg-secondary/35 px-4 py-3 flex items-start gap-3">
-                <StatusBadge status={item.done ? 'ready' : 'warning'} label={item.done ? 'Done' : 'Pending'} />
-                <div className="min-w-0">
-                  <p className="text-sm font-700 text-foreground">{item.label}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {item.done ? 'Configured and available.' : 'Needs attention before full AI readiness.'}
-                  </p>
+            {checklistItems.map((item) => {
+              const isUnverified = (item as any).unverified;
+              const badgeStatus = isUnverified ? 'info' : (item.done ? 'ready' : 'warning');
+              const badgeLabel = isUnverified ? 'Unverified' : (item.done ? 'Done' : 'Pending');
+              const desc = isUnverified
+                ? 'Run health checks or test connection to verify.'
+                : item.done ? 'Configured and available.' : 'Needs attention before full AI readiness.';
+              return (
+                <div key={item.id} className="rounded-2xl border border-border bg-secondary/35 px-4 py-3 flex items-start gap-3">
+                  <StatusBadge status={badgeStatus} label={badgeLabel} />
+                  <div className="min-w-0">
+                    <p className="text-sm font-700 text-foreground">{item.label}</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{desc}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </SectionCard>
 
@@ -698,17 +779,177 @@ export default function AdminAISettingsPage() {
         {/* Providers Tab */}
         {activeTab === 'providers' && (
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-            {/* OpenRouter */}
+            {/* 1. Gemini Text (Primary) */}
+            <div className="card p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Cloud size={18} className="text-positive" />
+                  <div>
+                    <h3 className="text-sm font-700 text-foreground">Gemini Text</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">Primary Google Gemini language provider</p>
+                  </div>
+                </div>
+                <StatusBadge status={serverConfig?.geminiConfigured ? 'configured' : 'missing'} />
+              </div>
+              <div className="p-3 bg-muted/50 rounded-xl mb-3">
+                <p className="text-xs text-muted-foreground">
+                  Set <code className="bg-muted px-1 rounded text-xs">GOOGLE_API_KEY</code> or{' '}
+                  <code className="bg-muted px-1 rounded text-xs">GEMINI_API_KEY</code> as a server environment variable.
+                  Keys are never stored in the database.
+                </p>
+              </div>
+              <div className="space-y-3 text-xs text-muted-foreground">
+                <div className="flex items-center justify-between">
+                  <span>Primary provider</span>
+                  <StatusBadge status={serverConfig?.provider === 'gemini' ? 'ready' : 'info'} label={serverConfig?.provider === 'gemini' ? 'Primary' : capitalize(serverConfig?.provider || '')} />
+                </div>
+                <div>
+                  Text Model: <span className="font-700 text-foreground">{serverConfig?.geminiTextModel || 'Not configured'}</span>
+                </div>
+                <div>
+                  API Key: <span className="font-700 text-foreground">{serverConfig?.geminiApiKeyConfigured ? 'Configured' : 'Missing'}</span>
+                </div>
+              </div>
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+                <p className="text-xs text-muted-foreground">
+                  Latest health: <span className="font-700 text-foreground">{geminiHealth?.status || 'Not checked'}</span>
+                  {geminiHealth?.response_time_ms && <span className="ml-2">{geminiHealth.response_time_ms}ms</span>}
+                </p>
+                <button onClick={() => handleTestProvider('gemini')} disabled={testingProvider === 'gemini'} className="btn-secondary text-sm">
+                  {testingProvider === 'gemini' ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
+                  Test Connection
+                </button>
+              </div>
+              {geminiHealth && (
+                <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-muted-foreground border-t border-border pt-3">
+                  {geminiHealth.last_checked_at && (
+                    <span>Checked: {new Date(geminiHealth.last_checked_at).toLocaleString()}</span>
+                  )}
+                  {geminiHealth.last_success_at && (
+                    <span className="text-positive">Last success: {new Date(geminiHealth.last_success_at).toLocaleString()}</span>
+                  )}
+                  {geminiHealth.last_failure_at && (
+                    <span className="text-negative">Last failure: {new Date(geminiHealth.last_failure_at).toLocaleString()}</span>
+                  )}
+                  {geminiHealth.last_error_category && (
+                    <span className="text-negative">Error: {geminiHealth.last_error_category}</span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* 2. Gemini Multimodal & Voice */}
+            <div className="card p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Mic size={18} className="text-info" />
+                  <div>
+                    <h3 className="text-sm font-700 text-foreground">Gemini Multimodal & Voice</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">Multimodal and voice transcription gateway</p>
+                  </div>
+                </div>
+                <StatusBadge
+                  status={
+                    serverConfig?.voiceTranscription.ready
+                      ? 'healthy'
+                      : voiceGateway === 'gemini' && serverConfig?.voiceTranscription.code === 'gemini_model_missing'
+                        ? 'missing'
+                        : serverConfig?.voiceTranscription.ready === false && (
+                            serverConfig?.voiceTranscription.code === 'gemini_provider_unavailable'
+                            || serverConfig?.voiceTranscription.code === 'gemini_auth_failed'
+                            || serverConfig?.voiceTranscription.code === 'openrouter_provider_unavailable'
+                            || serverConfig?.voiceTranscription.code === 'openrouter_auth_failed'
+                            || serverConfig?.voiceTranscription.code === 'voice_model_audio_unsupported'
+                          )
+                          ? 'test_failed'
+                          : 'missing'
+                  }
+                />
+              </div>
+              <div className="p-3 bg-muted/50 rounded-xl mb-3">
+                <p className="text-xs text-muted-foreground">
+                  Voice and multimodal processing use the configured gateway. Gemini uses its API key directly.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-xl border border-border/60 bg-secondary/35 p-3 text-xs text-muted-foreground">
+                <div>
+                  Gateway: <span className="font-700 text-foreground">{voiceGateway ? capitalize(voiceGateway) : 'Not set'}</span>
+                </div>
+                <div>
+                  Multimodal Model: <span className="font-700 text-foreground">{serverConfig?.geminiMultimodalModel || 'Missing'}</span>
+                </div>
+                <div>
+                  Gemini API Key: <span className="font-700 text-foreground">{serverConfig?.geminiApiKeyConfigured ? 'Configured' : 'Missing'}</span>
+                </div>
+                <div>
+                  Voice model: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.model || 'Missing'}</span>
+                </div>
+                <div>
+                  Audio Capable: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.modelAudioCapable === null ? 'Unknown' : serverConfig?.voiceTranscription.modelAudioCapable ? 'Yes' : 'No'}</span>
+                </div>
+                <div>
+                  Voice Ready: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.ready ? 'Yes' : 'No'}</span>
+                </div>
+                <div>
+                  Status code: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.code || 'unknown'}</span>
+                </div>
+                <div>
+                  Max audio: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.maxAudioSeconds || settings.max_audio_seconds}s / {((serverConfig?.voiceTranscription.maxAudioBytes || 0) / (1024 * 1024)).toFixed(0)} MB</span>
+                </div>
+              </div>
+              <div className="mt-2 text-xs text-muted-foreground px-1">
+                Supported audio: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.supportedAudioFormats || 'Not available'}</span>
+              </div>
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
+                <p className="text-xs text-muted-foreground">
+                  Latest health: <span className="font-700 text-foreground">
+                    {voiceGateway === 'gemini'
+                      ? (geminiVoiceHealth?.status || serverConfig?.voiceTranscription.lastHealthCheck?.status || 'Not checked')
+                      : (serverConfig?.voiceTranscription.lastHealthCheck?.status || openrouterVoiceHealth?.status || 'Not checked')}
+                  </span>
+                </p>
+                <button
+                  onClick={() => handleTestProvider(voiceGateway === 'gemini' ? 'gemini_voice' : 'openrouter_voice')}
+                  disabled={testingProvider === (voiceGateway === 'gemini' ? 'gemini_voice' : 'openrouter_voice')}
+                  className="btn-secondary text-sm"
+                >
+                  {testingProvider === (voiceGateway === 'gemini' ? 'gemini_voice' : 'openrouter_voice') ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
+                  Test Voice
+                </button>
+              </div>
+              {((voiceGateway === 'gemini' && geminiVoiceHealth) || (voiceGateway !== 'gemini' && openrouterVoiceHealth)) && (
+                <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-muted-foreground border-t border-border pt-3">
+                  {(() => {
+                    const h = voiceGateway === 'gemini' ? geminiVoiceHealth : openrouterVoiceHealth;
+                    if (!h) return null;
+                    return (
+                      <>
+                        {h.last_checked_at && <span>Checked: {new Date(h.last_checked_at).toLocaleString()}</span>}
+                        {h.last_success_at && <span className="text-positive">Last success: {new Date(h.last_success_at).toLocaleString()}</span>}
+                        {h.last_failure_at && <span className="text-negative">Last failure: {new Date(h.last_failure_at).toLocaleString()}</span>}
+                        {h.last_error_category && <span className="text-negative">Error: {h.last_error_category}</span>}
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
+            </div>
+
+            {/* 3. OpenRouter (Legacy Fallback) */}
             <div className="card p-5">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <Cloud size={18} className="text-accent" />
                   <div>
-                    <h3 className="text-sm font-700 text-foreground">OpenRouter</h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">Cloud language model provider</p>
+                    <h3 className="text-sm font-700 text-foreground">OpenRouter (Legacy Fallback)</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">Legacy cloud language model provider</p>
                   </div>
                 </div>
-                <StatusBadge status={serverConfig?.openrouterConfigured ? 'configured' : 'missing'} />
+                {!openrouterEnabled ? (
+                  <StatusBadge status="info" label="Disabled" />
+                ) : (
+                  <StatusBadge status={serverConfig?.openrouterConfigured ? 'configured' : 'missing'} />
+                )}
               </div>
               <div className="p-3 bg-muted/50 rounded-xl mb-3">
                 <p className="text-xs text-muted-foreground">
@@ -718,63 +959,72 @@ export default function AdminAISettingsPage() {
                 </p>
               </div>
               <div>
-                <label className="text-sm font-700 text-foreground mb-1.5 block">Active model</label>
+                <label className="text-sm font-700 text-foreground mb-1.5 block">Active model (legacy)</label>
                 <input
                   type="text"
                   value={settings.openrouter_model || ''}
                   onChange={e => update('openrouter_model', e.target.value)}
                   placeholder="openai/gpt-4.1-mini"
                   className="input-base text-sm w-full"
+                  disabled={!openrouterEnabled}
                 />
+              </div>
+              <div className="mt-3 text-xs text-muted-foreground">
+                OpenRouter configured: <span className="font-700 text-foreground">{serverConfig?.openrouterConfigured ? 'Yes' : 'No'}</span>
               </div>
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
                 <p className="text-xs text-muted-foreground">
                   Latest health: <span className="font-700 text-foreground">{openrouterHealth?.status || 'Not checked'}</span>
                 </p>
-                <button onClick={() => handleTestProvider('openrouter')} disabled={testingProvider === 'openrouter'} className="btn-secondary text-sm">
+                <button onClick={() => handleTestProvider('openrouter')} disabled={testingProvider === 'openrouter' || !openrouterEnabled} className="btn-secondary text-sm">
                   {testingProvider === 'openrouter' ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
                   Test Connection
                 </button>
               </div>
             </div>
 
-            {/* OpenRouter Voice */}
+            {/* 4. OpenRouter Voice (Legacy Fallback) */}
             <div className="card p-5">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <Mic size={18} className="text-info" />
                   <div>
-                    <h3 className="text-sm font-700 text-foreground">OpenRouter Voice</h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">Voice transcription through the existing OpenRouter gateway</p>
+                    <h3 className="text-sm font-700 text-foreground">OpenRouter Voice (Legacy Fallback)</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5">Legacy voice transcription through OpenRouter gateway</p>
                   </div>
                 </div>
-                <StatusBadge
-                  status={
-                    serverConfig?.voiceTranscription.ready
-                      ? 'healthy'
-                      : serverConfig?.voiceTranscription.code === 'openrouter_provider_unavailable'
-                        || serverConfig?.voiceTranscription.code === 'openrouter_auth_failed'
-                        || serverConfig?.voiceTranscription.code === 'voice_model_audio_unsupported'
-                        ? 'test_failed'
-                        : 'missing'
-                  }
-                />
+                {voiceGateway !== 'openrouter' ? (
+                  <StatusBadge status="info" label="Disabled" />
+                ) : (
+                  <StatusBadge
+                    status={
+                      serverConfig?.voiceTranscription.ready
+                        ? 'healthy'
+                        : serverConfig?.voiceTranscription.code === 'openrouter_provider_unavailable'
+                          || serverConfig?.voiceTranscription.code === 'openrouter_auth_failed'
+                          || serverConfig?.voiceTranscription.code === 'voice_model_audio_unsupported'
+                          ? 'test_failed'
+                          : 'missing'
+                    }
+                  />
+                )}
               </div>
               <div className="p-3 bg-muted/50 rounded-xl mb-3">
                 <p className="text-xs text-muted-foreground">
-                  Voice transcription reuses the existing <code className="bg-muted px-1 rounded text-xs">OPENROUTER_API_KEY</code> and{' '}
-                  <code className="bg-muted px-1 rounded text-xs">OPENROUTER_BASE_URL</code>. No separate speech-provider secret is required.
+                  Legacy voice transcription reuses the existing <code className="bg-muted px-1 rounded text-xs">OPENROUTER_API_KEY</code> and{' '}
+                  <code className="bg-muted px-1 rounded text-xs">OPENROUTER_BASE_URL</code>.
                 </p>
               </div>
               <div className="space-y-3">
                 <div>
-                  <label className="text-sm font-700 text-foreground mb-1.5 block">Voice model</label>
+                  <label className="text-sm font-700 text-foreground mb-1.5 block">Voice model (legacy)</label>
                   <input
                     type="text"
                     value={settings.voice_model || ''}
                     onChange={e => update('voice_model', e.target.value)}
                     placeholder={settings.openrouter_model || 'google/gemini-2.5-flash'}
                     className="input-base text-sm w-full"
+                    disabled={voiceGateway !== 'openrouter'}
                   />
                   <p className="mt-1 text-xs text-muted-foreground">
                     Leave blank to reuse the general OpenRouter model.
@@ -782,7 +1032,7 @@ export default function AdminAISettingsPage() {
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 rounded-xl border border-border/60 bg-secondary/35 p-3 text-xs text-muted-foreground">
                   <div>
-                    Gateway: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.gateway || 'openrouter'}</span>
+                    Gateway: <span className="font-700 text-foreground">{voiceGateway ? capitalize(voiceGateway) : 'openrouter'}</span>
                   </div>
                   <div>
                     OpenRouter configured: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.openrouterConfigured ? 'Yes' : 'No'}</span>
@@ -815,16 +1065,16 @@ export default function AdminAISettingsPage() {
               </div>
               <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
                 <p className="text-xs text-muted-foreground">
-                  Latest health: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.lastHealthCheck?.status || voiceOpenRouterHealth?.status || 'Not checked'}</span>
+                  Latest health: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.lastHealthCheck?.status || openrouterVoiceHealth?.status || 'Not checked'}</span>
                 </p>
-                <button onClick={() => handleTestProvider('openrouter_voice')} disabled={testingProvider === 'openrouter_voice'} className="btn-secondary text-sm">
+                <button onClick={() => handleTestProvider('openrouter_voice')} disabled={testingProvider === 'openrouter_voice' || voiceGateway !== 'openrouter'} className="btn-secondary text-sm">
                   {testingProvider === 'openrouter_voice' ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
                   Test Voice
                 </button>
               </div>
             </div>
 
-            {/* VPS AI */}
+            {/* 5. VPS AI (Unchanged) */}
             <div className="card p-5">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
@@ -891,50 +1141,56 @@ export default function AdminAISettingsPage() {
               </button>
             </div>
 
-            {visibleHealth.map(h => (
-              <div key={h.provider} className="card p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <p className="text-sm font-700 text-foreground">{getProviderDisplayName(h.provider)}</p>
-                    {h.response_time_ms && (
-                      <p className="text-xs text-muted-foreground">{h.response_time_ms}ms response time</p>
+            {providerList.map(providerKey => {
+              const h = providerHealthRows.find(r => r.provider === providerKey);
+              return (
+                <div key={providerKey} className="card p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <p className="text-sm font-700 text-foreground">{getProviderDisplayName(providerKey)}</p>
+                      {h?.response_time_ms && (
+                        <p className="text-xs text-muted-foreground">{h.response_time_ms}ms response time</p>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <ProviderHealthBadge status={h?.status || 'not_configured'} />
+                      <button
+                        onClick={() => handleTestProvider(providerKey)}
+                        disabled={testingProvider === providerKey || h?.status === 'disabled'}
+                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-foreground text-xs font-600 hover:bg-muted/80 disabled:opacity-50 transition-colors"
+                      >
+                        {testingProvider === providerKey ? (
+                          <Loader2 size={12} className="animate-spin" />
+                        ) : (
+                          <Zap size={12} />
+                        )}
+                        Test
+                      </button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
+                    {h?.last_checked_at && (
+                      <span>Checked: {new Date(h.last_checked_at).toLocaleString()}</span>
+                    )}
+                    {h?.last_success_at && (
+                      <span className="text-positive">Last success: {new Date(h.last_success_at).toLocaleString()}</span>
+                    )}
+                    {h?.last_failure_at && (
+                      <span className="text-negative">Last failure: {new Date(h.last_failure_at).toLocaleString()}</span>
+                    )}
+                    {h?.last_error_category && (
+                      <span className="text-negative">Error: {h.last_error_category}</span>
+                    )}
+                    {!h && (
+                      <span className="col-span-2 text-muted-foreground italic">No health data yet. Run health checks.</span>
                     )}
                   </div>
-                  <div className="flex items-center gap-2">
-                    <ProviderHealthBadge status={h.status} />
-                    <button
-                      onClick={() => handleTestProvider(h.provider)}
-                      disabled={testingProvider === h.provider}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-foreground text-xs font-600 hover:bg-muted/80 disabled:opacity-50 transition-colors"
-                    >
-                      {testingProvider === h.provider ? (
-                        <Loader2 size={12} className="animate-spin" />
-                      ) : (
-                        <Zap size={12} />
-                      )}
-                      Test
-                    </button>
-                  </div>
                 </div>
-                <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground">
-                  {h.last_checked_at && (
-                    <span>Checked: {new Date(h.last_checked_at).toLocaleString()}</span>
-                  )}
-                  {h.last_success_at && (
-                    <span className="text-positive">Last success: {new Date(h.last_success_at).toLocaleString()}</span>
-                  )}
-                  {h.last_failure_at && (
-                    <span className="text-negative">Last failure: {new Date(h.last_failure_at).toLocaleString()}</span>
-                  )}
-                  {h.last_error_category && (
-                    <span className="text-negative">Error: {h.last_error_category}</span>
-                  )}
-                </div>
-              </div>
-            ))}
+              );
+            })}
 
-            {visibleHealth.length === 0 && (
-              <div className="card p-8 text-center">
+            {providerHealthRows.length === 0 && (
+              <div className="card p-8 text-center mt-4">
                 <Activity size={32} className="text-muted-foreground mx-auto mb-3" />
                 <p className="text-sm text-muted-foreground">No health data yet. Run health checks to see provider status.</p>
               </div>

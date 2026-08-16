@@ -19,7 +19,7 @@ import {
   type TransactionDocumentExtraction,
 } from './transaction-documents';
 import { getGeminiClient } from './gemini-client';
-import { getAIConfig } from './ai-provider-config';
+import { getAIConfig, isOpenRouterEnabled } from './ai-provider-config';
 
 export interface TransactionDocumentAIRequest {
   fileName: string;
@@ -117,37 +117,33 @@ function getTransactionDocumentMaxTokens(mimeType: string) {
 // ─── Config Loader ────────────────────────────────────────────────────────────
 
 function isOpenRouterAllowed(): boolean {
-  return process.env.OPENROUTER_ENABLED === 'true';
+  return isOpenRouterEnabled();
 }
 
 export function loadAIConfig(): AIGatewayConfig {
-  // Unified provider-switch: Primary language provider resolves in this priority:
-  //   1. explicit PRIMARY_LANGUAGE_PROVIDER env (strong override)
-  //   2. AI_PROVIDER env
-  //   3. 'gemini' (new default going forward)
-  const aiProviderEnv = process.env.AI_PROVIDER;
+  // ═══ SINGLE SOURCE OF TRUTH: src/lib/ai-provider-config.ts::resolveAIProviderConfig() ═══
+  // All variables read from getAIConfig() — no direct process.env duplication here.
+  const cfg = getAIConfig();
   const primaryFromEnv = process.env.PRIMARY_LANGUAGE_PROVIDER || (
-    aiProviderEnv === 'gemini' || aiProviderEnv === 'openrouter' || aiProviderEnv === 'vps_ai'
-      ? aiProviderEnv
-      : undefined
+    cfg.language.primary
   );
   return {
-    aiEnabled:                  process.env.AI_ENABLED !== 'false',
-    aiMode:                     (process.env.AI_MODE as AIGatewayConfig['aiMode']) || 'cloud_only',
-    primaryLanguageProvider:    primaryFromEnv || 'gemini',
-    fallbackLanguageProvider:   process.env.FALLBACK_LANGUAGE_PROVIDER || 'vps_ai',
-    primarySttProvider:         process.env.PRIMARY_STT_PROVIDER || 'cloud_stt',
-    fallbackSttProvider:        process.env.FALLBACK_STT_PROVIDER || 'vps_stt',
-    requestTimeoutMs:           parseInt(process.env.AI_REQUEST_TIMEOUT_MS || '20000', 10),
-    maxRetries:                 parseInt(process.env.AI_MAX_RETRIES || '1', 10),
-    confidenceThreshold:        parseFloat(process.env.AI_CONFIDENCE_THRESHOLD || '0.80'),
+    aiEnabled:                  cfg.runtime.enabled,
+    aiMode:                     cfg.runtime.mode,
+    primaryLanguageProvider:    primaryFromEnv,
+    fallbackLanguageProvider:   cfg.language.fallback,
+    primarySttProvider:         cfg.stt.primary,
+    fallbackSttProvider:        cfg.stt.fallback,
+    requestTimeoutMs:           cfg.runtime.requestTimeoutMs,
+    maxRetries:                 cfg.runtime.maxRetries,
+    confidenceThreshold:        cfg.runtime.confidenceThreshold,
     requireConfirmation:        process.env.AI_REQUIRE_CONFIRMATION !== 'false',
-    maxAudioSeconds:            parseInt(process.env.AI_MAX_AUDIO_SECONDS || '120', 10),
-    maxDailyRequestsPerUser:    parseInt(process.env.AI_MAX_DAILY_REQUESTS_PER_USER || '100', 10),
-    maxTextLength:              parseInt(process.env.AI_MAX_TEXT_LENGTH || '2000', 10),
-    enableAutoFallback:         process.env.AI_ENABLE_AUTO_FALLBACK === 'true',
+    maxAudioSeconds:            cfg.runtime.maxAudioSeconds,
+    maxDailyRequestsPerUser:    cfg.runtime.maxDailyRequestsPerUser,
+    maxTextLength:              cfg.runtime.maxTextLength,
+    enableAutoFallback:         cfg.runtime.enableAutoFallback,
     enableAuditLogs:            process.env.AI_ENABLE_AUDIT_LOGS !== 'false',
-    enableTranscriptRetention:  process.env.AI_ENABLE_TRANSCRIPT_RETENTION === 'true',
+    enableTranscriptRetention:  cfg.runtime.enableTranscriptRetention,
   };
 }
 
@@ -2194,6 +2190,43 @@ class GeminiLanguageProvider implements LanguageProvider {
     });
 
     const normalizedMime = (input.fileMimeType || '').trim().toLowerCase();
+    let resolvedFileUrl: string = input.fileUrl || '';
+    if (resolvedFileUrl && /^https?:\/\//i.test(resolvedFileUrl)) {
+      logTransactionDocumentGateway('info', 'gemini.remote_fetch.start', {
+        requestId: input.requestId || null,
+        fileMimeType: normalizedMime,
+      });
+      try {
+        const remoteResp = await fetch(resolvedFileUrl, {
+          signal: AbortSignal.timeout(Math.min(timeoutMs - 8000, 15000)),
+        });
+        if (!remoteResp.ok) {
+          throw new Error(`Remote download HTTP ${remoteResp.status}`);
+        }
+        const remoteAb = await remoteResp.arrayBuffer();
+        const remoteBuf = Buffer.from(remoteAb);
+        if (!remoteBuf || remoteBuf.length < 16) {
+          throw new Error(`Remote download returned empty payload (${remoteBuf?.length || 0} B)`);
+        }
+        const mimeFromResp = remoteResp.headers.get('content-type') || normalizedMime;
+        const resolvedMime = mimeFromResp && /^[a-z0-9][a-z0-9.+-]*\/[a-z0-9][a-z0-9.+-]*/i.test(mimeFromResp.split(';')[0].trim())
+          ? mimeFromResp.split(';')[0].trim()
+          : normalizedMime;
+        const b64 = remoteBuf.toString('base64');
+        resolvedFileUrl = `data:${resolvedMime};base64,${b64}`;
+        logTransactionDocumentGateway('info', 'gemini.remote_fetch.success', {
+          requestId: input.requestId || null,
+          fileMimeType: resolvedMime,
+          bytes: remoteBuf.length,
+        });
+      } catch (remoteErr) {
+        throw new TransactionDocumentGatewayError(
+          'invalid_document', 'gemini.remote_fetch',
+          `Failed to download document from remote URL: ${remoteErr instanceof Error ? remoteErr.message : String(remoteErr)}`,
+          { providerUsed: 'gemini', modelUsed: model },
+        );
+      }
+    }
     let uploadedFileUri: string | null = null;
     let uploadedFileName: string | null = null;
     const tryDeleteUpload = async () => {
@@ -2217,7 +2250,7 @@ class GeminiLanguageProvider implements LanguageProvider {
     try {
       let filePart: any;
       if (normalizedMime === 'application/pdf') {
-        const pdfBuf = dataUrlToBuffer(input.fileUrl);
+        const pdfBuf = dataUrlToBuffer(resolvedFileUrl);
         if (!pdfBuf || pdfBuf.length < 16) {
           throw new TransactionDocumentGatewayError(
             'invalid_document', 'gemini.upload', 'Empty or invalid PDF document payload',
@@ -2298,7 +2331,7 @@ class GeminiLanguageProvider implements LanguageProvider {
         });
       } else {
         const IMAGE_MIMES = new Set(['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/heic', 'image/heif']);
-        const { data, mimeType } = dataUrlToInline(input.fileUrl, normalizedMime || 'application/octet-stream');
+        const { data, mimeType } = dataUrlToInline(resolvedFileUrl, normalizedMime || 'application/octet-stream');
         const actualMime = (mimeType || normalizedMime || '').trim().toLowerCase();
         if (!IMAGE_MIMES.has(actualMime)) {
           throw new TransactionDocumentGatewayError(
@@ -2417,10 +2450,11 @@ class GeminiLanguageProvider implements LanguageProvider {
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error || '');
-      const isTimeout = errorMessage.toLowerCase().includes('abort') || errorMessage.toLowerCase().includes('timeout');
+      const isTimeout = errorMessage.toLowerCase().includes('abort') || errorMessage.toLowerCase().includes('timeout') || /\bDEADLINE_EXCEEDED\b/.test(errorMessage);
+      const isAuth = /\b(401|403|UNAUTHENTICATED|PERMISSION_DENIED|invalid authentication credentials|API key not valid)\b/i.test(errorMessage);
       const code = error instanceof TransactionDocumentGatewayError
         ? error.code
-        : isTimeout ? 'provider_timeout' : 'provider_unavailable';
+        : isAuth ? 'gemini_auth_failed' : isTimeout ? 'gemini_request_timeout' : 'gemini_provider_unavailable';
       logTransactionDocumentGateway('error', 'gemini.request.failed', {
         requestId: input.requestId || null,
         model,
@@ -2689,11 +2723,32 @@ export async function processAIRequest(
     };
   } catch (error) {
     let msg = error instanceof Error ? error.message : 'Unknown error';
+    const msgLow = msg.toLowerCase();
+    const isAuth = /\b(401|403|unauthenticated|permission_denied|invalid authentication credentials|api key not valid)\b/i.test(msg);
+    const isTimeout = /\b(timeout|timed out|abort|deadline_exceeded|aborterror|timeouterror)\b/i.test(msg);
+    const isGemini =
+      /gemini|google|genai|generativelanguage\.googleapis\.com|@google\/genai/i.test(msg)
+      || (() => {
+          try {
+            const order = getProviderOrder(config);
+            return Array.isArray(order) && order[0] === 'gemini';
+          } catch (_) { return false; }
+        })();
+    const errorCode: string | undefined = isAuth
+      ? 'gemini_auth_failed'
+      : isTimeout
+        ? 'gemini_request_timeout'
+        : isGemini
+          ? 'gemini_provider_unavailable'
+          : undefined;
     return {
       requestId: createClientId(),
       status: 'failed',
       errorMessage: sanitizeError(msg),
-      errorCategory: categorizeError(msg),
+      errorCategory: categorizeError(msg) || (isAuth ? 'auth_error' : isTimeout ? 'timeout' : 'technical'),
+      errorCode: errorCode as any,
+      providerUsed: isGemini ? 'gemini' : undefined,
+      modelUsed: isGemini ? (request.type === 'voice' ? (getAIConfig().gemini.models.multimodal) : (getAIConfig().gemini.models.fast)) : undefined,
       durationMs: Date.now() - startTime,
     };
   }
@@ -2870,8 +2925,9 @@ function getProviderOrder(config: AIGatewayConfig): [string, string] {
   // Otherwise fall back to whatever the user configured (usually vps_ai).
   // This satisfies the requirement: no silent fallback to OpenRouter when disabled.
   if (basePrimary === 'gemini' && baseFallback !== 'openrouter' && baseFallback !== 'gemini') {
-    const openrouterApiKey = process.env.OPENROUTER_API_KEY;
-    const openrouterEnabled = process.env.OPENROUTER_ENABLED === 'true';
+    const aiCfg = getAIConfig();
+    const openrouterApiKey = aiCfg.openrouter.apiKey;
+    const openrouterEnabled = isOpenRouterEnabled();
     if (openrouterEnabled && openrouterApiKey && openrouterApiKey.length > 0) {
       return [basePrimary, 'openrouter'];
     }
@@ -3535,6 +3591,13 @@ function getTransactionDocumentGatewayErrorCode(
   if (/OpenRouter not configured/i.test(message)) {
     return 'openrouter_not_configured';
   }
+  // Gemini-specific auth / timeout / network classification
+  if (/\b(401|403|UNAUTHENTICATED|PERMISSION_DENIED|invalid authentication credentials|API key not valid)\b/i.test(message)) {
+    return 'gemini_auth_failed';
+  }
+  if (/\b(timeout|timed out|abort|DEADLINE_EXCEEDED|AbortError|TimeoutError)\b/i.test(message)) {
+    return 'gemini_request_timeout';
+  }
   if (
     /Invalid JSON from OpenRouter/i.test(message)
     || /Invalid JSON from VPS AI/i.test(message)
@@ -3556,18 +3619,11 @@ function getTransactionDocumentGatewayErrorCode(
           : 'provider_http_error';
   }
   if (
-    /timed out/i.test(message)
-    || /timeout/i.test(message)
-    || /abort/i.test(message)
-  ) {
-    return 'provider_timeout';
-  }
-  if (
     /fetch failed/i.test(message)
     || /network/i.test(message)
     || /temporarily unavailable/i.test(message)
   ) {
-    return 'provider_unavailable';
+    return 'gemini_provider_unavailable';
   }
   return 'extract_failed';
 }
@@ -3579,6 +3635,12 @@ function getTransactionDocumentGatewaySafeMessage(
   switch (code) {
     case 'openrouter_not_configured':
       return 'Document extraction is not configured yet.';
+    case 'gemini_auth_failed':
+      return 'Receipt extraction is temporarily unavailable due to an AI authentication error. Please contact your administrator.';
+    case 'gemini_request_timeout':
+      return 'Receipt extraction is taking longer than expected. Please try again.';
+    case 'gemini_provider_unavailable':
+      return 'Receipt extraction is temporarily unavailable. Please try again.';
     case 'unsupported_multimodal_model':
       return normalizedMimeType === 'application/pdf'
         ? 'Document extraction is temporarily unavailable for this PDF. Please review the file and try again.'

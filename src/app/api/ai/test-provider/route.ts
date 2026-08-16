@@ -10,7 +10,7 @@ import {
 import type { ProviderHealthResult } from '@/lib/ai-types';
 
 // Allowlisted provider names — never trust caller-supplied provider names
-const ALLOWED_PROVIDERS = new Set(['openrouter', 'vps_ai', 'openrouter_voice']);
+const ALLOWED_PROVIDERS = new Set(['openrouter', 'vps_ai', 'openrouter_voice', 'gemini', 'gemini_voice']);
 
 export async function POST(req: NextRequest) {
   try {
@@ -65,9 +65,15 @@ export async function POST(req: NextRequest) {
     // ── 4. Run health check ──────────────────────────────────────────────────
     let result: ProviderHealthResult | VoiceProviderHealthCheckResult;
     let voiceResult: VoiceProviderHealthCheckResult | null = null;
-    if (provider === 'openrouter' || provider === 'vps_ai') {
+    if (provider === 'gemini') {
+      const langProvider = createLanguageProvider('gemini', 10000);
+      result = await langProvider.healthCheck();
+    } else if (provider === 'openrouter' || provider === 'vps_ai') {
       const langProvider = createLanguageProvider(provider, 10000);
       result = await langProvider.healthCheck();
+    } else if (provider === 'gemini_voice') {
+      voiceResult = await runVoiceTranscriptionHealthCheck();
+      result = voiceResult;
     } else {
       voiceResult = await runVoiceTranscriptionHealthCheck();
       result = voiceResult;
