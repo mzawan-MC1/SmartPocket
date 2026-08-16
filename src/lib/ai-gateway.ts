@@ -247,8 +247,11 @@ export const VOICE_SMART_ENTRY_RESPONSE_JSON_SCHEMA = {
 };
 
 const DOCUMENT_KIND_ENUM = [
-  'receipt', 'invoice', 'bank_statement', 'credit_card_statement',
-  'utility_bill', 'tax_document', 'payslip', 'contract', 'other', 'unknown',
+  'receipt', 'printed_receipt', 'invoice', 'handwritten_receipt',
+  'handwritten_expense_list', 'informal_expense_note', 'statement',
+  'note', 'mixed', 'bank_statement', 'credit_card_statement',
+  'utility_bill', 'tax_document', 'payslip', 'contract',
+  'other', 'unknown',
 ];
 
 export const TRANSACTION_DOCUMENT_RESPONSE_JSON_SCHEMA = {
@@ -264,48 +267,43 @@ export const TRANSACTION_DOCUMENT_RESPONSE_JSON_SCHEMA = {
       type: 'array',
       items: {
         type: 'object',
-        required: ['actionType', 'confidence', 'warnings'],
+        required: ['transactionType', 'confidence', 'needsReview', 'lineItems'],
         properties: {
-          draftId: { type: 'string' },
-          actionType: { type: 'string', enum: ACTION_STRING_ENUM },
-          amount: { type: 'number' },
-          currency: { type: 'string' },
-          date: { type: 'string' },
-          time: { type: 'string' },
-          description: { type: 'string' },
-          notes: { type: 'string' },
-          personName: { type: 'string' },
-          personId: { type: 'string' },
-          relationship: {
-            type: 'string',
-            enum: ['spouse', 'child', 'parent', 'sibling', 'friend', 'relative', 'colleague', 'client', 'other'],
-          },
-          accountName: { type: 'string' },
-          accountId: { type: 'string' },
-          accountType: {
-            type: 'string',
-            enum: ['bank', 'credit_card', 'cash', 'savings', 'digital_wallet', 'investment', 'other'],
-          },
-          openingBalance: { type: 'number' },
-          includeInTotal: { type: 'boolean' },
-          destinationAccountName: { type: 'string' },
-          destinationAccountId: { type: 'string' },
-          categoryName: { type: 'string' },
-          categoryId: { type: 'string' },
-          merchant: { type: 'string' },
-          expenseOwner: { type: 'string', enum: ['user', 'person', 'shared'] },
-          paidBy: { type: 'string', enum: ['user', 'person', 'third_party'] },
-          paidFrom: { type: 'string', enum: ['account', 'held_balance', 'external', 'cash'] },
-          recurringFrequency: {
-            type: 'string',
-            enum: ['weekly', 'monthly', 'quarterly', 'yearly'],
-          },
-          subscriptionId: { type: 'string' },
-          subscriptionName: { type: 'string' },
-          amountNeedsConfirmation: { type: 'boolean' },
+          transactionType: { type: 'string', enum: ['expense', 'income'] },
+          merchant: { type: ['string', 'null'] },
+          date: { type: ['string', 'null'] },
+          subtotal: { type: ['number', 'null'] },
+          total: { type: ['number', 'null'] },
+          tax: { type: ['number', 'null'] },
+          taxIncludedInTotal: { type: ['boolean', 'null'] },
+          currency: { type: ['string', 'null'] },
+          categorySuggestion: { type: ['string', 'null'] },
+          description: { type: ['string', 'null'] },
+          notes: { type: ['string', 'null'] },
+          receiptNumber: { type: ['string', 'null'] },
           confidence: { type: 'number', minimum: 0, maximum: 1 },
+          needsReview: { type: 'boolean' },
+          completeness: { type: 'string', enum: ['partial', 'complete'] },
+          missingFields: { type: 'array', items: { type: 'string' } },
           warnings: { type: 'array', items: { type: 'string' } },
-          requiresReview: { type: 'boolean' },
+          lineItems: {
+            type: 'array',
+            items: {
+              type: 'object',
+              required: ['name'],
+              properties: {
+                name: { type: 'string' },
+                description: { type: ['string', 'null'] },
+                quantity: { type: ['number', 'null'] },
+                unitPrice: { type: ['number', 'null'] },
+                total: { type: ['number', 'null'] },
+                categoryId: { type: ['string', 'null'] },
+                itemKind: { type: 'string', enum: ['regular', 'discount', 'tax', 'fee'] },
+                confidence: { type: 'number', minimum: 0, maximum: 1 },
+              },
+              additionalProperties: true,
+            },
+          },
         },
         additionalProperties: true,
       },
@@ -399,6 +397,76 @@ function normalizeParsedOptionalArrays(payload: unknown): unknown {
         clarificationQuestions: Array.isArray(act.clarificationQuestions) ? act.clarificationQuestions : [],
       };
     });
+  }
+  return normalized;
+}
+
+function normalizeDocumentExtractionOptionalArrays(payload: unknown): unknown {
+  if (!payload || typeof payload !== 'object') return payload;
+  const obj = payload as Record<string, unknown>;
+  const normalized = { ...obj };
+  normalized.warnings = Array.isArray(obj.warnings)
+    ? obj.warnings.filter((s: unknown) => typeof s === 'string')
+    : [];
+  if (Array.isArray(obj.transactions)) {
+    normalized.transactions = obj.transactions.map((t: unknown) => {
+      if (!t || typeof t !== 'object') return t;
+      const tx = t as Record<string, unknown>;
+      const nt = { ...tx };
+      nt.missingFields = Array.isArray(tx.missingFields)
+        ? tx.missingFields.filter((s: unknown) => typeof s === 'string')
+        : [];
+      nt.warnings = Array.isArray(tx.warnings)
+        ? tx.warnings.filter((s: unknown) => typeof s === 'string')
+        : [];
+      nt.lineItems = Array.isArray(tx.lineItems)
+        ? tx.lineItems.filter((li: unknown) => li && typeof li === 'object')
+        : [];
+      if (Array.isArray(nt.lineItems)) {
+        nt.lineItems = (nt.lineItems as unknown[]).map((li: unknown) => {
+          if (!li || typeof li !== 'object') return li;
+          const item = li as Record<string, unknown>;
+          const out: Record<string, unknown> = { ...item };
+          if (typeof out.name !== 'string' || !out.name.trim()) {
+            out.name = '';
+          } else {
+            out.name = String(out.name).trim();
+          }
+          if (typeof out.description === 'string') {
+            out.description = out.description.trim() || null;
+          }
+          return out;
+        });
+      }
+      if (typeof nt.merchant === 'string') nt.merchant = nt.merchant.trim() || null;
+      if (typeof nt.currency === 'string') {
+        const cur = nt.currency.trim().toUpperCase();
+        nt.currency = cur.length === 3 ? cur : null;
+      }
+      if (typeof nt.categorySuggestion === 'string') nt.categorySuggestion = nt.categorySuggestion.trim() || null;
+      if (typeof nt.description === 'string') nt.description = nt.description.trim() || null;
+      if (typeof nt.notes === 'string') nt.notes = nt.notes.trim() || null;
+      if (typeof nt.receiptNumber === 'string') nt.receiptNumber = nt.receiptNumber.trim() || null;
+      if (typeof nt.date === 'string') {
+        const d = nt.date.trim();
+        if (!d) nt.date = null;
+      }
+      if (typeof nt.confidence !== 'number' || !Number.isFinite(nt.confidence)) {
+        nt.confidence = 0;
+      } else {
+        nt.confidence = Math.max(0, Math.min(1, nt.confidence as number));
+      }
+      if (typeof nt.needsReview !== 'boolean') nt.needsReview = true;
+      return nt;
+    });
+  } else {
+    normalized.transactions = [];
+  }
+  if (typeof normalized.confidence !== 'number' || !Number.isFinite(normalized.confidence)) {
+    const txs = normalized.transactions as Array<{ confidence?: number }> | undefined;
+    normalized.confidence = txs && txs.length ? Math.max(...txs.map((t) => typeof t.confidence === 'number' ? t.confidence : 0)) : 0;
+  } else {
+    normalized.confidence = Math.max(0, Math.min(1, normalized.confidence as number));
   }
   return normalized;
 }
@@ -2915,7 +2983,8 @@ class GeminiLanguageProvider implements LanguageProvider {
           );
         }
         try {
-          validateTransactionDocumentExtraction(parsed);
+          const safeNormalized = normalizeDocumentExtractionOptionalArrays(parsed);
+          validateTransactionDocumentExtraction(safeNormalized);
         } catch (_ve) {
           throw new TransactionDocumentGatewayError(
             'invalid_ai_json_response', 'gemini.parse',
@@ -3457,7 +3526,8 @@ export async function processTransactionDocumentAIRequest(
     });
     let validated;
     try {
-      validated = validateTransactionDocumentExtraction(result.parsed);
+      const safeNormalized = normalizeDocumentExtractionOptionalArrays(result.parsed);
+      validated = validateTransactionDocumentExtraction(safeNormalized);
     } catch (error) {
       throw new TransactionDocumentGatewayError(
         classifyTransactionDocumentError(error) || 'invalid_extraction_response',
