@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next';
 import {
   formatVoiceAudioSize,
   getPreferredVoiceRecordingMimeType,
-  getVoiceAudioExtension,
   VOICE_AI_MAX_AUDIO_BYTES,
   type VoiceRecorderSubmission,
 } from '@/lib/voice-ai';
@@ -142,6 +141,80 @@ export default function VoiceRecorder({
     return null;
   }, [getUnsupportedRecordingMessage]);
 
+  const writeUint16LE = (view: DataView, offset: number, value: number) => {
+    view.setUint16(offset, value, true);
+  };
+  const writeUint32LE = (view: DataView, offset: number, value: number) => {
+    view.setUint32(offset, value, true);
+  };
+
+  const buildMono16kHzWav = useCallback(async (sourceBlob: Blob): Promise<Blob> => {
+    const AC = (window.AudioContext || (window as any).webkitAudioContext);
+    if (!AC) {
+      throw new Error('AudioContext unavailable');
+    }
+    const decodeCtx = new AC();
+    try {
+      const ab = await sourceBlob.arrayBuffer();
+      const decoded = await decodeCtx.decodeAudioData(ab.slice(0));
+      const targetRate = 16000;
+      const targetChannels = 1;
+      const targetLength = Math.max(1, Math.ceil(decoded.duration * targetRate));
+      const offline = new (window.OfflineAudioContext || (window as any).webkitOfflineAudioContext)(
+        targetChannels,
+        targetLength,
+        targetRate,
+      );
+      try {
+        const bufferSource = offline.createBufferSource();
+        bufferSource.buffer = decoded;
+        bufferSource.connect(offline.destination);
+        bufferSource.start(0);
+        const rendered = await offline.startRendering();
+        const channelData = rendered.getChannelData(0);
+        const sampleCount = channelData.length;
+        const byteRate = targetRate * 2;
+        const dataSize = sampleCount * 2;
+        const headerSize = 44;
+        const totalSize = headerSize + dataSize;
+        const wavAb = new ArrayBuffer(totalSize);
+        const view = new DataView(wavAb);
+        const setStr = (o: number, s: string) => {
+          for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i));
+        };
+        setStr(0, 'RIFF');
+        writeUint32LE(view, 4, totalSize - 8);
+        setStr(8, 'WAVE');
+        setStr(12, 'fmt ');
+        writeUint32LE(view, 16, 16);
+        writeUint16LE(view, 20, 1);
+        writeUint16LE(view, 22, targetChannels);
+        writeUint32LE(view, 24, targetRate);
+        writeUint32LE(view, 28, byteRate);
+        writeUint16LE(view, 32, 2);
+        writeUint16LE(view, 34, 16);
+        setStr(36, 'data');
+        writeUint32LE(view, 40, dataSize);
+        let offset = headerSize;
+        for (let i = 0; i < sampleCount; i++) {
+          const s = Math.max(-1, Math.min(1, channelData[i]));
+          const sample = s < 0 ? s * 0x8000 : s * 0x7fff;
+          view.setInt16(offset, sample, true);
+          offset += 2;
+        }
+        return new Blob([wavAb], { type: 'audio/wav' });
+      } finally {
+        try {
+          if (typeof (offline as any).close === 'function') {
+            await (offline as any).close().catch(() => undefined);
+          }
+        } catch { /* noop */ }
+      }
+    } finally {
+      try { await decodeCtx.close().catch(() => undefined); } catch { /* noop */ }
+    }
+  }, []);
+
   const startRecording = useCallback(async () => {
     setErrorMessage('');
     chunksRef.current = [];
@@ -183,15 +256,15 @@ export default function VoiceRecorder({
         }
 
         const durationSeconds = Math.max(0, accumulatedMsRef.current / 1000);
-        const blob = new Blob(chunksRef.current, { type: mimeTypeRef.current || mimeType });
-        const outputMimeType = blob.type || mimeTypeRef.current || mimeType;
+        const rawBlob = new Blob(chunksRef.current, { type: mimeTypeRef.current || mimeType });
+        const rawMimeType = rawBlob.type || mimeTypeRef.current || mimeType;
 
-        if (blob.size <= 0 || durationSeconds <= 0) {
+        if (rawBlob.size <= 0 || durationSeconds <= 0) {
           handleRecorderError(t('smartEntryModal.voice.errors.emptyAudio', { ns: 'portal' }));
           return;
         }
 
-        if (blob.size > VOICE_AI_MAX_AUDIO_BYTES) {
+        if (rawBlob.size > VOICE_AI_MAX_AUDIO_BYTES) {
           handleRecorderError(t('smartEntryModal.voice.errors.fileTooLarge', {
             ns: 'portal',
             maxSize: formatVoiceAudioSize(VOICE_AI_MAX_AUDIO_BYTES),
@@ -199,17 +272,28 @@ export default function VoiceRecorder({
           return;
         }
 
-        const file = new File(
-          [blob],
-          `voice-entry.${getVoiceAudioExtension(outputMimeType)}`,
-          { type: outputMimeType }
-        );
         setState('processing');
-        onTranscriptReady({
-          file,
-          mimeType: outputMimeType,
-          durationSeconds,
-        });
+        void (async () => {
+          try {
+            const wavBlob = await buildMono16kHzWav(rawBlob);
+            if (!wavBlob || wavBlob.size <= 0) {
+              handleRecorderError(getUnsupportedRecordingMessage());
+              return;
+            }
+            const file = new File(
+              [wavBlob],
+              `voice-entry.wav`,
+              { type: 'audio/wav' }
+            );
+            onTranscriptReady({
+              file,
+              mimeType: 'audio/wav',
+              durationSeconds,
+            });
+          } catch {
+            handleRecorderError(getUnsupportedRecordingMessage());
+          }
+        })();
       };
 
       recorder.start(250); // collect chunks every 250ms
@@ -244,7 +328,7 @@ export default function VoiceRecorder({
       setState('error');
       cleanup();
     }
-  }, [cleanup, getRecordingEnvironmentError, handleRecorderError, maxSeconds, onError, onTranscriptReady, startAudioLevelMonitor, stopAudioLevel, t, updateElapsed]);
+  }, [buildMono16kHzWav, cleanup, getRecordingEnvironmentError, handleRecorderError, maxSeconds, onError, onTranscriptReady, startAudioLevelMonitor, stopAudioLevel, t, updateElapsed]);
 
   const stopRecording = useCallback(() => {
     stopTimer();

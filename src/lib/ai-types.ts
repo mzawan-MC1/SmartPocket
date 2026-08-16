@@ -341,6 +341,8 @@ export interface ParsedFinancialInstruction {
   amountNeedsConfirmation?: boolean;
   review?: SmartEntryReview;
   providerUsed?: string;
+  primaryModel?: string;
+  finalModel?: string;
   modelUsed?: string;
   fallbackUsed?: boolean;
   durationMs?: number;
@@ -420,6 +422,8 @@ export interface AIAssistantResponse {
   errorCategory?: string;
   errorCode?: string;
   providerUsed?: string;
+  primaryModel?: string;
+  finalModel?: string;
   modelUsed?: string;
   fallbackUsed?: boolean;
   durationMs?: number;

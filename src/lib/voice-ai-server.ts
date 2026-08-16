@@ -7,7 +7,7 @@ import {
   type VoiceTranscriptionHealthCode,
   type VoiceAiGateway,
 } from '@/lib/voice-ai';
-import { getOpenRouterBaseUrl, extractGeminiCandidateText } from '@/lib/ai-gateway';
+import { getOpenRouterBaseUrl, extractGeminiCandidateText, VOICE_SMART_ENTRY_RESPONSE_JSON_SCHEMA } from '@/lib/ai-gateway';
 import { getAIConfig, isOpenRouterEnabled } from '@/lib/ai-provider-config';
 import { getGeminiClient } from '@/lib/gemini-client';
 
@@ -81,6 +81,10 @@ export interface VoiceProviderHealthCheckResult {
   requestId?: string | null;
   errorKind?: 'auth' | 'rate' | 'timeout' | 'unavailable' | 'configuration' | 'unknown' | null;
   sanitizedError?: string | null;
+  voiceSmartEntrySchemaValidated?: boolean;
+  primaryModel?: string | null;
+  finalModel?: string | null;
+  fallbackUsed?: boolean;
 }
 
 const DEFAULT_MAX_AUDIO_SECONDS = Math.max(
@@ -185,8 +189,8 @@ function classifyGeminiError(err: unknown, message: string): {
   return { code, status, errorKind, httpStatus, errorCategory, sanitizedError };
 }
 
-function buildTinySilentWavBase64(): { base64: string; mimeType: 'audio/wav'; byteLength: number } {
-  const sampleRate = 8000;
+function buildTinySilentWavBase64(): { base64: string; mimeType: 'audio/wav'; byteLength: number; sampleRate: number; channels: number } {
+  const sampleRate = 16000;
   const numChannels = 1;
   const bitsPerSample = 16;
   const durationSeconds = 0.12;
@@ -226,7 +230,7 @@ function buildTinySilentWavBase64(): { base64: string; mimeType: 'audio/wav'; by
     throw new Error('No base64 encoder available for health probe');
   }
 
-  return { base64, mimeType: 'audio/wav', byteLength };
+  return { base64, mimeType: 'audio/wav', byteLength, sampleRate, channels: numChannels };
 }
 
 function logAdminVoiceHealthDiagnostic(
@@ -598,10 +602,12 @@ export async function runVoiceTranscriptionHealthCheck(): Promise<VoiceProviderH
       const geminiHandle = getGeminiClient();
       const client = geminiHandle.requireClient('voice health check');
       const modelName = aiConfig.gemini.models.multimodal;
+      const primaryModel = modelName;
+      const fallbackModel = aiConfig.gemini.models.multimodalFallback;
 
       const wav = buildTinySilentWavBase64();
       const healthSystemPrompt =
-        'Reply with JSON only. Use schema: {\"ok\":true}. No prose, commentary, Markdown fences or code blocks. Echo nothing. Do not repeat the user prompt. Output only valid JSON.';
+        'You are a voice financial entry validator. You are receiving a silent 120ms mono WAV 16 kHz probe for structured output validation. Reply ONLY with valid JSON matching this exact shape. No prose, commentary, Markdown fences, code blocks or explanations. Do not invent financial amounts. Use empty arrays for the optional collection fields. Schema: {"transcript":"probe","originalTranscript":"probe","detectedLanguage":"en","confidence":0.01,"overallIntent":"unclear","warnings":[],"missingFields":[],"clarificationQuestions":[],"actions":[]}. Every array field is mandatory in the output.';
 
       const result = await client.models.generateContent({
         model: modelName,
@@ -610,7 +616,7 @@ export async function runVoiceTranscriptionHealthCheck(): Promise<VoiceProviderH
             role: 'user',
             parts: [
               { inlineData: { mimeType: wav.mimeType, data: wav.base64 } },
-              { text: '{\"ok\":true}' },
+              { text: 'Please respond with the required JSON schema including the four empty collection arrays.' },
             ],
           },
         ],
@@ -620,8 +626,9 @@ export async function runVoiceTranscriptionHealthCheck(): Promise<VoiceProviderH
             parts: [{ text: healthSystemPrompt }],
           },
           temperature: 0,
-          maxOutputTokens: 64,
+          maxOutputTokens: 512,
           responseMimeType: 'application/json',
+          responseJsonSchema: VOICE_SMART_ENTRY_RESPONSE_JSON_SCHEMA,
           candidateCount: 1,
           abortSignal: controller.signal,
         },
@@ -654,8 +661,12 @@ export async function runVoiceTranscriptionHealthCheck(): Promise<VoiceProviderH
           errorKind: 'unknown',
           requestId: null,
           sanitizedError: extractError,
+          voiceSmartEntrySchemaValidated: false,
+          primaryModel,
+          finalModel: modelName,
+          fallbackUsed: false,
         };
-        logAdminVoiceHealthDiagnostic(healthResult, { probeBytes: wav.byteLength });
+        logAdminVoiceHealthDiagnostic(healthResult, { probeBytes: wav.byteLength, probeSampleRate: wav.sampleRate, probeChannels: wav.channels });
         return healthResult;
       }
 
@@ -674,8 +685,64 @@ export async function runVoiceTranscriptionHealthCheck(): Promise<VoiceProviderH
           errorKind: 'unknown',
           requestId: null,
           sanitizedError: 'Gemini accepted the audio probe but returned zero-length candidate text',
+          voiceSmartEntrySchemaValidated: false,
+          primaryModel,
+          finalModel: modelName,
+          fallbackUsed: false,
         };
-        logAdminVoiceHealthDiagnostic(healthResult, { probeBytes: wav.byteLength });
+        logAdminVoiceHealthDiagnostic(healthResult, { probeBytes: wav.byteLength, probeSampleRate: wav.sampleRate, probeChannels: wav.channels });
+        return healthResult;
+      }
+
+      let parsed: unknown = null;
+      let schemaValidated = false;
+      let parseError: string | null = null;
+      try {
+        parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+          const root = parsed as Record<string, unknown>;
+          const hasArrays =
+            Array.isArray(root.warnings) &&
+            Array.isArray(root.missingFields) &&
+            Array.isArray(root.clarificationQuestions) &&
+            Array.isArray(root.actions);
+          if (hasArrays) {
+            schemaValidated = true;
+          } else {
+            parseError = 'Smart Entry schema missing optional collection arrays: ' +
+              `warnings=${Array.isArray(root.warnings) ? 'ok' : 'missing'} ` +
+              `missingFields=${Array.isArray(root.missingFields) ? 'ok' : 'missing'} ` +
+              `clarificationQuestions=${Array.isArray(root.clarificationQuestions) ? 'ok' : 'missing'} ` +
+              `actions=${Array.isArray(root.actions) ? 'ok' : 'missing'}`;
+          }
+        } else {
+          parseError = 'Response JSON was not an object';
+        }
+      } catch (parseErr: any) {
+        const msg = parseErr?.message ? String(parseErr.message) : String(parseErr || '');
+        parseError = 'Failed to parse health probe structured JSON: ' + msg.slice(0, 300);
+      }
+
+      if (parseError) {
+        const healthResult: VoiceProviderHealthCheckResult = {
+          provider: VOICE_GEMINI_PROVIDER_KEY,
+          code: 'gemini_provider_unavailable',
+          status: 'degraded',
+          checkedAt,
+          responseTimeMs,
+          errorCategory: 'voice_probe_invalid_structured_response',
+          modelUsed: runtimeConfig.model,
+          modelAudioCapable: true,
+          httpStatus: 200,
+          errorKind: 'unknown',
+          requestId: null,
+          sanitizedError: parseError,
+          voiceSmartEntrySchemaValidated: false,
+          primaryModel,
+          finalModel: modelName,
+          fallbackUsed: false,
+        };
+        logAdminVoiceHealthDiagnostic(healthResult, { probeBytes: wav.byteLength, probeSampleRate: wav.sampleRate, probeChannels: wav.channels, first200: raw.slice(0, 200) });
         return healthResult;
       }
 
@@ -691,8 +758,12 @@ export async function runVoiceTranscriptionHealthCheck(): Promise<VoiceProviderH
         errorKind: null,
         requestId: null,
         sanitizedError: null,
+        voiceSmartEntrySchemaValidated: schemaValidated,
+        primaryModel,
+        finalModel: modelName,
+        fallbackUsed: false,
       };
-      logAdminVoiceHealthDiagnostic(healthResult, { probeBytes: wav.byteLength, probeMime: wav.mimeType, candidateLen: raw.length, first120: raw.slice(0, 120) });
+      logAdminVoiceHealthDiagnostic(healthResult, { probeBytes: wav.byteLength, probeMime: wav.mimeType, probeSampleRate: wav.sampleRate, probeChannels: wav.channels, candidateLen: raw.length, schemaValidated });
       return healthResult;
     } catch (err) {
       clearTimeout(killTimer);
@@ -701,6 +772,7 @@ export async function runVoiceTranscriptionHealthCheck(): Promise<VoiceProviderH
       const classified = classifyGeminiError(err, msg);
       const requestId: string | null =
         (errAny && (errAny.requestId || errAny['x-request-id'])) as string | null || null;
+      const primaryModel = aiConfig.gemini.models.multimodal;
       const healthResult: VoiceProviderHealthCheckResult = {
         provider: VOICE_GEMINI_PROVIDER_KEY,
         code: classified.code,
@@ -714,6 +786,10 @@ export async function runVoiceTranscriptionHealthCheck(): Promise<VoiceProviderH
         errorKind: classified.errorKind,
         requestId,
         sanitizedError: classified.sanitizedError,
+        voiceSmartEntrySchemaValidated: false,
+        primaryModel,
+        finalModel: primaryModel,
+        fallbackUsed: false,
       };
       logAdminVoiceHealthDiagnostic(healthResult);
       return healthResult;

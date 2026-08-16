@@ -40,7 +40,29 @@ export async function GET() {
 
   const isCloudOnly = aiCfg.runtime.mode === 'cloud_only';
   const runGeminiText = Boolean(aiCfg.gemini.apiKey && aiCfg.gemini.models.fast);
+  const geminiVoiceConfigured = Boolean(
+    aiCfg.gemini.apiKey
+    && aiCfg.gemini.models.multimodal
+  );
   const results: ProviderHealthResult[] = [];
+
+  const configurationReadiness = {
+    gemini: {
+      textConfigured: runGeminiText,
+      voiceConfigured: geminiVoiceConfigured,
+      apiKeyPresent: Boolean(aiCfg.gemini.apiKey),
+      fastModel: aiCfg.gemini.models.fast || null,
+      voicePrimaryModel: aiCfg.gemini.models.multimodal || null,
+      voiceFallbackModel: aiCfg.gemini.models.multimodalFallback || null,
+    },
+    openrouter: {
+      enabled: aiCfg.openrouter.enabled,
+      apiKeyPresent: Boolean(aiCfg.openrouter.apiKey),
+    },
+    vpsAi: {
+      enabled: !isCloudOnly,
+    },
+  };
 
   if (runGeminiText) {
     try {
@@ -188,8 +210,35 @@ export async function GET() {
     rowsFromDb = data || [];
   }
 
+  let liveVoiceProbe: {
+    connectivityOk: boolean;
+    wavMimeAcceptedOk: boolean;
+    structuredSchemaOk: boolean;
+    status: string;
+    provider: string;
+    primaryModel: string | null;
+    fallbackModel: string | null;
+    fallbackUsed: boolean;
+  } | null = null;
+  if (voiceHealth) {
+    const vh = voiceHealth as any;
+    const statusOk = voiceHealth.status === 'healthy' || voiceHealth.status === 'degraded';
+    liveVoiceProbe = {
+      connectivityOk: statusOk,
+      wavMimeAcceptedOk: statusOk,
+      structuredSchemaOk: statusOk && Boolean(vh.voiceSmartEntrySchemaValidated),
+      status: voiceHealth.status,
+      provider: voiceHealth.provider,
+      primaryModel: typeof vh.primaryModel === 'string' ? vh.primaryModel : null,
+      fallbackModel: typeof vh.finalModel === 'string' ? vh.finalModel : null,
+      fallbackUsed: Boolean(vh.fallbackUsed),
+    };
+  }
+
   return applySupabaseCookies(NextResponse.json({
     ok: true,
+    configurationReadiness,
+    liveVoiceProbe,
     checks: results,
     voiceHealth,
     persistedRows,

@@ -19,7 +19,6 @@ import {
 } from '@/lib/smart-entry';
 import { ensureUserSubscriptionSummary } from '@/lib/subscription/server';
 import {
-  getOpenRouterAudioFormat,
   isSupportedVoiceAudioMimeType,
   normalizeVoiceAudioMimeType,
 } from '@/lib/voice-ai';
@@ -68,7 +67,7 @@ const ALLOWED_RELATIONSHIPS = new Set([
   'client',
   'other',
 ]);
-const VALID_PROVIDER_NAMES = new Set(['openrouter', 'vps_ai', 'cloud_stt', 'vps_stt', 'mock']);
+const VALID_PROVIDER_NAMES = new Set(['openrouter', 'vps_ai', 'cloud_stt', 'vps_stt', 'mock', 'gemini', 'gemini_voice']);
 const VALID_REQUEST_STATUSES = new Set([
   'pending',
   'parsed',
@@ -110,6 +109,23 @@ const VALID_ERROR_CATEGORIES = new Set([
   'openrouter_auth_failed',
   'openrouter_provider_unavailable',
   'transcription_failed',
+  'gemini_auth_failed',
+  'gemini_rate_limited',
+  'gemini_provider_unavailable',
+  'gemini_request_timeout',
+  'gemini_not_configured',
+  'gemini_model_missing',
+  'gemini_api_key_missing',
+  'request_timeout',
+  'provider_unavailable',
+  'safety_blocked',
+  'safety_violation',
+  'empty_audio',
+  'audio_too_large',
+  'invalid_audio_payload',
+  'wav_header_invalid',
+  'audio_too_short',
+  'unsupported_audio_type',
 ]);
 
 type SpokenLanguageCode = 'auto' | 'en' | 'ur' | 'ar' | 'fr' | 'ru' | 'tr' | 'zh-CN' | 'es' | 'pt-BR';
@@ -619,6 +635,7 @@ function getVoiceFailureStatus(errorCode: string | undefined) {
   switch (errorCode) {
     case 'timeout':
     case 'gemini_request_timeout':
+    case 'request_timeout':
       return 504;
     case 'openrouter_auth_failed':
     case 'openrouter_not_configured':
@@ -628,14 +645,56 @@ function getVoiceFailureStatus(errorCode: string | undefined) {
     case 'gemini_model_missing':
     case 'gemini_api_key_missing':
     case 'gemini_auth_failed':
+    case 'not_configured':
+    case 'auth_failed':
       return 409;
     case 'openrouter_provider_unavailable':
     case 'gemini_provider_unavailable':
+    case 'provider_unavailable':
       return 503;
+    case 'gemini_rate_limited':
+    case 'rate_limited':
+      return 429;
     case 'invalid_response':
+    case 'transcription_failed':
+    case 'safety_blocked':
+    case 'safety_violation':
       return 422;
+    case 'empty_audio':
+    case 'audio_too_large':
+    case 'invalid_audio_payload':
+    case 'wav_header_invalid':
+    case 'audio_too_short':
+      return 400;
+    case 'unsupported_audio_type':
+      return 415;
     default:
       return 503;
+  }
+}
+
+function validateWavRiffHeader(buffer: ArrayBuffer): { ok: boolean; reason?: string } {
+  try {
+    if (!buffer || buffer.byteLength < 44) {
+      return { ok: false, reason: 'WAV payload too small' };
+    }
+    const view = new DataView(buffer);
+    const chunkId =
+      String.fromCharCode(view.getUint8(0)) +
+      String.fromCharCode(view.getUint8(1)) +
+      String.fromCharCode(view.getUint8(2)) +
+      String.fromCharCode(view.getUint8(3));
+    const riffType =
+      String.fromCharCode(view.getUint8(8)) +
+      String.fromCharCode(view.getUint8(9)) +
+      String.fromCharCode(view.getUint8(10)) +
+      String.fromCharCode(view.getUint8(11));
+    if (chunkId !== 'RIFF' || riffType !== 'WAVE') {
+      return { ok: false, reason: 'Invalid WAV RIFF header' };
+    }
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, reason: e instanceof Error ? e.message : 'WAV header check failed' };
   }
 }
 
@@ -648,26 +707,44 @@ function mapVoiceProcessingFailure(args: {
 
   if (
     args.errorCategory === 'timeout'
-    || /timeout|timed out|aborterror|aborted|deadline exceeded/.test(normalized)
+    || args.errorCategory === 'request_timeout'
+    || args.errorCategory === 'gemini_request_timeout'
+    || /timeout|timed out|aborterror|aborted|deadline exceeded|timedout/.test(normalized)
   ) {
     return {
-      code: 'timeout',
+      code: 'gemini_request_timeout',
       category: 'technical' as const,
       message: 'Voice transcription timed out. Please try again.',
-      refundReason: 'timeout',
+      refundReason: 'gemini_request_timeout',
+      logDetail: detail,
+    };
+  }
+
+  if (
+    args.errorCategory === 'gemini_rate_limited'
+    || args.errorCategory === 'rate_limited'
+    || /rate.?limit|429|too many requests|resource exhausted|quota exceeded/.test(normalized)
+  ) {
+    return {
+      code: 'gemini_rate_limited',
+      category: 'technical' as const,
+      message: 'Voice transcription is rate limited. Please try again shortly.',
+      refundReason: 'gemini_rate_limited',
       logDetail: detail,
     };
   }
 
   if (
     args.errorCategory === 'auth_error'
-    || /openrouter error 401|openrouter error 403|auth/i.test(normalized)
+    || args.errorCategory === 'gemini_auth_failed'
+    || args.errorCategory === 'auth_failed'
+    || /gemini.*(401|403|auth|api.?key)|api.?key.*missing|permission.?denied.*gemini|invalid.*credentials/.test(normalized)
   ) {
     return {
-      code: 'openrouter_auth_failed',
+      code: 'gemini_auth_failed',
       category: 'technical' as const,
       message: 'Voice transcription is temporarily unavailable.',
-      refundReason: 'openrouter_auth_failed',
+      refundReason: 'gemini_auth_failed',
       logDetail: detail,
     };
   }
@@ -686,29 +763,43 @@ function mapVoiceProcessingFailure(args: {
 
   if (args.errorCategory === 'not_configured') {
     return {
-      code: 'openrouter_not_configured',
+      code: 'gemini_not_configured',
       category: 'configuration' as const,
       message: 'The AI service has not been configured by the administrator. Use text entry for now.',
-      refundReason: 'openrouter_not_configured',
+      refundReason: 'gemini_not_configured',
       logDetail: detail,
     };
   }
 
-  if (args.errorCategory === 'invalid_response') {
+  if (args.errorCategory === 'invalid_response' || /invalid.*json|could not parse.*json|schema.*mismatch|action missing warnings|warnings array/.test(normalized)) {
     return {
-      code: 'transcription_failed',
+      code: 'invalid_response',
       category: 'validation' as const,
       message: 'We could not understand that voice request. Please review the transcript or try again.',
-      refundReason: 'transcription_failed',
+      refundReason: 'invalid_response',
+      logDetail: detail,
+    };
+  }
+
+  if (
+    args.errorCategory === 'provider_unavailable'
+    || args.errorCategory === 'gemini_provider_unavailable'
+    || /503|unavailable|service unavailable|overloaded|provider.*down|internal server error|500|connection.*reset|network.*error.*gemini/.test(normalized)
+  ) {
+    return {
+      code: 'gemini_provider_unavailable',
+      category: 'technical' as const,
+      message: 'Voice transcription is temporarily unavailable.',
+      refundReason: 'gemini_provider_unavailable',
       logDetail: detail,
     };
   }
 
   return {
-    code: 'openrouter_provider_unavailable',
+    code: 'gemini_provider_unavailable',
     category: 'technical' as const,
     message: 'Voice transcription is temporarily unavailable.',
-    refundReason: 'openrouter_provider_unavailable',
+    refundReason: 'gemini_provider_unavailable',
     logDetail: detail,
   };
 }
@@ -806,8 +897,22 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(buildError('unsupported_audio_type', 'validation', 'This audio format is not supported for voice entry.', requestId), { status: 415 });
     }
 
-    if (!getOpenRouterAudioFormat(mimeType)) {
-      return NextResponse.json(buildError('unsupported_audio_type', 'validation', 'This audio format is not supported for voice entry.', requestId), { status: 415 });
+    if (mimeType === 'audio/wav' || mimeType === 'audio/x-wav') {
+      try {
+        const sampleBytes = await fileEntry.slice(0, Math.min(fileEntry.size, 512)).arrayBuffer();
+        const wavCheck = validateWavRiffHeader(sampleBytes);
+        if (!wavCheck.ok) {
+          return NextResponse.json(
+            buildError('invalid_audio_payload', 'validation', 'Invalid WAV audio file: ' + (wavCheck.reason || 'RIFF header missing.'), requestId),
+            { status: 400 },
+          );
+        }
+      } catch {
+        return NextResponse.json(
+          buildError('invalid_audio_payload', 'validation', 'Could not read the WAV audio file.', requestId),
+          { status: 400 },
+        );
+      }
     }
 
     const rawContext = parseJsonField(formData.get('context'));

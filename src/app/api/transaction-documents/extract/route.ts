@@ -97,8 +97,11 @@ function getSafeExtractStatusCode(errorCode: TransactionDocumentErrorCode): numb
       return 401;
     case 'file_required':
     case 'empty_file':
-    case 'invalid_type':
     case 'pdf_too_many_pages':
+      return 400;
+    case 'invalid_type':
+      return 415;
+    case 'invalid_document':
       return 400;
     case 'document_too_large':
       return 413;
@@ -111,17 +114,26 @@ function getSafeExtractStatusCode(errorCode: TransactionDocumentErrorCode): numb
     case 'receipt_metering_unavailable':
       return 503;
     case 'openrouter_not_configured':
+    case 'gemini_not_configured':
+    case 'gemini_model_missing':
+    case 'gemini_api_key_missing':
+    case 'gemini_auth_failed':
     case 'unsupported_multimodal_model':
-    case 'provider_timeout':
     case 'provider_unavailable':
+    case 'gemini_provider_unavailable':
       return 503;
+    case 'provider_timeout':
+    case 'gemini_request_timeout':
+      return 504;
+    case 'gemini_rate_limited':
+    case 'provider_rate_limited':
+      return 429;
     case 'invalid_ai_json_response':
     case 'invalid_extraction_response':
     case 'pdf_extraction_unavailable':
     case 'unreadable_document':
+    case 'safety_blocked':
       return 422;
-    case 'provider_rate_limited':
-      return 429;
     case 'receipt_feature_unavailable':
     case 'receipt_no_documents_included':
       return 403;
@@ -138,25 +150,35 @@ function getErrorMessage(errorCode: TransactionDocumentErrorCode): string | unde
   switch (errorCode) {
     case 'invalid_type':
       return 'This file type is not supported.';
-    case 'document_too_large':
-      return `This document exceeds the ${getTransactionDocumentMaxSizeLabel()} upload limit.`;
+    case 'invalid_document':
     case 'empty_file':
       return 'This file appears to be empty or unreadable.';
+    case 'document_too_large':
+      return `This document exceeds the ${getTransactionDocumentMaxSizeLabel()} upload limit.`;
     case 'provider_http_error':
+    case 'provider_unavailable':
+    case 'gemini_provider_unavailable':
+    case 'receipt_metering_unavailable':
       return 'Receipt extraction is temporarily unavailable. Please try again.';
     case 'provider_timeout':
+    case 'gemini_request_timeout':
       return 'Receipt extraction is taking longer than expected. Please try again.';
     case 'provider_rate_limited':
+    case 'gemini_rate_limited':
       return 'Receipt extraction is temporarily rate limited. Please try again shortly.';
-    case 'provider_unavailable':
-      return 'Receipt extraction is temporarily unavailable. Please try again.';
+    case 'gemini_auth_failed':
+    case 'gemini_not_configured':
+    case 'gemini_model_missing':
+    case 'gemini_api_key_missing':
+    case 'openrouter_not_configured':
+      return 'Receipt extraction configuration error. Please contact support.';
+    case 'safety_blocked':
+      return 'This document could not be processed safely.';
     case 'invalid_ai_json_response':
     case 'invalid_extraction_response':
       return 'The receipt was processed, but the extracted data could not be validated.';
     case 'unreadable_document':
       return 'We could not read enough information from this document. Try a clearer photo.';
-    case 'receipt_metering_unavailable':
-      return 'Receipt processing is temporarily unavailable. Please try again shortly.';
     default:
       return undefined;
   }
@@ -339,6 +361,8 @@ export async function POST(request: NextRequest) {
   let duplicateMatches: unknown[] = [];
   let extractDurationMs = 0;
   let fallbackUsed = false;
+  let primaryModel: string | null = null;
+  let finalModel: string | null = null;
   let currentUserId = '';
   let currentSourceSurface: TransactionDocumentSourceSurface = 'add_transaction';
   let previewUrl = '';
@@ -676,7 +700,9 @@ export async function POST(request: NextRequest) {
     }, config);
     providerAttempted = true;
     providerUsed = extractionResponse.providerUsed || null;
-    modelUsed = extractionResponse.modelUsed || extractionResponse.parsed?.modelUsed || null;
+    primaryModel = extractionResponse.primaryModel || null;
+    finalModel = extractionResponse.finalModel || extractionResponse.modelUsed || extractionResponse.parsed?.modelUsed || null;
+    modelUsed = finalModel;
     rawAiOutput = extractionResponse.rawOutput ?? null;
     inputTokens = extractionResponse.inputTokens ?? null;
     outputTokens = extractionResponse.outputTokens ?? null;

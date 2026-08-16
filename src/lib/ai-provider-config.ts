@@ -11,6 +11,7 @@ export interface GeminiModelConfig {
   fast: string;
   reasoning: string;
   multimodal: string;
+  multimodalFallback: string;
 }
 
 export interface AIProviderConfig {
@@ -40,6 +41,8 @@ export interface AIProviderConfig {
     mode: 'cloud_only' | 'vps_only' | 'cloud_primary' | 'vps_primary';
     mockMode: boolean;
     requestTimeoutMs: number;
+    voiceRequestTimeoutMs: number;
+    documentRequestTimeoutMs: number;
     voiceHealthTimeoutMs: number;
     maxRetries: number;
     confidenceThreshold: number;
@@ -117,7 +120,8 @@ export function resolveAIProviderConfig(): AIProviderConfig {
       models: {
         fast: (readEnv('GEMINI_TEXT_MODEL') || readEnv('GEMINI_FAST_MODEL', 'gemini-3.5-flash-lite')) as string,
         reasoning: readEnv('GEMINI_REASONING_MODEL', 'gemini-3.5-flash') as string,
-        multimodal: readEnv('GEMINI_MULTIMODAL_MODEL', 'gemini-3.5-flash') as string,
+        multimodal: readEnv('GEMINI_MULTIMODAL_MODEL', 'gemini-3.5-flash-lite') as string,
+        multimodalFallback: readEnv('GEMINI_MULTIMODAL_FALLBACK_MODEL', 'gemini-3.1-flash-lite') as string,
       },
     },
     stt: {
@@ -139,6 +143,8 @@ export function resolveAIProviderConfig(): AIProviderConfig {
       mode: runtimeMode,
       mockMode: readEnvBool('AI_MOCK_MODE', false),
       requestTimeoutMs: readEnvInt('AI_REQUEST_TIMEOUT_MS', 20000),
+      voiceRequestTimeoutMs: readEnvInt('AI_VOICE_REQUEST_TIMEOUT_MS', 45000),
+      documentRequestTimeoutMs: readEnvInt('AI_DOCUMENT_REQUEST_TIMEOUT_MS', 60000),
       voiceHealthTimeoutMs: readEnvInt('AI_VOICE_HEALTH_TIMEOUT_MS', 30000),
       maxRetries: readEnvInt('AI_MAX_RETRIES', 1),
       confidenceThreshold: readEnvFloat('AI_CONFIDENCE_THRESHOLD', 0.8),
