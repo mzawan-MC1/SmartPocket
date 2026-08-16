@@ -113,20 +113,19 @@ export async function GET() {
     );
   }
 
-  if (!transcription.ready) {
+  if (!transcription.configurationReady) {
     const code = transcription.code;
     const isMissingOrNotConfigured =
-      (code.startsWith('gemini_') && (code !== 'gemini_model_missing')) ||
+      code === 'gemini_api_key_missing' ||
+      code === 'gemini_not_configured' ||
       code === 'openrouter_not_configured' ||
       code === 'openrouter_disabled';
     const isModelOrAudioIssue =
       code === 'gemini_model_missing' || code === 'voice_model_missing' ||
       code === 'voice_model_audio_unsupported';
-    const isUnavailableOrAuth =
-      code === 'openrouter_provider_unavailable' || code === 'openrouter_auth_failed' ||
-      code === 'gemini_provider_unavailable' || code === 'gemini_auth_failed' || code === 'gemini_request_timeout';
 
     let error: AIErrorPayload;
+    let httpStatus = 409;
     if (isMissingOrNotConfigured) {
       error = buildVoiceError(
         code as AIErrorPayload['code'],
@@ -139,15 +138,26 @@ export async function GET() {
         'configuration',
         'The selected AI model does not support voice transcription. Use text entry for now.'
       );
+    } else if (code === 'gemini_auth_failed') {
+      error = buildVoiceError(
+        'gemini_auth_failed',
+        'configuration',
+        'Voice AI authentication failed. Notify the administrator.'
+      );
+    } else if (code === 'openrouter_auth_failed') {
+      error = buildVoiceError(
+        'openrouter_auth_failed',
+        'configuration',
+        'Voice AI authentication failed. Notify the administrator.'
+      );
     } else {
       error = buildVoiceError(
         code as AIErrorPayload['code'],
         'technical',
         'Voice transcription is temporarily unavailable.'
       );
+      httpStatus = 503;
     }
-
-    const httpStatus = isUnavailableOrAuth ? 503 : 409;
 
     return applySupabaseCookies(
       NextResponse.json({
@@ -156,6 +166,35 @@ export async function GET() {
         transcription,
         error,
       }, { status: httpStatus }),
+      cookieMutations
+    );
+  }
+
+  if (!transcription.ready) {
+    const code = transcription.code;
+    const transientCodes: (string)[] = [
+      'gemini_provider_unavailable',
+      'gemini_request_timeout',
+      'gemini_rate_limited',
+      'openrouter_provider_unavailable',
+    ];
+    const isTransient = transientCodes.includes(code);
+
+    const error = buildVoiceError(
+      code as AIErrorPayload['code'],
+      isTransient ? 'technical' : 'configuration',
+      isTransient
+        ? 'Voice transcription is temporarily unavailable, retry in a moment.'
+        : 'Voice transcription is unavailable. Use text entry for now.'
+    );
+
+    return applySupabaseCookies(
+      NextResponse.json({
+        ready: false,
+        usage,
+        transcription,
+        error,
+      }, { status: isTransient ? 503 : 409 }),
       cookieMutations
     );
   }

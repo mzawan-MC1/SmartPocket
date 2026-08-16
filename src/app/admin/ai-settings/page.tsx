@@ -70,6 +70,7 @@ interface ServerAIConfigStatus {
   model: string;
   voiceTranscription: {
     ready: boolean;
+    configurationReady: boolean;
     code: string;
     gateway: 'gemini' | 'openrouter';
     model: string | null;
@@ -189,17 +190,26 @@ function ConfigStatusPanel({
 
   let voiceStatus: ConfigStatus['voice'] = 'checking';
   if (serverConfig) {
-    if (!serverConfig.voiceTranscription?.ready) {
-      voiceStatus = (
-        serverConfig.voiceTranscription?.code === 'openrouter_provider_unavailable'
-        || serverConfig.voiceTranscription?.code === 'openrouter_auth_failed'
-        || serverConfig.voiceTranscription?.code === 'gemini_provider_unavailable'
-        || serverConfig.voiceTranscription?.code === 'gemini_auth_failed'
-        || serverConfig.voiceTranscription?.code === 'gemini_model_missing'
-        || serverConfig.voiceTranscription?.code === 'voice_model_audio_unsupported'
-      ) ? 'test_failed' : 'missing';
+    if (!serverConfig.voiceTranscription?.configurationReady) {
+      const code = serverConfig.voiceTranscription?.code;
+      if (
+        code === 'openrouter_provider_unavailable'
+        || code === 'openrouter_auth_failed'
+        || code === 'gemini_provider_unavailable'
+        || code === 'gemini_auth_failed'
+        || code === 'gemini_request_timeout'
+        || code === 'gemini_rate_limited'
+        || code === 'gemini_model_missing'
+        || code === 'voice_model_audio_unsupported'
+      ) {
+        voiceStatus = 'configured';
+      } else {
+        voiceStatus = 'missing';
+      }
     } else if (voiceHealth?.status === 'healthy') {
       voiceStatus = 'healthy';
+    } else if (voiceHealth?.status === 'offline' || voiceHealth?.status === 'degraded') {
+      voiceStatus = 'test_failed';
     } else {
       voiceStatus = 'configured';
     }
@@ -279,6 +289,9 @@ function ConfigStatusPanel({
             </div>
             <div>
               Audio capable: <span className="font-600 text-foreground">{serverConfig.voiceTranscription.modelAudioCapable === null ? 'Unknown' : serverConfig.voiceTranscription.modelAudioCapable ? 'Yes' : 'No'}</span>
+            </div>
+            <div>
+              Voice ready (config): <span className="font-600 text-foreground">{serverConfig.voiceTranscription.configurationReady ? 'Yes' : 'No'}</span>
             </div>
             <div>
               Voice ready: <span className="font-600 text-foreground">{serverConfig.voiceTranscription.ready ? 'Yes' : 'No'}</span>
@@ -371,6 +384,7 @@ function ProviderHealthBadge({ status }: { status: string }) {
     not_configured: { color: 'bg-muted text-muted-foreground', icon: <AlertTriangle size={12} />, label: 'Missing' },
     configured:     { color: 'bg-positive-soft text-positive', icon: <CheckCircle size={12} />, label: 'Configured' },
     disabled:       { color: 'bg-muted text-muted-foreground', icon: <AlertTriangle size={12} />, label: 'Disabled' },
+    not_required:   { color: 'bg-muted text-muted-foreground', icon: <AlertTriangle size={12} />, label: 'Not required' },
   };
   const s = map[status] || map.not_configured;
   return (
@@ -477,11 +491,25 @@ export default function AdminAISettingsPage() {
 
       const result = await response.json();
       if (result.status === 'healthy') {
-        toast.success(`${displayName}: Connection successful`);
+        toast.success(`${displayName}: Connection successful`, {
+          description: typeof result.responseTimeMs === 'number' ? `${result.responseTimeMs}ms` : undefined,
+        });
+      } else if (result.status === 'disabled') {
+        toast.warning(`${displayName}: Disabled${result.errorCategory ? ` (${result.errorCategory})` : ''}`);
       } else if (result.status === 'not_configured') {
-        toast.warning(`${displayName}: Not configured — set environment variables on the server`);
+        toast.warning(`${displayName}: Not configured — set environment variables on the server`, {
+          description: typeof result.errorCategory === 'string' ? result.errorCategory : undefined,
+        });
       } else {
-        toast.error(`${displayName}: ${result.status}`);
+        const detail =
+          (result.diagnostic?.sanitizedError as string | undefined) ||
+          (result.errorCategory as string | undefined) ||
+          (typeof result.diagnostic?.errorKind === 'string' ? result.diagnostic.errorKind : undefined) ||
+          (typeof result.httpStatus === 'number' ? `HTTP ${result.httpStatus}` : undefined) ||
+          undefined;
+        toast.error(`${displayName}: ${String(result.code || result.status || 'Test Failed')}`, {
+          description: detail,
+        });
       }
       await loadData();
     } catch {
@@ -514,36 +542,70 @@ export default function AdminAISettingsPage() {
 
   const isCloudOnlyMode = serverConfig?.mode === 'cloud_only';
   const providerHealthRows = health.filter((item) => ACTIVE_PROVIDER_NAMES.has(item.provider));
-  const geminiHealth = providerHealthRows.find((item) => item.provider === 'gemini');
-  const geminiVoiceHealth = providerHealthRows.find((item) => item.provider === 'gemini_voice');
-  const openrouterHealth = providerHealthRows.find((item) => item.provider === 'openrouter');
-  const openrouterVoiceHealth = providerHealthRows.find((item) => item.provider === 'openrouter_voice');
-  const vpsAiHealth = providerHealthRows.find((item) => item.provider === 'vps_ai');
 
-  const providerList: Array<'gemini' | 'gemini_voice' | 'openrouter' | 'openrouter_voice' | 'vps_ai'> = ['gemini', 'gemini_voice', 'openrouter', 'openrouter_voice', 'vps_ai'];
-  const healthyProviderCount = providerList.filter(p => {
-    const h = providerHealthRows.find(r => r.provider === p);
-    return h?.status === 'healthy' || h?.status === 'disabled';
+  const openrouterEnvDisabled = !(serverConfig?.provider === 'openrouter' || (serverConfig?.openrouterConfigured && serverConfig?.mode !== 'cloud_only'));
+  const openrouterFlagDisabled = (() => {
+    const orHealth = providerHealthRows.find(r => r.provider === 'openrouter');
+    if (orHealth?.status === 'disabled') return true;
+    if (serverConfig?.provider !== 'openrouter' && serverConfig?.provider === 'gemini') {
+      return serverConfig.openrouterConfigured === false ? true : !orHealth;
+    }
+    return false;
+  })();
+  const isOpenRouterDisabled = openrouterEnvDisabled || openrouterFlagDisabled || Boolean(serverConfig && serverConfig.provider !== 'openrouter' && !serverConfig.openrouterConfigured);
+
+  const normalizeHealth = (provider: string, row: ProviderHealth | undefined): ProviderHealth | undefined => {
+    if (!row) return undefined;
+    if ((provider === 'openrouter' || provider === 'openrouter_voice') && isOpenRouterDisabled) {
+      return { ...row, status: 'disabled', last_error_category: 'openrouter_disabled' };
+    }
+    if (provider === 'vps_ai' && isCloudOnlyMode) {
+      return { ...row, status: 'disabled', last_error_category: 'cloud_only_mode' };
+    }
+    return row;
+  };
+
+  const geminiHealth = normalizeHealth('gemini', providerHealthRows.find((item) => item.provider === 'gemini'));
+  const geminiVoiceHealth = normalizeHealth('gemini_voice', providerHealthRows.find((item) => item.provider === 'gemini_voice'));
+  const openrouterHealth = normalizeHealth('openrouter', providerHealthRows.find((item) => item.provider === 'openrouter'));
+  const openrouterVoiceHealth = normalizeHealth('openrouter_voice', providerHealthRows.find((item) => item.provider === 'openrouter_voice'));
+  const vpsAiHealth = normalizeHealth('vps_ai', providerHealthRows.find((item) => item.provider === 'vps_ai'));
+
+  const allProviders: Array<'gemini' | 'gemini_voice' | 'openrouter' | 'openrouter_voice' | 'vps_ai'> = ['gemini', 'gemini_voice', 'openrouter', 'openrouter_voice', 'vps_ai'];
+  const overallEligibleProviders = allProviders.filter(p => {
+    if (p === 'openrouter' || p === 'openrouter_voice') return !isOpenRouterDisabled;
+    if (p === 'vps_ai') return !isCloudOnlyMode;
+    return true;
+  });
+  const healthyProviderCount = overallEligibleProviders.filter(p => {
+    if (p === 'gemini') return geminiHealth?.status === 'healthy';
+    if (p === 'gemini_voice') return geminiVoiceHealth?.status === 'healthy';
+    if (p === 'openrouter') return openrouterHealth?.status === 'healthy';
+    if (p === 'openrouter_voice') return openrouterVoiceHealth?.status === 'healthy';
+    if (p === 'vps_ai') return vpsAiHealth?.status === 'healthy';
+    return false;
   }).length;
   const geminiProvidersGood = ['gemini', 'gemini_voice'].every(p => {
-    const h = providerHealthRows.find(r => r.provider === p);
+    const h = p === 'gemini' ? geminiHealth : geminiVoiceHealth;
     return h?.status === 'healthy';
   });
-  const openrouterEnabled = openrouterHealth?.status !== 'disabled';
+  const openrouterEnabled = !isOpenRouterDisabled;
 
   const voiceGateway = serverConfig?.voiceTranscription.gateway;
   const voiceLabel = voiceGateway === 'gemini' ? 'Gemini Voice Ready' : 'OpenRouter Voice Ready';
+  const voiceHealthLabel = voiceGateway === 'gemini' ? 'Gemini Voice Health' : 'OpenRouter Voice Health';
 
   const checklistItems = [
     { id: 'supabase', label: 'Supabase Service Role Key Configured', done: Boolean(serverConfig?.supabaseServiceConfigured) },
     { id: 'gemini-key', label: 'Gemini API Key Configured', done: Boolean(serverConfig?.geminiApiKeyConfigured) },
     { id: 'gemini-text', label: 'Gemini Text Model Configured', done: Boolean(serverConfig?.geminiTextModel) },
     { id: 'gemini-multimodal', label: 'Gemini Multimodal Model Configured', done: Boolean(serverConfig?.geminiMultimodalModel) },
-    { id: 'gemini-connection', label: 'Gemini Connection Verified', done: geminiHealth?.status === 'healthy', unverified: !geminiHealth },
-    { id: 'voice-ready', label: voiceLabel, done: Boolean(serverConfig?.voiceTranscription.ready) },
+    { id: 'gemini-connection', label: 'Gemini Connection Verified', done: geminiHealth?.status === 'healthy', unverified: !geminiHealth || geminiHealth.status === 'not_configured' },
+    { id: 'voice-ready', label: voiceLabel, done: Boolean(serverConfig?.voiceTranscription.configurationReady) },
+    { id: 'voice-health', label: voiceHealthLabel, done: (voiceGateway === 'gemini' ? geminiVoiceHealth?.status : openrouterVoiceHealth?.status) === 'healthy', unverified: !(voiceGateway === 'gemini' ? geminiVoiceHealth : openrouterVoiceHealth) },
     { id: 'ai-enabled', label: 'AI Enabled', done: Boolean(serverConfig?.aiEnabled && settings.ai_enabled) },
     { id: 'confirmation', label: 'Confirmation Enabled', done: settings.require_confirmation },
-    { id: 'provider-health', label: 'Provider Health Overall', done: geminiProvidersGood || healthyProviderCount >= 2 },
+    { id: 'provider-health', label: 'Provider Health Overall', done: overallEligibleProviders.length > 0 ? healthyProviderCount === overallEligibleProviders.length : false },
   ];
 
   const checklistComplete = checklistItems.filter((item) => item.done).length;
@@ -850,18 +912,18 @@ export default function AdminAISettingsPage() {
                 </div>
                 <StatusBadge
                   status={
-                    serverConfig?.voiceTranscription.ready
+                    serverConfig?.voiceTranscription.configurationReady
                       ? 'healthy'
                       : voiceGateway === 'gemini' && serverConfig?.voiceTranscription.code === 'gemini_model_missing'
                         ? 'missing'
-                        : serverConfig?.voiceTranscription.ready === false && (
-                            serverConfig?.voiceTranscription.code === 'gemini_provider_unavailable'
+                        : serverConfig?.voiceTranscription.code === 'gemini_provider_unavailable'
                             || serverConfig?.voiceTranscription.code === 'gemini_auth_failed'
+                            || serverConfig?.voiceTranscription.code === 'gemini_request_timeout'
+                            || serverConfig?.voiceTranscription.code === 'gemini_rate_limited'
                             || serverConfig?.voiceTranscription.code === 'openrouter_provider_unavailable'
                             || serverConfig?.voiceTranscription.code === 'openrouter_auth_failed'
                             || serverConfig?.voiceTranscription.code === 'voice_model_audio_unsupported'
-                          )
-                          ? 'test_failed'
+                          ? 'configured'
                           : 'missing'
                   }
                 />
@@ -888,7 +950,10 @@ export default function AdminAISettingsPage() {
                   Audio Capable: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.modelAudioCapable === null ? 'Unknown' : serverConfig?.voiceTranscription.modelAudioCapable ? 'Yes' : 'No'}</span>
                 </div>
                 <div>
-                  Voice Ready: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.ready ? 'Yes' : 'No'}</span>
+                  Voice Ready (config): <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.configurationReady ? 'Yes' : 'No'}</span>
+                </div>
+                <div>
+                  Voice Ready (live): <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.ready ? 'Yes' : 'No'}</span>
                 </div>
                 <div>
                   Status code: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.code || 'unknown'}</span>
@@ -993,7 +1058,7 @@ export default function AdminAISettingsPage() {
                     <p className="text-xs text-muted-foreground mt-0.5">Legacy voice transcription through OpenRouter gateway</p>
                   </div>
                 </div>
-                {voiceGateway !== 'openrouter' ? (
+                {isOpenRouterDisabled ? (
                   <StatusBadge status="info" label="Disabled" />
                 ) : (
                   <StatusBadge
@@ -1067,7 +1132,7 @@ export default function AdminAISettingsPage() {
                 <p className="text-xs text-muted-foreground">
                   Latest health: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.lastHealthCheck?.status || openrouterVoiceHealth?.status || 'Not checked'}</span>
                 </p>
-                <button onClick={() => handleTestProvider('openrouter_voice')} disabled={testingProvider === 'openrouter_voice' || voiceGateway !== 'openrouter'} className="btn-secondary text-sm">
+                <button onClick={() => handleTestProvider('openrouter_voice')} disabled={testingProvider === 'openrouter_voice' || isOpenRouterDisabled} className="btn-secondary text-sm">
                   {testingProvider === 'openrouter_voice' ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
                   Test Voice
                 </button>
@@ -1141,8 +1206,10 @@ export default function AdminAISettingsPage() {
               </button>
             </div>
 
-            {providerList.map(providerKey => {
-              const h = providerHealthRows.find(r => r.provider === providerKey);
+            {allProviders.map(providerKey => {
+              const raw = providerHealthRows.find(r => r.provider === providerKey);
+              const h = normalizeHealth(providerKey, raw);
+              const testDisabled = testingProvider === providerKey || (providerKey === 'vps_ai' && isCloudOnlyMode) || ((providerKey === 'openrouter' || providerKey === 'openrouter_voice') && isOpenRouterDisabled);
               return (
                 <div key={providerKey} className="card p-4">
                   <div className="flex items-center justify-between mb-3">
@@ -1156,7 +1223,7 @@ export default function AdminAISettingsPage() {
                       <ProviderHealthBadge status={h?.status || 'not_configured'} />
                       <button
                         onClick={() => handleTestProvider(providerKey)}
-                        disabled={testingProvider === providerKey || h?.status === 'disabled'}
+                        disabled={testDisabled}
                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted text-foreground text-xs font-600 hover:bg-muted/80 disabled:opacity-50 transition-colors"
                       >
                         {testingProvider === providerKey ? (

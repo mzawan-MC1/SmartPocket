@@ -2477,7 +2477,7 @@ class GeminiLanguageProvider implements LanguageProvider {
   async healthCheck(): Promise<ProviderHealthResult> {
     const handle = getGeminiClient();
     if (!handle.configured || !handle.apiKeyPresent) {
-      return { provider: 'gemini', status: 'not_configured', checkedAt: new Date().toISOString() };
+      return { provider: 'gemini', status: 'not_configured', checkedAt: new Date().toISOString(), errorCategory: 'gemini_not_configured' };
     }
     const start = Date.now();
     try {
@@ -2493,14 +2493,47 @@ class GeminiLanguageProvider implements LanguageProvider {
         provider: 'gemini',
         status: 'healthy',
         responseTimeMs: Date.now() - start,
+        modelUsed: model,
         checkedAt: new Date().toISOString(),
       };
-    } catch (e) {
+    } catch (err) {
+      const errAny = err as any;
+      const msg = errAny && errAny.message ? String(errAny.message) : String(err || '');
+      let httpStatus: number | null = null;
+      const m = msg.match(/\b(4[0-9]{2}|5[0-9]{2})\b/);
+      if (m) httpStatus = parseInt(m[1], 10);
+      let errorCategory: string = 'gemini_provider_unavailable';
+      let status: ProviderHealthResult['status'] = 'offline';
+      if (/\b(401|403|UNAUTHENTICATED|PERMISSION_DENIED|invalid authentication credentials|API key not valid)\b/i.test(msg)) {
+        errorCategory = 'gemini_auth_failed';
+      } else if (/\b(429|too many requests|rate limit|quota exceeded|RESOURCE_EXHAUSTED|resource exhausted)\b/i.test(msg) || httpStatus === 429) {
+        errorCategory = 'gemini_rate_limited';
+      } else if (/\b(503|UNAVAILABLE|high demand|service unavailable|unavailable)\b/i.test(msg) || httpStatus === 503) {
+        errorCategory = 'gemini_provider_unavailable';
+      } else if (/\b(timeout|timed out|DEADLINE_EXCEEDED|AbortError|TimeoutError|aborted|operation was aborted)\b/i.test(msg)) {
+        errorCategory = 'gemini_request_timeout';
+      }
+      const safeLines = msg.split(/\r?\n/).slice(0, 3).map(l => l.slice(0, 200));
+      const sanitized = safeLines.join(' | ').replace(/(Bearer|Authorization|api[_-]?key|google[_-]?api[_-]?key)[^,;\n]*/gi, '[REDACTED]');
+      try {
+        const safe = {
+          scope: 'text.health.diagnostic',
+          provider: 'gemini',
+          status,
+          errorCategory,
+          httpStatus: httpStatus ?? null,
+          responseTimeMs: Date.now() - start,
+          model: handle.getModels().fast,
+          sanitized,
+        };
+        if (process.env.NODE_ENV !== 'production') console.info('[text.health.diagnostic]', safe);
+        else console.info('[text.health.diagnostic]', JSON.stringify(safe));
+      } catch { /* logging never throws */ }
       return {
         provider: 'gemini',
-        status: 'offline',
+        status,
         responseTimeMs: Date.now() - start,
-        errorCategory: 'connection_failed',
+        errorCategory,
         checkedAt: new Date().toISOString(),
       };
     }

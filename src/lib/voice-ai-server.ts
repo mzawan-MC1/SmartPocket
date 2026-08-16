@@ -48,6 +48,7 @@ export interface VoiceTranscriptionStatusSnapshot {
   serverAiEnabled: boolean;
   enableTranscriptRetention: boolean;
   ready: boolean;
+  configurationReady: boolean;
   code: VoiceTranscriptionHealthCode;
   gateway: VoiceAiGateway;
   model: string | null;
@@ -76,6 +77,10 @@ export interface VoiceProviderHealthCheckResult {
   errorCategory?: string;
   modelUsed?: string | null;
   modelAudioCapable?: boolean | null;
+  httpStatus?: number | null;
+  requestId?: string | null;
+  errorKind?: 'auth' | 'rate' | 'timeout' | 'unavailable' | 'configuration' | 'unknown' | null;
+  sanitizedError?: string | null;
 }
 
 const DEFAULT_MAX_AUDIO_SECONDS = Math.max(
@@ -112,9 +117,144 @@ function mapHealthCodeToStatus(code: VoiceTranscriptionHealthCode): VoiceProvide
     case 'gemini_model_missing':
       return 'degraded';
     case 'openrouter_provider_unavailable':
+    case 'gemini_provider_unavailable':
+    case 'gemini_request_timeout':
+    case 'gemini_auth_failed':
+    case 'gemini_rate_limited':
       return 'offline';
     default:
       return 'not_configured';
+  }
+}
+
+function classifyGeminiError(err: unknown, message: string): {
+  code: VoiceTranscriptionHealthCode;
+  status: VoiceProviderHealthCheckResult['status'];
+  errorKind: VoiceProviderHealthCheckResult['errorKind'];
+  httpStatus: number | null;
+  errorCategory: string;
+  sanitizedError: string;
+} {
+  const msg = message || String(err || '');
+  const msgLower = msg.toLowerCase();
+
+  let httpStatus: number | null = null;
+  const httpMatch = msg.match(/\b(4[0-9]{2}|5[0-9]{2})\b/);
+  if (httpMatch) httpStatus = parseInt(httpMatch[1], 10);
+
+  const isAuth = /\b(401|403|UNAUTHENTICATED|PERMISSION_DENIED|invalid authentication credentials|API key not valid)\b/i.test(msg);
+  const isTimeout = /\b(timeout|timed out|DEADLINE_EXCEEDED|AbortError|TimeoutError|aborted|operation was aborted)\b/i.test(msg);
+  const isRate = /\b(429|too many requests|rate limit|quota exceeded|resource exhausted|RESOURCE_EXHAUSTED)\b/i.test(msg) || httpStatus === 429;
+  const is503 = /\b(503|UNAVAILABLE|high demand|unavailable|service unavailable|temporarily unavailable)\b/i.test(msg) || httpStatus === 503;
+
+  let code: VoiceTranscriptionHealthCode;
+  let status: VoiceProviderHealthCheckResult['status'];
+  let errorKind: VoiceProviderHealthCheckResult['errorKind'];
+  let errorCategory: string;
+
+  if (isAuth) {
+    code = 'gemini_auth_failed';
+    status = 'offline';
+    errorKind = 'auth';
+    errorCategory = 'gemini_auth_failed';
+  } else if (isRate) {
+    code = 'gemini_rate_limited';
+    status = 'offline';
+    errorKind = 'rate';
+    errorCategory = 'gemini_rate_limited';
+  } else if (isTimeout) {
+    code = 'gemini_request_timeout';
+    status = 'offline';
+    errorKind = 'timeout';
+    errorCategory = 'gemini_request_timeout';
+  } else if (is503) {
+    code = 'gemini_provider_unavailable';
+    status = 'offline';
+    errorKind = 'unavailable';
+    errorCategory = 'gemini_provider_unavailable';
+  } else {
+    code = 'gemini_provider_unavailable';
+    status = 'offline';
+    errorKind = 'unknown';
+    errorCategory = 'gemini_provider_unavailable';
+  }
+
+  const sanitizedLines = msg.split(/\r?\n/).slice(0, 3).map(l => l.slice(0, 180));
+  const sanitizedError = sanitizedLines.join(' | ').replace(/(Bearer|Authorization|api[_-]?key|google[_-]?api[_-]?key)[^,;\n]*/gi, '[REDACTED]');
+
+  return { code, status, errorKind, httpStatus, errorCategory, sanitizedError };
+}
+
+function buildTinySilentWavBase64(): { base64: string; mimeType: 'audio/wav'; byteLength: number } {
+  const sampleRate = 8000;
+  const numChannels = 1;
+  const bitsPerSample = 16;
+  const durationSeconds = 0.12;
+  const numSamples = Math.floor(sampleRate * durationSeconds);
+  const dataByteLength = numSamples * (bitsPerSample / 8);
+  const byteLength = 44 + dataByteLength;
+  const buffer = new ArrayBuffer(byteLength);
+  const view = new DataView(buffer);
+
+  const writeString = (offset: number, s: string) => {
+    for (let i = 0; i < s.length; i++) view.setUint8(offset + i, s.charCodeAt(i));
+  };
+
+  writeString(0, 'RIFF');
+  view.setUint32(4, 36 + dataByteLength, true);
+  writeString(8, 'WAVE');
+  writeString(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, numChannels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * numChannels * (bitsPerSample / 8), true);
+  view.setUint16(32, numChannels * (bitsPerSample / 8), true);
+  view.setUint16(34, bitsPerSample, true);
+  writeString(36, 'data');
+  view.setUint32(40, dataByteLength, true);
+
+  let base64 = '';
+  if (typeof Buffer !== 'undefined' && typeof Buffer.from === 'function') {
+    base64 = Buffer.from(new Uint8Array(buffer)).toString('base64');
+  } else if (typeof btoa === 'function') {
+    let binary = '';
+    const bytes = new Uint8Array(buffer);
+    for (let i = 0; i < bytes.byteLength; i++) binary += String.fromCharCode(bytes[i]);
+    base64 = btoa(binary);
+  } else {
+    throw new Error('No base64 encoder available for health probe');
+  }
+
+  return { base64, mimeType: 'audio/wav', byteLength };
+}
+
+function logAdminVoiceHealthDiagnostic(
+  result: VoiceProviderHealthCheckResult,
+  extra?: Record<string, unknown>
+): void {
+  try {
+    const safe: Record<string, unknown> = {
+      scope: 'voice.health',
+      provider: result.provider,
+      code: result.code,
+      status: result.status,
+      responseTimeMs: result.responseTimeMs,
+      model: result.modelUsed || null,
+      httpStatus: result.httpStatus ?? null,
+      errorKind: result.errorKind ?? null,
+      errorCategory: result.errorCategory ?? null,
+      sanitized: result.sanitizedError ?? null,
+      requestId: result.requestId ?? null,
+    };
+    if (extra) Object.assign(safe, extra);
+    if (process.env.NODE_ENV !== 'production') {
+      console.info('[voice.health.diagnostic]', safe);
+    } else {
+      console.info('[voice.health.diagnostic]', JSON.stringify(safe));
+    }
+  } catch {
+    // never throw from logging
   }
 }
 
@@ -196,7 +336,7 @@ function resolveSelectedVoiceModel(settings: AISettingsRow | null) {
 function resolveVoiceConfig(settings: AISettingsRow | null, healthRow: ProviderHealthRow | null) {
   const aiConfig = getAIConfig();
   const primaryProvider = aiConfig.language.primary;
-  const serverAiEnabled = process.env.AI_ENABLED === 'true';
+  const serverAiEnabled = aiConfig.runtime.enabled;
   const adminAiEnabled = settings?.ai_enabled === true;
   const enableTranscriptRetention = settings?.enable_transcript_retention === true;
   const aiEnabled = serverAiEnabled && adminAiEnabled;
@@ -273,6 +413,14 @@ function resolveVoiceConfig(settings: AISettingsRow | null, healthRow: ProviderH
     (aiConfig.openrouter.baseUrl || getOpenRouterBaseUrl())
   );
 
+  const configurationReady = code === 'ready';
+  const inferredAudioCapable = (() => {
+    if (configurationReady && gateway === 'gemini' && multimodalOk) {
+      return true;
+    }
+    return inferPersistedAudioCapability(healthRow);
+  })();
+
   return {
     aiEnabled,
     adminAiEnabled,
@@ -281,11 +429,12 @@ function resolveVoiceConfig(settings: AISettingsRow | null, healthRow: ProviderH
     gateway,
     model: model || null,
     modelSource,
-    modelAudioCapable: inferPersistedAudioCapability(healthRow),
+    modelAudioCapable: inferredAudioCapable,
     baseUrl,
     apiKey,
     maxAudioSeconds,
     code,
+    configurationReady,
     openrouterConfigured,
   };
 }
@@ -357,12 +506,14 @@ function statusFromRuntimeConfig(
   runtimeConfig: RuntimeVoiceTranscriptionConfig,
   overrides?: Partial<VoiceTranscriptionStatusSnapshot>
 ): VoiceTranscriptionStatusSnapshot {
+  const configurationReady = runtimeConfig.configurationReady;
   return {
     aiEnabled: runtimeConfig.aiEnabled,
     adminAiEnabled: runtimeConfig.adminAiEnabled,
     serverAiEnabled: runtimeConfig.serverAiEnabled,
     enableTranscriptRetention: runtimeConfig.enableTranscriptRetention,
     ready: overrides?.ready ?? runtimeConfig.ready,
+    configurationReady: overrides?.configurationReady ?? configurationReady,
     code: overrides?.code ?? runtimeConfig.code,
     gateway: runtimeConfig.gateway,
     model: overrides?.model ?? runtimeConfig.model,
@@ -384,14 +535,10 @@ export async function loadVoiceTranscriptionStatus(): Promise<VoiceTranscription
     return statusFromRuntimeConfig(runtimeConfig, { ready: false });
   }
 
-  const health = await runVoiceTranscriptionHealthCheck();
   return {
     ...statusFromRuntimeConfig(runtimeConfig, {
-      ready: health.code === 'ready',
-      code: health.code,
-      modelAudioCapable: typeof health.modelAudioCapable === 'boolean'
-        ? health.modelAudioCapable
-        : runtimeConfig.modelAudioCapable,
+      ready: true,
+      code: 'ready',
     }),
   };
 }
@@ -406,6 +553,7 @@ export async function loadRuntimeVoiceTranscriptionConfig(): Promise<RuntimeVoic
     serverAiEnabled: resolved.serverAiEnabled,
     enableTranscriptRetention: resolved.enableTranscriptRetention,
     ready: resolved.code === 'ready',
+    configurationReady: resolved.configurationReady,
     code: resolved.code,
     gateway: resolved.gateway,
     model: resolved.model,
@@ -448,21 +596,64 @@ export async function runVoiceTranscriptionHealthCheck(): Promise<VoiceProviderH
       const client = geminiHandle.requireClient('voice health check');
       const modelName = aiConfig.gemini.models.multimodal;
 
+      const wav = buildTinySilentWavBase64();
+      const healthSystemPrompt =
+        'You are evaluating a 120ms silent audio health probe. Reply exactly with valid JSON {ok:true} and nothing else.';
+
       const result = await client.models.generateContent({
         model: modelName,
-        contents: [{ role: 'user', parts: [{ text: 'reply JSON {"ok":true}' }] }],
+        contents: [
+          {
+            role: 'user',
+            parts: [
+              { text: 'Health probe: return {"ok":true}.' },
+              { inlineData: { mimeType: wav.mimeType, data: wav.base64 } },
+            ],
+          },
+        ],
         config: {
+          systemInstruction: {
+            role: 'system',
+            parts: [{ text: healthSystemPrompt }],
+          },
           temperature: 0,
-          maxOutputTokens: 30,
+          maxOutputTokens: 32,
           responseMimeType: 'application/json',
-          abortSignal: AbortSignal.timeout(7000),
+          candidateCount: 1,
+          abortSignal: AbortSignal.timeout(9000),
         },
       });
 
       const responseTimeMs = Date.now() - start;
-      void result;
+      const text =
+        (result &&
+          result.candidates &&
+          result.candidates[0] &&
+          result.candidates[0].content &&
+          Array.isArray(result.candidates[0].content.parts) &&
+          (result.candidates[0].content.parts[0] as { text?: string }).text) ||
+        '';
+      const ok = /ok\s*:\s*true/i.test(text);
+      if (!ok) {
+        const healthResult: VoiceProviderHealthCheckResult = {
+          provider: VOICE_GEMINI_PROVIDER_KEY,
+          code: 'gemini_provider_unavailable',
+          status: 'degraded',
+          checkedAt,
+          responseTimeMs,
+          errorCategory: 'voice_probe_malformed_response',
+          modelUsed: runtimeConfig.model,
+          modelAudioCapable: true,
+          httpStatus: 200,
+          errorKind: 'unknown',
+          requestId: null,
+          sanitizedError: 'voice probe response ok:true not detected',
+        };
+        logAdminVoiceHealthDiagnostic(healthResult, { probeBytes: wav.byteLength, responseTruncated: text.slice(0, 120) });
+        return healthResult;
+      }
 
-      return {
+      const healthResult: VoiceProviderHealthCheckResult = {
         provider: VOICE_GEMINI_PROVIDER_KEY,
         code: 'ready',
         status: 'healthy',
@@ -470,21 +661,35 @@ export async function runVoiceTranscriptionHealthCheck(): Promise<VoiceProviderH
         responseTimeMs,
         modelUsed: runtimeConfig.model,
         modelAudioCapable: true,
+        httpStatus: 200,
+        errorKind: null,
+        requestId: null,
+        sanitizedError: null,
       };
+      logAdminVoiceHealthDiagnostic(healthResult, { probeBytes: wav.byteLength, probeMime: wav.mimeType });
+      return healthResult;
     } catch (err) {
       const errAny = err as any;
-      const msg = (errAny && errAny.message) ? String(errAny.message) : String(err || '');
-      const isAuth = /\b(401|403|UNAUTHENTICATED|PERMISSION_DENIED|invalid authentication credentials|API key not valid)\b/i.test(msg);
-      const isTimeout = /\b(timeout|timed out|DEADLINE_EXCEEDED|AbortError|TimeoutError)\b/i.test(msg);
-      return {
+      const msg = errAny && errAny.message ? String(errAny.message) : String(err || '');
+      const classified = classifyGeminiError(err, msg);
+      const requestId: string | null =
+        (errAny && (errAny.requestId || errAny['x-request-id'])) as string | null || null;
+      const healthResult: VoiceProviderHealthCheckResult = {
         provider: VOICE_GEMINI_PROVIDER_KEY,
-        code: isAuth ? 'gemini_auth_failed' : (isTimeout ? 'gemini_request_timeout' : 'gemini_provider_unavailable'),
-        status: 'offline',
+        code: classified.code,
+        status: classified.status,
         checkedAt,
         responseTimeMs: Date.now() - start,
-        errorCategory: isAuth ? 'auth_error' : (isTimeout ? 'timeout' : 'network_error'),
+        errorCategory: classified.errorCategory,
         modelUsed: runtimeConfig.model,
+        modelAudioCapable: true,
+        httpStatus: classified.httpStatus,
+        errorKind: classified.errorKind,
+        requestId,
+        sanitizedError: classified.sanitizedError,
       };
+      logAdminVoiceHealthDiagnostic(healthResult);
+      return healthResult;
     }
   }
 

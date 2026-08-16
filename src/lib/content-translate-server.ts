@@ -7,6 +7,7 @@ import {
   getOpenRouterBaseUrl,
   getOpenRouterHeaders,
 } from './ai-gateway';
+import { isOpenRouterEnabled } from './ai-provider-config';
 import { safeParseJSON } from './ai-types';
 import { SUPPORTED_LANGUAGE_CODES, type SupportedLanguage } from '@/i18n/registry';
 
@@ -162,7 +163,7 @@ async function callOpenRouterTranslation(
   fields: Record<string, string>,
   timeoutMs: number
 ): Promise<{ fieldsOut: Record<string, string> | null; failure: TranslationFailure | null }> {
-  if (process.env.OPENROUTER_ENABLED !== 'true') {
+  if (!isOpenRouterEnabled()) {
     return {
       fieldsOut: null,
       failure: {

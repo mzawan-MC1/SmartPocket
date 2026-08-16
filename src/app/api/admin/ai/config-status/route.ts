@@ -18,6 +18,7 @@ type AIConfigStatusResponse = {
   model: string;
   voiceTranscription: {
     ready: boolean;
+    configurationReady: boolean;
     code: string;
     gateway: string;
     model: string | null;
@@ -62,7 +63,6 @@ export async function GET() {
   const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const openrouterBaseUrl = process.env.OPENROUTER_BASE_URL;
   const openrouterModel = process.env.OPENROUTER_MODEL;
-  const aiEnabledRaw = process.env.AI_ENABLED;
   const aiModeRaw = process.env.AI_MODE;
   const aiMockModeRaw = process.env.AI_MOCK_MODE;
   const aiCfg = resolveAIProviderConfig();
@@ -88,11 +88,12 @@ export async function GET() {
     openrouterBaseUrlConfigured: Boolean(openrouterBaseUrl || 'https://openrouter.ai/api/v1'),
     supabaseServiceConfigured: Boolean(supabaseServiceRoleKey),
     vpsConfigured,
-    aiEnabled: aiEnabledRaw === 'true' && voiceTranscription.adminAiEnabled,
+    aiEnabled: aiCfg.runtime.enabled && voiceTranscription.adminAiEnabled,
     mode,
     model,
     voiceTranscription: {
       ready: voiceTranscription.ready,
+      configurationReady: voiceTranscription.configurationReady,
       code: voiceTranscription.code,
       gateway: voiceTranscription.gateway,
       model: voiceTranscription.model,
@@ -115,7 +116,7 @@ export async function GET() {
         SUPABASE_SERVICE_ROLE_KEY: Boolean(supabaseServiceRoleKey),
         OPENROUTER_BASE_URL: Boolean(openrouterBaseUrl),
         OPENROUTER_MODEL: Boolean(openrouterModel),
-        AI_ENABLED: Boolean(aiEnabledRaw),
+        AI_ENABLED: aiCfg.runtime.enabled,
         AI_MODE: Boolean(aiModeRaw),
         AI_MOCK_MODE: Boolean(aiMockModeRaw),
       },

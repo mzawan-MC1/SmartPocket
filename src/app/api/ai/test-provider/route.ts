@@ -7,10 +7,12 @@ import {
   runVoiceTranscriptionHealthCheck,
   type VoiceProviderHealthCheckResult,
 } from '@/lib/voice-ai-server';
+import { resolveAIProviderConfig } from '@/lib/ai-provider-config';
 import type { ProviderHealthResult } from '@/lib/ai-types';
 
-// Allowlisted provider names — never trust caller-supplied provider names
 const ALLOWED_PROVIDERS = new Set(['openrouter', 'vps_ai', 'openrouter_voice', 'gemini', 'gemini_voice']);
+const VOICE_GEMINI_PROVIDER_KEY = 'gemini_voice';
+const VOICE_OPENROUTER_PROVIDER_KEY = 'openrouter_voice';
 
 export async function POST(req: NextRequest) {
   try {
@@ -33,13 +35,15 @@ export async function POST(req: NextRequest) {
       return applySupabaseCookies(NextResponse.json({ error: 'Forbidden' }, { status: 403 }), cookieMutations);
     }
 
+    const aiCfg = resolveAIProviderConfig();
+
     if (process.env.NODE_ENV !== 'production') {
       console.info('[api/ai/test-provider] env', {
         OPENROUTER_API_KEY: Boolean(process.env.OPENROUTER_API_KEY),
         SUPABASE_SERVICE_ROLE_KEY: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
         OPENROUTER_BASE_URL: Boolean(process.env.OPENROUTER_BASE_URL),
         OPENROUTER_MODEL: Boolean(process.env.OPENROUTER_MODEL),
-        AI_ENABLED: Boolean(process.env.AI_ENABLED),
+        AI_ENABLED: aiCfg.runtime.enabled,
         AI_MODE: Boolean(process.env.AI_MODE),
         AI_MOCK_MODE: Boolean(process.env.AI_MOCK_MODE),
         active: {
@@ -49,7 +53,6 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // ── 3. Parse body — validate provider against allowlist ─────────────────
     let body: Record<string, unknown>;
     try {
       body = await req.json();
@@ -62,62 +65,177 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unknown or disallowed provider' }, { status: 400 });
     }
 
-    // ── 4. Run health check ──────────────────────────────────────────────────
+    const openrouterEnabled = aiCfg.openrouter.enabled;
+    const cloudOnly = aiCfg.runtime.mode === 'cloud_only';
+
     let result: ProviderHealthResult | VoiceProviderHealthCheckResult;
     let voiceResult: VoiceProviderHealthCheckResult | null = null;
-    if (provider === 'gemini') {
-      const langProvider = createLanguageProvider('gemini', 10000);
-      result = await langProvider.healthCheck();
-    } else if (provider === 'openrouter' || provider === 'vps_ai') {
-      const langProvider = createLanguageProvider(provider, 10000);
-      result = await langProvider.healthCheck();
+    let upsertErrors: { provider: string; message: string }[] | undefined;
+    let persisted = false;
+    let persistGate: 'persist' | 'disabled_openrouter' | 'not_required_vps' = 'persist';
+
+    if (provider === 'openrouter') {
+      if (!openrouterEnabled) {
+        const checkedAt = new Date().toISOString();
+        result = {
+          provider: 'openrouter',
+          status: 'disabled',
+          checkedAt,
+          errorCategory: 'openrouter_disabled',
+        };
+        persistGate = 'disabled_openrouter';
+      } else {
+        const langProvider = createLanguageProvider('openrouter', 10000);
+        result = await langProvider.healthCheck();
+      }
+    } else if (provider === 'openrouter_voice') {
+      const checkedAt = new Date().toISOString();
+      if (!openrouterEnabled) {
+        result = {
+          provider: VOICE_OPENROUTER_PROVIDER_KEY,
+          code: 'openrouter_disabled',
+          status: 'disabled',
+          checkedAt,
+          responseTimeMs: 0,
+          errorCategory: 'openrouter_disabled',
+          modelUsed: null,
+          modelAudioCapable: null,
+        } satisfies VoiceProviderHealthCheckResult;
+        persistGate = 'disabled_openrouter';
+      } else {
+        voiceResult = await runVoiceTranscriptionHealthCheck();
+        result = voiceResult;
+      }
+    } else if (provider === 'vps_ai') {
+      if (cloudOnly) {
+        const checkedAt = new Date().toISOString();
+        result = {
+          provider: 'vps_ai',
+          status: 'disabled',
+          checkedAt,
+          errorCategory: 'cloud_only_mode',
+        };
+        persistGate = 'not_required_vps';
+      } else {
+        const langProvider = createLanguageProvider('vps_ai', 10000);
+        result = await langProvider.healthCheck();
+      }
+    } else if (provider === 'gemini') {
+      if (!(aiCfg.gemini.apiKey && aiCfg.gemini.models.fast)) {
+        const checkedAt = new Date().toISOString();
+        result = {
+          provider: 'gemini',
+          status: 'not_configured',
+          checkedAt,
+          errorCategory: 'gemini_not_configured',
+        };
+      } else {
+        const langProvider = createLanguageProvider('gemini', 10000);
+        result = await langProvider.healthCheck();
+      }
     } else if (provider === 'gemini_voice') {
       voiceResult = await runVoiceTranscriptionHealthCheck();
       result = voiceResult;
     } else {
-      voiceResult = await runVoiceTranscriptionHealthCheck();
-      result = voiceResult;
+      return NextResponse.json({ error: 'Unknown or disallowed provider' }, { status: 400 });
     }
 
-    // ── 5. Persist health record — status is server-derived, not from body ──
-    const VALID_HEALTH_STATUSES = new Set(['healthy', 'degraded', 'offline', 'not_configured']);
-    const safeStatus = VALID_HEALTH_STATUSES.has(result.status) ? result.status : 'offline';
+    if (persistGate === 'persist') {
+      const isVoiceProvider = provider === 'gemini_voice' || provider === 'openrouter_voice';
+      const healthRow = isVoiceProvider
+        ? null
+        : {
+            provider,
+            status: result.status,
+            last_checked_at: result.checkedAt,
+            last_success_at: result.status === 'healthy' ? result.checkedAt : undefined,
+            last_failure_at: (result.status !== 'healthy' && result.status !== 'disabled' && result.status !== 'not_configured') ? result.checkedAt : undefined,
+            last_error_category: 'errorCategory' in result ? (result.errorCategory || null) : null,
+            response_time_ms: result.responseTimeMs ?? null,
+            model_used: 'modelUsed' in result ? (result.modelUsed || null) : null,
+          };
 
-    const upsertPayload = {
-      provider: provider as any,
-      status: safeStatus as any,
-      last_checked_at: result.checkedAt,
-      last_success_at: safeStatus === 'healthy' ? result.checkedAt : undefined,
-      last_failure_at: safeStatus === 'offline' ? result.checkedAt : undefined,
-      last_error_category: result.errorCategory || null,
-      response_time_ms: result.responseTimeMs || null,
-      updated_at: new Date().toISOString(),
-    };
-
-    const upsertRes = await supabase
-      .from('ai_provider_health')
-      .upsert(upsertPayload, { onConflict: 'provider' });
-
-    if (upsertRes.error) {
-      const admin = createAdminClient();
-      if (admin) {
-        const adminUpsert = await admin
-          .from('ai_provider_health')
-          .upsert(upsertPayload, { onConflict: 'provider' });
-        if (adminUpsert.error) {
-          console.error('[api/ai/test-provider] health upsert failed:', adminUpsert.error.message);
+      if (healthRow) {
+        try {
+          const first = await supabase
+            .from('ai_provider_health')
+            .upsert(healthRow as any, { onConflict: 'provider' });
+          if (first.error) {
+            const admin = createAdminClient();
+            if (admin) {
+              const adminRes = await admin
+                .from('ai_provider_health')
+                .upsert(healthRow as any, { onConflict: 'provider' });
+              if (adminRes.error) {
+                upsertErrors = [{ provider, message: `admin: ${adminRes.error.message}` }];
+              } else {
+                persisted = true;
+              }
+            } else {
+              upsertErrors = [{ provider, message: `rls: ${first.error.message}` }];
+            }
+          } else {
+            persisted = true;
+          }
+        } catch (e) {
+          const m = e instanceof Error ? e.message : String(e || '');
+          upsertErrors = [{ provider, message: m.slice(0, 160) }];
         }
-      } else {
-        console.error('[api/ai/test-provider] health upsert failed:', upsertRes.error.message);
+      }
+
+      if (voiceResult) {
+        try {
+          await persistVoiceTranscriptionHealth(voiceResult);
+          persisted = true;
+        } catch (e) {
+          const m = e instanceof Error ? e.message : String(e || '');
+          const prior = upsertErrors || [];
+          upsertErrors = [...prior, { provider, message: `voice: ${m.slice(0, 140)}` }];
+        }
       }
     }
 
-    if (voiceResult) {
-      await persistVoiceTranscriptionHealth(voiceResult);
+    const admin = createAdminClient();
+    let reloaded: unknown = null;
+    if (admin) {
+      const checkProvider = (() => {
+        if (provider === 'gemini_voice') return VOICE_GEMINI_PROVIDER_KEY;
+        if (provider === 'openrouter_voice') return VOICE_OPENROUTER_PROVIDER_KEY;
+        return provider;
+      })();
+      const { data } = await admin
+        .from('ai_provider_health')
+        .select('provider, status, last_checked_at, last_success_at, last_failure_at, last_error_category, response_time_ms, model_used')
+        .eq('provider', checkProvider)
+        .maybeSingle();
+      reloaded = data || null;
     }
 
-    return applySupabaseCookies(NextResponse.json(result, { status: 200 }), cookieMutations);
+    const sanitizedDiagnostic = (() => {
+      const r = result as VoiceProviderHealthCheckResult;
+      if ('httpStatus' in r || 'errorKind' in r || 'sanitizedError' in r) {
+        return {
+          httpStatus: r.httpStatus ?? null,
+          errorKind: r.errorKind ?? null,
+          requestId: r.requestId ?? null,
+          sanitizedError: r.sanitizedError ?? null,
+        };
+      }
+      return null;
+    })();
+
+    const responsePayload = {
+      ...result,
+      persisted,
+      persistGate,
+      upsertErrors,
+      reloaded,
+      diagnostic: sanitizedDiagnostic,
+    };
+
+    return applySupabaseCookies(NextResponse.json(responsePayload, { status: 200 }), cookieMutations);
   } catch (error) {
-    return NextResponse.json({ error: 'Test failed' }, { status: 500 });
+    const m = error instanceof Error ? error.message : String(error || 'Test failed');
+    return NextResponse.json({ error: 'Test failed', detail: m.slice(0, 300) }, { status: 500 });
   }
 }

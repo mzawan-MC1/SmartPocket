@@ -35,6 +35,7 @@ export type VoiceTranscriptionHealthCode =
   | 'gemini_model_missing'
   | 'gemini_api_key_missing'
   | 'gemini_auth_failed'
+  | 'gemini_rate_limited'
   | 'gemini_provider_unavailable'
   | 'gemini_request_timeout';
 
@@ -56,6 +57,7 @@ export type VoiceTranscriptionErrorCode =
   | 'gemini_model_missing'
   | 'gemini_api_key_missing'
   | 'gemini_auth_failed'
+  | 'gemini_rate_limited'
   | 'gemini_provider_unavailable'
   | 'gemini_request_timeout';
 
