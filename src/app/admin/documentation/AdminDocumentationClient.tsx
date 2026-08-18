@@ -22,9 +22,8 @@ import { toast } from 'sonner';
 import SearchField from '@/components/ui/SearchField';
 import EmptyState from '@/components/ui/EmptyState';
 import ConfirmationModal from '@/components/ui/ConfirmationModal';
-import type { DocumentationArticleRecord } from '@/lib/documentation';
-import type { DocumentationTranslationStatusResponse } from '@/lib/documentation-translate-server';
-import { CONTENT_TRANSLATION_ENABLED_LANGS } from '@/lib/content-translate-server';
+import type { DocumentationArticleRecord, DocumentationTranslationStatusResponse } from '@/lib/documentation';
+import { CONTENT_TRANSLATION_ENABLED_LANGS } from '@/i18n/registry';
 
 type StatusFilter = 'all' | 'draft' | 'published';
 type EnabledFilter = 'all' | 'enabled' | 'disabled';

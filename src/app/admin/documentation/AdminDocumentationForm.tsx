@@ -21,6 +21,7 @@ import type {
   DocumentationArticleInput,
   DocumentationArticleRecord,
   DocumentationStatus,
+  DocumentationTranslationStatusResponse,
 } from '@/lib/documentation';
 import {
   DOCUMENTATION_CATEGORIES,
@@ -28,7 +29,6 @@ import {
   validateDocumentationArticleInput,
 } from '@/lib/documentation';
 import { slugifyCmsPageSlug } from '@/lib/cms-pages';
-import type { DocumentationTranslationStatusResponse } from '@/lib/documentation-translate-server';
 
 type Mode = 'create' | 'edit';
 type WorkItem = { type: 'documentation_article'; id: string; language: string };

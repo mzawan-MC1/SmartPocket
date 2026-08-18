@@ -87,6 +87,26 @@ export type PublicDocumentationArticle = {
   updatedAt: string;
 };
 
+export type DocumentationTranslationStatusRow = {
+  language: SupportedLanguage;
+  status: DocumentationTranslationStatus;
+  sourceHashMatch: boolean;
+  updatedAt?: string;
+  errorMessage?: string;
+};
+
+export type DocumentationTranslationStatusResponse = {
+  articleId: string;
+  sourceHash: string;
+  statuses: DocumentationTranslationStatusRow[];
+  currentCount: number;
+  outdatedCount: number;
+  failedCount: number;
+  missingCount: number;
+  pendingCount: number;
+  totalEnabled: number;
+};
+
 const DOC_SLUG_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 export function isDocumentationLanguageCode(value: unknown): value is DocumentationLanguageCode {

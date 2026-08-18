@@ -13,6 +13,11 @@ import {
   writeAttemptLog,
 } from '@/lib/content-translate-server';
 import { type SupportedLanguage } from '@/i18n/registry';
+import {
+  type DocumentationArticleRecord,
+  type DocumentationTranslationStatusResponse,
+  type DocumentationTranslationStatusRow,
+} from '@/lib/documentation';
 
 type AdminClient = NonNullable<ReturnType<typeof createAdminClient>>;
 
@@ -25,6 +30,8 @@ const DOCUMENTATION_TRANSLATABLE_FIELDS: Array<'title' | 'summary' | 'content_ht
 
 export { DOCUMENTATION_TRANSLATABLE_FIELDS };
 
+export type { DocumentationTranslationStatusRow, DocumentationTranslationStatusResponse };
+
 export function documentationSourceInputChanged(
   existing: Pick<DocumentationArticleRecord, 'title' | 'summary' | 'content_html' | 'category'>,
   incoming: { title: string; summary: string; content_html: string; category: string }
@@ -36,26 +43,6 @@ export function documentationSourceInputChanged(
   }
   return false;
 }
-
-export type DocumentationTranslationStatusRow = {
-  language: SupportedLanguage;
-  status: TranslationStatus;
-  sourceHashMatch: boolean;
-  updatedAt?: string;
-  errorMessage?: string;
-};
-
-export type DocumentationTranslationStatusResponse = {
-  articleId: string;
-  sourceHash: string;
-  statuses: DocumentationTranslationStatusRow[];
-  currentCount: number;
-  outdatedCount: number;
-  failedCount: number;
-  missingCount: number;
-  pendingCount: number;
-  totalEnabled: number;
-};
 
 export async function loadDocumentationTranslationStatus(
   admin: AdminClient,
@@ -122,25 +109,6 @@ export async function markDocumentationTranslationsOutdated(
     .eq('article_id', articleId);
   if (error) throw error;
 }
-
-export type DocumentationArticleRecord = {
-  id: string;
-  title: string;
-  slug: string;
-  summary: string;
-  content_html: string;
-  category: string;
-  locale_code: string;
-  status: string;
-  enabled: boolean;
-  display_order: number;
-  published_at: string | null;
-  en_source_version_hash: string;
-  created_by: string | null;
-  updated_by: string | null;
-  created_at: string;
-  updated_at: string;
-};
 
 function sanitizeDocumentationTranslation(val: {
   title?: string | null;

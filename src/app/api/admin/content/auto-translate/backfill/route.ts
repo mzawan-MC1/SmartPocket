@@ -16,8 +16,8 @@ import {
 import {
   buildDocumentationSourceBundle,
   scheduleDocumentationTranslations,
-  type DocumentationArticleRecord,
 } from '@/lib/documentation-translate-server';
+import type { DocumentationArticleRecord } from '@/lib/documentation';
 import type { CmsPageRecord } from '@/lib/cms-pages';
 import { CONTENT_TRANSLATION_ENABLED_LANGS } from '@/lib/content-translate-server';
 
