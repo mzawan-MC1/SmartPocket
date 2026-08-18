@@ -42,6 +42,32 @@ function Require-Command {
   return $command.Source
 }
 
+function Resolve-MakeAppxPath {
+  $pathCommand = Get-Command 'MakeAppx.exe' -ErrorAction SilentlyContinue
+  if ($pathCommand -and -not [string]::IsNullOrWhiteSpace($pathCommand.Source)) {
+    return $pathCommand.Source
+  }
+
+  $windowsKitsBinRoot = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\bin'
+  $sdkCandidates = @()
+  if (Test-Path $windowsKitsBinRoot) {
+    $sdkCandidates = Get-ChildItem -Path $windowsKitsBinRoot -Recurse -Filter 'MakeAppx.exe' -File -ErrorAction SilentlyContinue
+      | Where-Object { $_.FullName -match '\\x64\\MakeAppx\.exe$' }
+      | Sort-Object -Property FullName -Descending
+  }
+
+  if ($sdkCandidates -and $sdkCandidates[0]) {
+    return $sdkCandidates[0].FullName
+  }
+
+  $appCertKitPath = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\App Certification Kit\MakeAppx.exe'
+  if (Test-Path $appCertKitPath) {
+    return $appCertKitPath
+  }
+
+  throw "MakeAppx.exe could not be found. Ensure the Windows 10/11 SDK is installed, or add MakeAppx.exe to PATH. Searched: PATH, '$windowsKitsBinRoot' (preferring x64), '$appCertKitPath'."
+}
+
 $repoRoot = Get-RepoRoot
 $packageJsonPath = Join-Path $repoRoot 'package.json'
 $storeConfigPath = Join-Path $repoRoot 'src-tauri\tauri.store.conf.json'
@@ -57,7 +83,7 @@ Require-Value -Name 'STORE_PUBLISHER' -Value $StorePublisher
 Require-Value -Name 'STORE_PUBLISHER_DISPLAY_NAME' -Value $StorePublisherDisplayName
 
 Require-Command -Name 'npx' | Out-Null
-Require-Command -Name 'MakeAppx.exe' | Out-Null
+$makeAppxPath = Resolve-MakeAppxPath
 
 $packageJson = Get-Content $packageJsonPath | ConvertFrom-Json
 $packageVersion = [string]$packageJson.version
@@ -105,7 +131,7 @@ Set-Content -Path $manifestPath -Value $manifest -Encoding UTF8
 
 Push-Location $stagingDirectory
 try {
-  & MakeAppx.exe pack /d . /p $packageOutputPath /o
+  & $makeAppxPath pack /d . /p $packageOutputPath /o
   if ($LASTEXITCODE -ne 0) {
     throw 'MakeAppx failed to generate the Store MSIX package.'
   }
