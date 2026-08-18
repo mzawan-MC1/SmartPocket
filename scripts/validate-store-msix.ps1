@@ -18,8 +18,7 @@ function Assert-Condition {
 }
 
 function Get-RepoRoot {
-  $scriptDirectory = Split-Path -Parent $MyInvocation.MyCommand.Path
-  return (Resolve-Path (Join-Path $scriptDirectory '..')).Path
+  return (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 }
 
 $repoRoot = Get-RepoRoot
