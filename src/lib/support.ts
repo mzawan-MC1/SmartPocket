@@ -21,11 +21,39 @@ export const SUPPORT_TICKET_CATEGORIES = [
   'payments',
   'reports',
   'smart_entry_ai',
+  'ai_output_report',
   'technical_error',
   'feature_request',
   'security',
   'other',
 ] as const;
+
+export const AI_OUTPUT_REPORT_REASONS = [
+  'inappropriate',
+  'inaccurate',
+  'offensive',
+  'unsafe',
+  'other',
+] as const;
+
+export type AIOutputReportFeature =
+  | 'text_ai'
+  | 'voice_ai'
+  | 'receipt_document_ai'
+  | 'ai_assistant';
+
+export type AIOutputReportReason = typeof AI_OUTPUT_REPORT_REASONS[number];
+
+export type AIOutputReportContext = {
+  feature: AIOutputReportFeature;
+  referenceId: string | null;
+  reason: AIOutputReportReason;
+  userNote: string | null;
+  provider?: string | null;
+  primaryModel?: string | null;
+  finalModel?: string | null;
+  fallbackUsed?: boolean | null;
+};
 
 export const SUPPORT_TICKET_PRIORITIES = ['normal', 'high', 'urgent'] as const;
 
@@ -292,6 +320,53 @@ export function parseNullableUuid(value: unknown, label: string) {
   }
 
   return assertValidUuid(value, label);
+}
+
+export function parseAIOutputReportReason(value: unknown): AIOutputReportReason {
+  if (typeof value !== 'string') {
+    throw new SupportValidationError('Invalid AI output report reason.');
+  }
+  const trimmed = value.trim();
+  if (!AI_OUTPUT_REPORT_REASONS.includes(trimmed as AIOutputReportReason)) {
+    throw new SupportValidationError('Invalid AI output report reason.');
+  }
+  return trimmed as AIOutputReportReason;
+}
+
+export function parseAIOutputReportFeature(value: unknown): AIOutputReportFeature {
+  if (typeof value !== 'string') {
+    throw new SupportValidationError('Invalid AI output report feature.');
+  }
+  const trimmed = value.trim() as AIOutputReportFeature | string;
+  switch (trimmed) {
+    case 'text_ai':
+      return trimmed satisfies AIOutputReportFeature;
+    case 'voice_ai':
+      return trimmed satisfies AIOutputReportFeature;
+    case 'receipt_document_ai':
+      return trimmed satisfies AIOutputReportFeature;
+    case 'ai_assistant':
+      return trimmed satisfies AIOutputReportFeature;
+    default:
+      throw new SupportValidationError('Invalid AI output report feature.');
+  }
+}
+
+export function validateAIOutputReportContext(value: unknown): AIOutputReportContext {
+  if (!value || typeof value !== 'object') {
+    throw new SupportValidationError('AI output report context is required.');
+  }
+  const obj = value as Record<string, unknown>;
+  return {
+    feature: parseAIOutputReportFeature(obj.feature),
+    referenceId: normalizeNullableText(obj.referenceId, 128),
+    reason: parseAIOutputReportReason(obj.reason),
+    userNote: normalizeNullableText(obj.userNote, 1000),
+    provider: normalizeNullableText(obj.provider, 64),
+    primaryModel: normalizeNullableText(obj.primaryModel, 128),
+    finalModel: normalizeNullableText(obj.finalModel, 128),
+    fallbackUsed: typeof obj.fallbackUsed === 'boolean' ? obj.fallbackUsed : null,
+  };
 }
 
 export function isSupportTerminalStatus(status: unknown) {

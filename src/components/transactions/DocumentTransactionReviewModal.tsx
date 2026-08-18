@@ -6,6 +6,7 @@ import { AlertTriangle, FileText, Image as ImageIcon, Loader2, Plus, Trash2 } fr
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import Modal from '@/components/ui/Modal';
+import ReportAIOutputDialog, { type ReportAIOutputDialogSnapshot } from '@/components/support/ReportAIOutputDialog';
 import CurrencySelector from '@/components/CurrencySelector';
 import { formatCurrencyText } from '@/lib/currency-formatting';
 import { convertWithSnapshot } from '@/lib/exchange-rates/conversion';
@@ -763,6 +764,12 @@ export default function DocumentTransactionReviewModal({
   const [expandedTransactionDetails, setExpandedTransactionDetails] = useState<Record<string, boolean>>({});
   const [expandedLineItems, setExpandedLineItems] = useState<Record<string, number | null>>({});
   const [showOnlyInvalidItems, setShowOnlyInvalidItems] = useState<Record<string, boolean>>({});
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [reportSnapshot, setReportSnapshot] = useState<{
+    referenceId: string | null;
+    providerUsed: string | null;
+    modelUsed: string | null;
+  }>({ referenceId: null, providerUsed: null, modelUsed: null });
   const [processingState, setProcessingState] = useState<TransactionDocumentProcessingState>({
     active: false,
     stage: 'preparing_file',
@@ -1170,6 +1177,11 @@ export default function DocumentTransactionReviewModal({
         );
         setAccounts(payload.options.accounts || []);
         setCategories(payload.options.categories || []);
+        setReportSnapshot({
+          referenceId: payload.extraction.requestId || payload.documentId || '',
+          providerUsed: payload.extraction.providerUsed || null,
+          modelUsed: payload.extraction.modelUsed || null,
+        });
 
         const defaultAccount = getPreferredDocumentAccount(
           payload.options.accounts || [],
@@ -1274,6 +1286,7 @@ export default function DocumentTransactionReviewModal({
         setExtractError(error instanceof Error ? error.message : 'Failed to extract the uploaded document.');
         setExtractErrorCode(errorCode);
         setExtractReferenceId(referenceId);
+        setReportSnapshot({ referenceId: referenceId || null, providerUsed: null, modelUsed: null });
         setJobId('');
         setPreviewUrl('');
         setDuplicates([]);
@@ -2334,6 +2347,17 @@ export default function DocumentTransactionReviewModal({
             {footerHelpText}
           </div>
           <div className="shrink-0 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+            {!isExtracting && (reviewTransactions.length > 0 || extractError) ? (
+              <button
+                type="button"
+                onClick={() => setReportDialogOpen(true)}
+                className="rounded-xl border border-border bg-background px-3 py-2.5 text-sm font-600 text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground min-h-10 w-full sm:w-auto"
+                aria-label={t('aiReporting.triggerLabel', { ns: 'portal' })}
+                title={t('aiReporting.triggerLabel', { ns: 'portal' })}
+              >
+                {t('aiReporting.triggerLabel', { ns: 'portal' })}
+              </button>
+            ) : null}
             <button
               type="button"
               onClick={isExtracting ? handleCancelExtraction : onClose}
@@ -3619,6 +3643,18 @@ export default function DocumentTransactionReviewModal({
         isOpen={!!duplicateViewTransactionId}
         transactionId={duplicateViewTransactionId}
         onClose={() => setDuplicateViewTransactionId(null)}
+      />
+      <ReportAIOutputDialog
+        isOpen={reportDialogOpen}
+        onClose={() => setReportDialogOpen(false)}
+        feature="receipt_document_ai"
+        referenceId={saveReferenceId || reportSnapshot.referenceId || extractReferenceId || null}
+        snapshot={({
+          providerUsed: reportSnapshot.providerUsed || null,
+          primaryModel: reportSnapshot.modelUsed || null,
+          finalModel: reportSnapshot.modelUsed || null,
+          fallbackUsed: null,
+        }) satisfies ReportAIOutputDialogSnapshot}
       />
     </>
   );

@@ -4111,6 +4111,35 @@
       "cancelAction": "Ä°ptal"
     }
   },
+  "aiReporting": {
+    "title": "YapÃ§ ÇÄ±n Sonucu Bildir",
+    "description": "Bu yapay zeka tarafÄ±ndan Ã¼retilmiÅŸ sonucun uygunsuz, yanlÄ±ÅŸ, saldırgan, gÃ¼venli olmayan veya baÅŸka bir sorun oluÅŸturduÄŸunu Smart Pocket ekibine bildirin.",
+    "triggerLabel": "Yapay zeka sonucu bildir",
+    "reasonLabel": "Sorun nedir?",
+    "reasons": {
+      "inappropriate": "Uygunsuz",
+      "inaccurate": "YanlÄ±ÅŸ veya hatalÄ±",
+      "offensive": "Saldırgan",
+      "unsafe": "GÃ¼venli deÄŸil veya zararlÄ±",
+      "other": "BaÅŸka sorun"
+    },
+    "noteLabel": "Ek detaylar",
+    "optional": "isteÄŸe baÄŸlÄ±",
+    "notePlaceholder": "Ä°steÄŸe baÄŸlÄ± â€” sorunu anlamamÄ±za yardÄ±mcÄ± olacak tÃ¼m detaylarÄ± paylaÅŸÄ±n.",
+    "defaultSubject": {
+      "textAI": "Metin yapay zeka sonucu bildir",
+      "voiceAI": "Sesli yapay zeka sonucu bildir",
+      "receiptAI": "FiÅŸ/belge yapay zeka sonucu bildir",
+      "assistant": "Yapay zeka asistan sonucu bildir"
+    },
+    "defaultMessage": "KullanÄ±cÄ± bu yapay zeka sonucunu bildirdi. Ek detay verilmedi.",
+    "submit": "Bildirimi gÃ¶nder",
+    "submitting": "GÃ¶nderiliyor...",
+    "submitError": "Bildiriminiz ÅŸu anda gÃ¶nderilemedi. LÃ¼tfen tekrar deneyin veya destekle iletiÅŸime geÃ§in.",
+    "successTitle": "Bildirim gÃ¶nderildi",
+    "successMessage": "TeÅŸekkÃ¼r ederiz. Bildiriminiz {{ticketNumber}} numaralÄ± destek talebi olarak kaydedildi. Ã–zel olarak gÃ¶zden geÃ§ireceÄŸiz.",
+    "authRequired": "Yapay zeka sonucu bildirmek iÃ§in lÃ¼tfen giriÅŸ yapÄ±n."
+  },
   "adminCurrency": {
     "tabs": {
       "currencySettings": "Para birimi Ayarlar",

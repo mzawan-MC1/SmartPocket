@@ -4111,6 +4111,35 @@
       "cancelAction": "Annuler"
     }
   },
+  "aiReporting": {
+    "title": "Signaler une sortie IA",
+    "description": "Indiquez à l'équipe Smart Pocket si cette sortie générée par l'intelligence artificielle est inappropriée, inexacte, offensante, non sécurisée ou pose un autre problème.",
+    "triggerLabel": "Signaler la sortie IA",
+    "reasonLabel": "Quel est le problème ?",
+    "reasons": {
+      "inappropriate": "Inapproprié",
+      "inaccurate": "Incorrect ou inexact",
+      "offensive": "Offensant",
+      "unsafe": "Non sécurisé ou nuisible",
+      "other": "Autre problème"
+    },
+    "noteLabel": "Détails supplémentaires",
+    "notePlaceholder": "Facultatif — partagez toute information nous aidant à comprendre le problème.",
+    "optional": "facultatif",
+    "defaultSubject": {
+      "textAI": "Signaler une sortie IA textuelle",
+      "voiceAI": "Signaler une sortie IA vocale",
+      "receiptAI": "Signaler une sortie IA pour reçus/documents",
+      "assistant": "Signaler une sortie de l'assistant IA"
+    },
+    "defaultMessage": "L'utilisateur a signalé cette sortie IA. Aucun détail supplémentaire n'a été fourni.",
+    "submit": "Envoyer le signalement",
+    "submitting": "Envoi en cours…",
+    "submitError": "Nous n'avons pas pu envoyer votre signalement pour le moment. Veuillez réessayer ou contacter le support.",
+    "successTitle": "Signalement envoyé",
+    "successMessage": "Merci. Votre signalement a bien été reçu sous le ticket de support {{ticketNumber}}. Nous l'examinerons en privé.",
+    "authRequired": "Veuillez vous connecter pour signaler une sortie IA."
+  },
   "adminCurrency": {
     "tabs": {
       "currencySettings": "Parametres des devises",

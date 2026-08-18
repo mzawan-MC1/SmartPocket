@@ -10,6 +10,8 @@ import {
   parseTicketStatus,
   sanitizeMultilineText,
   sanitizeSingleLineText,
+  type AIOutputReportContext,
+  validateAIOutputReportContext,
 } from '@/lib/support';
 import {
   buildSupportResponse,
@@ -142,29 +144,92 @@ export async function POST(request: Request) {
     const uploadIntentIds = uploads.map((upload) =>
       assertValidUuid(upload.uploadIntentId, 'attachment upload intent id')
     );
-    const profile = await loadUserProfileSnapshot(admin, auth.user.id);
-    const { data: createdRows, error: rpcError } = await admin.rpc('create_support_ticket', {
-      p_ticket_id: ticketId,
-      p_user_id: auth.user.id,
-      p_user_name_snapshot: profile.fullName,
-      p_user_email_snapshot: profile.email,
-      p_subject: subject,
-      p_category: category,
-      p_priority: priority,
-      p_message_body: message,
-      p_related_path: relatedPath,
-      p_error_code: errorCode,
-      p_upload_intent_ids: uploadIntentIds,
-    });
 
-    const createdRow = Array.isArray(createdRows) ? createdRows[0] : null;
-    if (rpcError || !createdRow?.ticket_id || !createdRow?.ticket_number) {
-      throw rpcError || new Error('Failed to create support ticket.');
+    let aiContext: AIOutputReportContext | null = null;
+    if (category === 'ai_output_report') {
+      aiContext = validateAIOutputReportContext(body.aiOutputReportContext);
     }
 
+    const profile = await loadUserProfileSnapshot(admin, auth.user.id);
+
+    let ticketRow: { ticket_id: string; ticket_number: string } | null = null;
+    if (aiContext) {
+      const insertPayload: Record<string, unknown> = {
+        id: ticketId,
+        user_id: auth.user.id,
+        user_name_snapshot: profile.fullName,
+        user_email_snapshot: profile.email,
+        ticket_number: null,
+        subject,
+        category,
+        priority,
+        status: 'open',
+        first_message_body: message,
+        first_message_sender_role: 'user',
+        related_path: relatedPath,
+        error_code: errorCode,
+        ai_output_report_context: aiContext,
+      };
+      const { data: insertRows, error: insertError } = await admin
+        .from('support_tickets')
+        .insert(insertPayload)
+        .select('id, ticket_number')
+        .limit(1)
+        .maybeSingle();
+      if (insertError || !insertRows) {
+        throw insertError || new Error('Failed to create AI output report ticket.');
+      }
+      ticketRow = {
+        ticket_id: String((insertRows as { id: unknown }).id),
+        ticket_number: String((insertRows as { ticket_number: unknown }).ticket_number),
+      };
+
+      const { error: msgErr } = await admin.from('support_ticket_messages').insert({
+        support_ticket_id: ticketRow.ticket_id,
+        sender_role: 'user',
+        sender_user_id: auth.user.id,
+        body: message,
+        is_internal: false,
+      });
+      if (msgErr) {
+        console.error('[support/ai_output_report] Failed to insert first message.', msgErr);
+      }
+
+      const { error: evtErr } = await admin.from('support_ticket_events').insert({
+        support_ticket_id: ticketRow.ticket_id,
+        event_type: 'ticket_created',
+        event_data: { source: 'ai_output_report_endpoint' },
+      });
+      if (evtErr) {
+        console.error('[support/ai_output_report] Failed to insert event.', evtErr);
+      }
+    } else {
+      const { data: createdRows, error: rpcError } = await admin.rpc('create_support_ticket', {
+        p_ticket_id: ticketId,
+        p_user_id: auth.user.id,
+        p_user_name_snapshot: profile.fullName,
+        p_user_email_snapshot: profile.email,
+        p_subject: subject,
+        p_category: category,
+        p_priority: priority,
+        p_message_body: message,
+        p_related_path: relatedPath,
+        p_error_code: errorCode,
+        p_upload_intent_ids: uploadIntentIds,
+      });
+
+      const createdRow = Array.isArray(createdRows) ? createdRows[0] : null;
+      if (rpcError || !createdRow?.ticket_id || !createdRow?.ticket_number) {
+        throw rpcError || new Error('Failed to create support ticket.');
+      }
+      ticketRow = { ticket_id: createdRow.ticket_id, ticket_number: createdRow.ticket_number };
+    }
+    // Every branch above either sets ticketRow or throws.
+    const finalTicket = ticketRow as NonNullable<typeof ticketRow>;
+
     await sendSupportTicketCreatedEmails({
-      ticketId: createdRow.ticket_id,
-      ticketNumber: createdRow.ticket_number,
+      ticketId: finalTicket.ticket_id,
+      ticketNumber: finalTicket.ticket_number,
       userId: auth.user.id,
       userName: profile.fullName,
       userEmail: profile.email,
@@ -178,9 +243,9 @@ export async function POST(request: Request) {
     return buildSupportResponse(
       NextResponse.json({
         success: true,
-        ticketId: createdRow.ticket_id,
-        ticketNumber: createdRow.ticket_number,
-        message: `Your support ticket ${createdRow.ticket_number} has been created.`,
+        ticketId: finalTicket.ticket_id,
+        ticketNumber: finalTicket.ticket_number,
+        message: `Your support ticket ${finalTicket.ticket_number} has been created.`,
       }),
       auth.cookieMutations
     );

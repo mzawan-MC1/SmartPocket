@@ -25,6 +25,7 @@ import { formatCurrencyText } from '@/lib/currency-formatting';
 import { getIntlLocale } from '@/lib/locale';
 import VoiceRecorder from './VoiceRecorder';
 import DocumentTransactionReviewModal from '@/components/transactions/DocumentTransactionReviewModal';
+import ReportAIOutputDialog, { type ReportAIOutputDialogSnapshot } from '@/components/support/ReportAIOutputDialog';
 import Modal from '@/components/ui/Modal';
 import type {
   ParsedFinancialInstruction,
@@ -816,6 +817,7 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
   } | null>(null);
   const [documentReviewFile, setDocumentReviewFile] = useState<File | null>(null);
   const [financialAccountFormOpen, setFinancialAccountFormOpen] = useState(false);
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
   const displayLanguage = useMemo<SmartEntryDisplayLanguage>(
     () => normalizeDisplayLanguage(uiLanguage),
     [uiLanguage]
@@ -2732,39 +2734,61 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
     ? (
         <div className={`flex gap-2 ${isSubscriptionFlow ? 'px-4 py-3 sm:px-5' : 'px-4 py-3 sm:px-6'}`}>
           <button
-            onClick={handleConfirm}
-            disabled={unresolvedReviewFields.length > 0}
-            className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-positive px-4 py-2.5 text-sm font-700 text-white transition-colors hover:bg-positive/90 disabled:cursor-not-allowed disabled:opacity-50"
+            type="button"
+            onClick={() => setReportDialogOpen(true)}
+            className="rounded-xl border border-border bg-background px-3 py-2.5 text-sm font-600 text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground"
+            aria-label={t('aiReporting.triggerLabel', { ns: 'portal' })}
+            title={t('aiReporting.triggerLabel', { ns: 'portal' })}
           >
-            <CheckCircle size={16} />
-            {isSubscriptionFlow
-              ? getSubscriptionConfirmLabel(reviewState.subscription?.intent, (key, options) => t(key, { ns: 'portal', ...options }))
-              : t('smartEntryModal.confirmAndSave', { ns: 'portal' })}
+            {t('aiReporting.triggerLabel', { ns: 'portal' })}
           </button>
-          <button
-            onClick={handleReset}
-            className="rounded-xl bg-muted px-3.5 py-2.5 text-sm font-600 text-foreground transition-colors hover:bg-muted/80"
-            aria-label={t('actions.reset', { ns: 'common' })}
-          >
-            <RotateCcw size={16} />
-          </button>
+          <div className="ml-auto flex flex-1 gap-2 justify-end">
+            <button
+              onClick={handleConfirm}
+              disabled={unresolvedReviewFields.length > 0}
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-positive px-4 py-2.5 text-sm font-700 text-white transition-colors hover:bg-positive/90 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none sm:min-w-[180px]"
+            >
+              <CheckCircle size={16} />
+              {isSubscriptionFlow
+                ? getSubscriptionConfirmLabel(reviewState.subscription?.intent, (key, options) => t(key, { ns: 'portal', ...options }))
+                : t('smartEntryModal.confirmAndSave', { ns: 'portal' })}
+            </button>
+            <button
+              onClick={handleReset}
+              className="rounded-xl bg-muted px-3.5 py-2.5 text-sm font-600 text-foreground transition-colors hover:bg-muted/80"
+              aria-label={t('actions.reset', { ns: 'common' })}
+            >
+              <RotateCcw size={16} />
+            </button>
+          </div>
         </div>
       )
     : step === 'success' && executionResult
       ? (
-          <div className="flex gap-2 px-4 py-3 sm:px-6">
+          <div className="flex flex-wrap gap-2 px-4 py-3 sm:px-6">
             <button
-              onClick={handleReset}
-              className="flex-1 rounded-xl bg-muted py-2.5 text-sm font-600 text-foreground transition-colors hover:bg-muted/80"
+              type="button"
+              onClick={() => setReportDialogOpen(true)}
+              className="rounded-xl border border-border bg-background px-3 py-2.5 text-sm font-600 text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground"
+              aria-label={t('aiReporting.triggerLabel', { ns: 'portal' })}
+              title={t('aiReporting.triggerLabel', { ns: 'portal' })}
             >
-              {t('smartEntryModal.addAnother', { ns: 'portal' })}
+              {t('aiReporting.triggerLabel', { ns: 'portal' })}
             </button>
-            <button
-              onClick={onClose}
-              className="flex-1 rounded-xl bg-accent py-2.5 text-sm font-600 text-white transition-colors hover:bg-accent/90"
-            >
-              {t('actions.done', { ns: 'common' })}
-            </button>
+            <div className="ml-auto flex flex-1 gap-2 justify-end">
+              <button
+                onClick={handleReset}
+                className="flex-1 rounded-xl bg-muted py-2.5 text-sm font-600 text-foreground transition-colors hover:bg-muted/80 sm:flex-none sm:min-w-[160px]"
+              >
+                {t('smartEntryModal.addAnother', { ns: 'portal' })}
+              </button>
+              <button
+                onClick={onClose}
+                className="flex-1 rounded-xl bg-accent py-2.5 text-sm font-600 text-white transition-colors hover:bg-accent/90 sm:flex-none sm:min-w-[160px]"
+              >
+                {t('actions.done', { ns: 'common' })}
+              </button>
+            </div>
           </div>
         )
       : step === 'limit'
@@ -4429,6 +4453,18 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
           }}
         />
       ) : null}
+      <ReportAIOutputDialog
+        isOpen={reportDialogOpen}
+        onClose={() => setReportDialogOpen(false)}
+        feature={mode === 'voice' ? 'voice_ai' : 'text_ai'}
+        referenceId={parsed?.requestId || null}
+        snapshot={({
+          providerUsed: parsed?.providerUsed || null,
+          primaryModel: (parsed as unknown as { primaryModel?: string | null } | undefined)?.primaryModel || null,
+          finalModel: (parsed as unknown as { finalModel?: string | null } | undefined)?.finalModel || null,
+          fallbackUsed: parsed?.fallbackUsed ?? null,
+        }) satisfies ReportAIOutputDialogSnapshot}
+      />
     </>
   );
 }

@@ -4111,6 +4111,35 @@
       "cancelAction": "取消"
     }
   },
+  "aiReporting": {
+    "title": "举报 AI 输出",
+    "description": "如果此人工智能生成的结果不当、不准确、冒犯、不安全或存在其他问题,请告知 Smart Pocket 团队。",
+    "triggerLabel": "举报 AI 输出",
+    "reasonLabel": "问题是什么?",
+    "reasons": {
+      "inappropriate": "内容不当",
+      "inaccurate": "不正确或不准确",
+      "offensive": "具有冒犯性",
+      "unsafe": "不安全或有害",
+      "other": "其他问题"
+    },
+    "noteLabel": "更多详情",
+    "notePlaceholder": "可选 — 分享任何有助于我们理解问题的细节。",
+    "optional": "可选",
+    "defaultSubject": {
+      "textAI": "举报文本 AI 输出",
+      "voiceAI": "举报语音 AI 输出",
+      "receiptAI": "举报小票/文档 AI 输出",
+      "assistant": "举报 AI 助手输出"
+    },
+    "defaultMessage": "用户举报了此 AI 输出。未提供其他详情。",
+    "submit": "提交举报",
+    "submitting": "提交中...",
+    "submitError": "我们暂时无法提交您的举报。请重试或联系支持。",
+    "successTitle": "举报已提交",
+    "successMessage": "感谢您的反馈。您的举报已受理,工单号 {{ticketNumber}}。我们会私密地进行审核。",
+    "authRequired": "请先登录后再举报 AI 输出。"
+  },
   "adminCurrency": {
     "tabs": {
       "currencySettings": "货币设置",

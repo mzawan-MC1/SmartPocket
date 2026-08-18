@@ -4111,6 +4111,35 @@
       "cancelAction": "Cancel"
     }
   },
+  "aiReporting": {
+    "title": "Report AI output",
+    "description": "Let the Smart Pocket team know if this AI-generated result is inappropriate, inaccurate, offensive, unsafe, or otherwise problematic.",
+    "triggerLabel": "Report AI output",
+    "reasonLabel": "What is the issue?",
+    "reasons": {
+      "inappropriate": "Inappropriate",
+      "inaccurate": "Incorrect or inaccurate",
+      "offensive": "Offensive",
+      "unsafe": "Unsafe or harmful",
+      "other": "Other issue"
+    },
+    "noteLabel": "Additional details",
+    "notePlaceholder": "Optional — share any details that help us understand the issue.",
+    "optional": "optional",
+    "defaultSubject": {
+      "textAI": "Report AI text output",
+      "voiceAI": "Report AI voice output",
+      "receiptAI": "Report receipt/document AI output",
+      "assistant": "Report AI assistant output"
+    },
+    "defaultMessage": "User reported this AI output. No additional details were provided.",
+    "submit": "Submit report",
+    "submitting": "Submitting...",
+    "submitError": "We couldn't submit your report right now. Please try again or contact support.",
+    "successTitle": "Report submitted",
+    "successMessage": "Thank you. Your report has been received as support ticket {{ticketNumber}}. We'll review it privately.",
+    "authRequired": "Please sign in to report AI output."
+  },
   "adminCurrency": {
     "tabs": {
       "currencySettings": "Currency Settings",

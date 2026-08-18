@@ -4111,6 +4111,35 @@
       "cancelAction": "Cancelar"
     }
   },
+  "aiReporting": {
+    "title": "Denunciar saída de IA",
+    "description": "Informe à equipe Smart Pocket se este resultado gerado por inteligência artificial é inadequado, impreciso, ofensivo, inseguro ou apresenta outro problema.",
+    "triggerLabel": "Denunciar saída de IA",
+    "reasonLabel": "Qual é o problema?",
+    "reasons": {
+      "inappropriate": "Inadequado",
+      "inaccurate": "Incorreto ou impreciso",
+      "offensive": "Ofensivo",
+      "unsafe": "Inseguro ou prejudicial",
+      "other": "Outro problema"
+    },
+    "noteLabel": "Detalhes adicionais",
+    "notePlaceholder": "Opcional — compartilhe quaisquer detalhes que ajudem a entender o problema.",
+    "optional": "opcional",
+    "defaultSubject": {
+      "textAI": "Denunciar saída de IA de texto",
+      "voiceAI": "Denunciar saída de IA de voz",
+      "receiptAI": "Denunciar saída de IA para recibos/documentos",
+      "assistant": "Denunciar saída do assistente de IA"
+    },
+    "defaultMessage": "O usuário denunciou esta saída de IA. Nenhum detalhe adicional foi fornecido.",
+    "submit": "Enviar denúncia",
+    "submitting": "Enviando...",
+    "submitError": "Não foi possível enviar sua denúncia agora. Tente novamente ou entre em contato com o suporte.",
+    "successTitle": "Denúncia enviada",
+    "successMessage": "Obrigado. Sua denúncia foi recebida como ticket de suporte {{ticketNumber}}. Vamos analisá-la em particular.",
+    "authRequired": "Faça login para denunciar uma saída de IA."
+  },
   "adminCurrency": {
     "tabs": {
       "currencySettings": "Configurações de Moeda",

@@ -4111,6 +4111,35 @@
       "cancelAction": "Cancelar"
     }
   },
+  "aiReporting": {
+    "title": "Informar salida de IA",
+    "description": "Comunica al equipo de Smart Pocket si esta salida generada por inteligencia artificial es inapropiada, imprecisa, ofensiva, insegura o presenta algún otro problema.",
+    "triggerLabel": "Informar salida de IA",
+    "reasonLabel": "¿Cuál es el problema?",
+    "reasons": {
+      "inappropriate": "Inapropiado",
+      "inaccurate": "Incorrecto o impreciso",
+      "offensive": "Ofensivo",
+      "unsafe": "Inseguro o dañino",
+      "other": "Otro problema"
+    },
+    "noteLabel": "Detalles adicionales",
+    "notePlaceholder": "Opcional — comparte cualquier detalle que nos ayude a entender el problema.",
+    "optional": "opcional",
+    "defaultSubject": {
+      "textAI": "Informar salida de IA de texto",
+      "voiceAI": "Informar salida de IA de voz",
+      "receiptAI": "Informar salida de IA para recibos/documentos",
+      "assistant": "Informar salida del asistente de IA"
+    },
+    "defaultMessage": "El usuario informó sobre esta salida de IA. No se proporcionaron detalles adicionales.",
+    "submit": "Enviar informe",
+    "submitting": "Enviando...",
+    "submitError": "No pudimos enviar tu informe en este momento. Inténtalo de nuevo o contacta con soporte.",
+    "successTitle": "Informe enviado",
+    "successMessage": "Gracias. Hemos recibido tu informe como ticket de soporte {{ticketNumber}}. Lo revisaremos de forma privada.",
+    "authRequired": "Inicia sesión para informar una salida de IA."
+  },
   "adminCurrency": {
     "tabs": {
       "currencySettings": "Configuración de Monedas",
