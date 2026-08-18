@@ -14,6 +14,10 @@ import {
   processOneFaqCategoryTranslation,
   processOneFaqItemTranslation,
 } from '@/lib/faqs-admin-server';
+import {
+  buildDocumentationSourceBundle,
+  processOneDocumentationTranslation,
+} from '@/lib/documentation-translate-server';
 import type { CmsPageRecord } from '@/lib/cms-pages';
 import type { SupportedLanguage } from '@/i18n/registry';
 import {
@@ -22,7 +26,7 @@ import {
 
 export const maxDuration = 60;
 
-type WorkItemType = 'blog' | 'faq_item' | 'faq_category';
+type WorkItemType = 'blog' | 'faq_item' | 'faq_category' | 'documentation_article';
 
 type WorkItem = {
   type: WorkItemType;
@@ -47,7 +51,7 @@ function newAttemptId(): string {
 function isValidWorkItem(v: unknown): v is WorkItem {
   if (!v || typeof v !== 'object') return false;
   const obj = v as Record<string, unknown>;
-  if (obj.type !== 'blog' && obj.type !== 'faq_item' && obj.type !== 'faq_category') return false;
+  if (obj.type !== 'blog' && obj.type !== 'faq_item' && obj.type !== 'faq_category' && obj.type !== 'documentation_article') return false;
   if (typeof obj.id !== 'string' || !obj.id.trim()) return false;
   if (typeof obj.language !== 'string' || !obj.language.trim()) return false;
   if (!(CONTENT_TRANSLATION_ENABLED_LANGS as readonly string[]).includes(obj.language)) return false;
@@ -123,6 +127,26 @@ export async function POST(request: Request) {
         const input = await loadFaqItemInputOrNull(admin, item.id);
         if (!input) throw new Error('FAQ item not found.');
         const result = await processOneFaqItemTranslation(admin, item.id, language, input);
+        attemptId = result.attemptId;
+        errorStage = result.errorStage;
+        success = !result.errorMessage;
+        errorMessage = result.errorMessage ?? null;
+      } else if (item.type === 'documentation_article') {
+        const { data: articleRow, error: articleErr } = await admin
+          .from('documentation_articles')
+          .select('*')
+          .eq('id', item.id)
+          .maybeSingle();
+        if (articleErr) throw articleErr;
+        if (!articleRow) throw new Error('Documentation article not found.');
+        const article = articleRow as any;
+        const bundle = buildDocumentationSourceBundle({
+          title: article.title,
+          summary: article.summary,
+          content_html: article.content_html,
+          category: article.category,
+        });
+        const result = await processOneDocumentationTranslation(admin, item.id, language, bundle);
         attemptId = result.attemptId;
         errorStage = result.errorStage;
         success = !result.errorMessage;

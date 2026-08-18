@@ -29,7 +29,7 @@ export type TranslationAttemptStage =
 
 export type TranslationAttemptLog = {
   attemptId: string;
-  contentType: 'blog_fields' | 'faq_category_fields' | 'faq_item_fields';
+  contentType: 'blog_fields' | 'faq_category_fields' | 'faq_item_fields' | 'documentation_fields';
   contentId?: string;
   targetLanguage: string;
   model: string;
@@ -155,6 +155,15 @@ export function buildFaqItemEnglishSourceHash(item: {
   enKeywords: string[];
 }): string {
   return buildSourceHash([item.enQuestion, item.enAnswerHtml, item.enKeywords.join(',')]);
+}
+
+export function buildDocumentationEnglishSourceHash(doc: {
+  title: string;
+  summary: string;
+  content_html: string;
+  category: string;
+}): string {
+  return buildSourceHash([doc.title, doc.summary, doc.content_html, doc.category]);
 }
 
 async function callOpenRouterTranslation(
@@ -628,6 +637,67 @@ export async function translateFaqItemFields(
         .split(/[,，、]/)
         .map((s) => s.trim())
         .filter(Boolean),
+    },
+    attemptId,
+    failure: null,
+  };
+}
+
+export type DocumentationFieldsTranslated = {
+  title: string;
+  summary: string;
+  content_html: string;
+  category: string;
+};
+
+export async function translateDocumentationFields(
+  targetLanguage: SupportedLanguage,
+  english: {
+    title: string;
+    summary: string;
+    content_html: string;
+    category: string;
+  },
+  options?: { contentId?: string }
+): Promise<TranslateFieldsResult<DocumentationFieldsTranslated>> {
+  const attemptId = newAttemptId();
+  const startTs = Date.now();
+  const model = process.env.OPENROUTER_MODEL || 'openai/gpt-4.1-mini';
+  writeAttemptLog({
+    attemptId,
+    contentType: 'documentation_fields',
+    contentId: options?.contentId,
+    targetLanguage,
+    model,
+    providerStatus: null,
+    stage: 'start',
+    responseShape: 'null',
+    candidateTextExists: false,
+    candidateTextLength: 0,
+    errorCategory: null,
+    errorMessageSafe: null,
+    elapsedMs: 0,
+  });
+  const translated = await callOpenRouterTranslation(
+    { attemptId, contentType: 'documentation_fields', contentId: options?.contentId, startTs, model },
+    targetLanguage,
+    {
+      title: english.title,
+      summary: english.summary,
+      content_html: english.content_html,
+      category: english.category,
+    },
+    TRANSLATION_PROVIDER_TIMEOUT_MS
+  );
+  if (translated.failure || !translated.fieldsOut) {
+    return { translatedFields: null, attemptId, failure: translated.failure };
+  }
+  return {
+    translatedFields: {
+      title: translated.fieldsOut.title || english.title,
+      summary: translated.fieldsOut.summary || english.summary,
+      content_html: translated.fieldsOut.content_html || english.content_html,
+      category: translated.fieldsOut.category || english.category,
     },
     attemptId,
     failure: null,

@@ -3,7 +3,7 @@ import React from 'react';
 import Link from 'next/link';
 import { useTranslation } from 'react-i18next';
 import AppLayout from '@/components/AppLayout';
-import { MessageCircle, Book, Mail, CircleHelp, ArrowUpRight } from 'lucide-react';
+import { LifeBuoy, Book, Mail, CircleHelp, ArrowUpRight } from 'lucide-react';
 import PageHeader from '@/components/ui/PageHeader';
 import SectionCard from '@/components/ui/SectionCard';
 import StatusBadge from '@/components/ui/StatusBadge';
@@ -14,8 +14,8 @@ export default function HelpPage() {
   const { publicUi } = usePlatformSettings();
   const supportEmail = publicUi.contactEmail;
   const quickLinks = [
-    { icon: Book, title: t('help.quickLinks.documentation.title'), desc: t('help.quickLinks.documentation.description'), href: '/faqs' },
-    { icon: MessageCircle, title: t('help.quickLinks.community.title'), desc: t('help.quickLinks.community.description'), href: '/support' },
+    { icon: Book, title: t('help.quickLinks.documentation.title'), desc: t('help.quickLinks.documentation.description'), href: '/help/documentation' },
+    { icon: LifeBuoy, title: t('help.quickLinks.support.title'), desc: t('help.quickLinks.support.description'), href: '/support' },
     { icon: Mail, title: t('help.quickLinks.email.title'), desc: supportEmail, href: `mailto:${supportEmail}` },
   ];
 

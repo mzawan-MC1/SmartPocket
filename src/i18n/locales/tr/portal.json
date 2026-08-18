@@ -2963,12 +2963,12 @@
     "faqDescription": "YardÄ±mful answers fveya onboarding, veri kayıt, güvenlik, and repveyating.",
     "quickLinks": {
       "documentation": {
-        "title": "Documentation",
-        "description": "Guides and tutveyaials"
+        "title": "Dokümantasyon",
+        "description": "Kılavuzlar ve öğreticiler"
       },
-      "community": {
-        "title": "Community",
-        "description": "Ask the community"
+      "support": {
+        "title": "Destek",
+        "description": "Destek bileti oluşturun ve takip edin"
       },
       "email": {
         "title": "E-posta Destek"
@@ -3004,6 +3004,40 @@
     "faqCtaDescription": "Browse the Smart Pocket SSS kitaplık fveya setup yardım, wveyakfdÃ¼ÅŸÃ¼k guidance, and suppveyat answers.",
     "openFaqs": "AÃ§ SSSs",
     "pageDescription": "SSS'leri inceleyin ve destekle iletişime geçin."
+  },
+  "documentation": {
+    "title": "Dokümantasyon",
+    "description": "Smart Pocket'tan en iyi şekilde yararlanmanız için basit adım adım kılavuzlar.",
+    "badge": "Kılavuzlar",
+    "searchPlaceholder": "Kılavuz, konu veya modül ara…",
+    "allCategories": "Tüm kılavuzlar",
+    "backToList": "Dokümantasyona geri dön",
+    "updated": "Güncellendi",
+    "categories": {
+      "gettingStarted": "Başlangıç",
+      "aismartentry": "Yapay Zeka Akıllı Giriş",
+      "transactions": "İşlemler",
+      "accounts": "Hesaplar ve Cüzdanlar",
+      "personalSubscriptions": "Abonelikler",
+      "budgets": "Bütçeler",
+      "recurringTransactions": "Tekrarlayan İşlemler",
+      "reimbursements": "Geri Ödemeler",
+      "settlements": "Mutabakatlar",
+      "peopleSpaces": "Kişiler ve Alanlar",
+      "plansSubscriptions": "Planlar ve Faturalandırma",
+      "supportTroubleshooting": "Destek ve Sorun Giderme",
+      "general": "Genel"
+    },
+    "emptyTitle": "Henüz kılavuz mevcut değil",
+    "emptyDescription": "Dokümantasyon hazırlanıyor. Yakında tekrar kontrol edin veya yardım almak için destekle iletişime geçin.",
+    "openSupport": "Destekle iletişime geç",
+    "noResultsTitle": "Aramanızla eşleşen kılavuz yok",
+    "noResultsDescription": "Farklı bir anahtar kelime deneyin veya filtreleri temizleyin.",
+    "clearFilters": "Filtreleri temizle",
+    "supportCtaTitle": "Hâlâ yardıma mı ihtiyacınız var?",
+    "supportCtaDescription": "Bu kılavuz sorunuza yanıt vermediyse, bir destek bileti oluşturun, ekibimiz size yardımcı olsun.",
+    "createTicketAction": "Destek bileti oluştur",
+    "readGuide": "Kılavuzu oku"
   },
   "onboarding": {
     "title": "Smart Pocket'a Hoş Geldiniz",
@@ -4219,6 +4253,182 @@
         "secondary": "18:17 UAE",
         "helper": "GitHub Eylemler runs iki kez günlük at 02:17 and 14:17 UTC."
       }
+    }
+  },
+  "adminDocumentation": {
+    "title": "Dokümantasyon",
+    "description": "Çok dilli yardım kılavuzlarını yönetin. Kullanıcılar yalnızca yayınlanan ve etkinleştirilen makaleleri görür.",
+    "refresh": "Yenile",
+    "createAction": "Yeni Makale",
+    "searchPlaceholder": "Başlık, slug, özet veya kategori ara…",
+    "filters": {
+      "allLanguages": "Tüm diller",
+      "allStatuses": "Tüm durumlar",
+      "published": "Yayında",
+      "draft": "Taslak",
+      "allVisibility": "Tüm görünürlük",
+      "enabled": "Etkin",
+      "disabled": "Devre dışı"
+    },
+    "emptyTitle": "Dokümantasyon makalesi yok",
+    "emptyDescription": "İlk yardım kılavuzunuzu oluşturun. Yayınlanan kılavuzlar Dokümantasyon sayfasında görünür.",
+    "noResultsTitle": "Filtrelerle eşleşen makale yok",
+    "noResultsDescription": "Arama sorgusunu veya filtreleri ayarlayın.",
+    "clearFilters": "Filtreleri temizle",
+    "columns": {
+      "title": "Başlık",
+      "category": "Kategori",
+      "language": "Dil",
+      "status": "Durum",
+      "enabled": "Görünür",
+      "order": "Sıra",
+      "updated": "Güncellendi",
+      "translations": "Çeviriler",
+      "actions": "İşlemler"
+    },
+    "labels": {
+      "enabled": "Etkin",
+      "disabled": "Devre dışı",
+      "sourceLanguage": "Kaynak dil"
+    },
+    "actions": {
+      "viewPublic": "Genel sayfayı görüntüle",
+      "edit": "Düzenle",
+      "publish": "Yayınla",
+      "unpublish": "Taslağa taşı",
+      "publishShort": "Yayın",
+      "unpublishShort": "Taslak",
+      "enable": "Etkinleştir",
+      "disable": "Devre dışı bırak",
+      "enableShort": "Açık",
+      "disableShort": "Kapalı",
+      "delete": "Sil",
+      "regenerateTranslations": "Çevirileri yeniden oluştur",
+      "regenerating": "Yeniden oluşturuluyor…",
+      "backfillTranslations": "Çevirileri doldur",
+      "backfilling": "Dolduruluyor…",
+      "stopBackfill": "Doldurmayı durdur"
+    },
+    "languages": {
+      "en": "İngilizce",
+      "ar": "Arapça",
+      "fr": "Fransızca",
+      "ru": "Rusça",
+      "tr": "Türkçe",
+      "zh-CN": "Basitleştirilmiş Çince",
+      "es": "İspanyolca",
+      "pt-BR": "Brezilya Portekizcesi"
+    },
+    "categories": {
+      "gettingStarted": "Başlangıç",
+      "aismartentry": "Yapay Zeka Akıllı Giriş",
+      "transactions": "İşlemler",
+      "accounts": "Hesaplar ve Cüzdanlar",
+      "personalSubscriptions": "Abonelikler",
+      "budgets": "Bütçeler",
+      "recurringTransactions": "Tekrarlayan İşlemler",
+      "reimbursements": "Geri Ödemeler",
+      "settlements": "Mutabakatlar",
+      "peopleSpaces": "Kişiler ve Alanlar",
+      "plansSubscriptions": "Planlar ve Faturalandırma",
+      "supportTroubleshooting": "Destek ve Sorun Giderme",
+      "general": "Genel"
+    },
+    "createTitle": "Yeni dokümantasyon makalesi",
+    "createDescription": "Yeni bir çok dilli yardım kılavuzu oluşturun.",
+    "editTitle": "Dokümantasyon makalesini düzenle",
+    "editDescription": "Yardım kılavuzu içeriğini ve ayarlarını güncelleyin.",
+    "viewPublic": "Genel görünüm",
+    "saveAndPublish": "Kaydet ve Yayınla",
+    "saveDraft": "Kaydet",
+    "validationBanner": "Lütfen kaydetmeden önce aşağıdaki doğrulama hatalarını düzeltin.",
+    "field": {
+      "title": "Başlık",
+      "titlePlaceholder": "ör. İlk cüzdanınızı nasıl eklersiniz",
+      "slug": "Slug",
+      "slugPlaceholder": "ör. adding-your-first-wallet",
+      "slugHelp": "Dil başına benzersizdir. Başlıktan otomatik oluşturulur ancak düzenlenebilir.",
+      "slugHelpSource": "Slug, kaynak makaleden kopyalandı.",
+      "englishCanonical": "İngilizce kanonik makale",
+      "summary": "Kısa özet",
+      "summaryPlaceholder": "Bu kılavuzun bir ya da iki satırda ne öğrettiği.",
+      "content": "Belge içeriği",
+      "contentPlaceholder": "Açık ve basit adımlar yazın. Başlıklar, kısa paragraflar ve numaralı ya da madde işaretli listeler kullanın.",
+      "category": "Kategori / Modül",
+      "language": "Dil",
+      "languageLocked": "Dil, oluşturulduktan sonra kilitlenir.",
+      "displayOrder": "Görüntüleme sırası",
+      "displayOrderHelp": "Daha düşük sayılar önce görünür. Varsayılan sıralama için 0'da bırakın.",
+      "status": "Yayın",
+      "published": "Yayında",
+      "statusPublished": "Etkinleştirilirse kullanıcılara görünür.",
+      "statusDraft": "Yayınlanana kadar kullanıcılardan gizlenir.",
+      "enabled": "Etkin",
+      "enabledOn": "Yayınlanırsa görünebilir.",
+      "enabledOff": "Yayınlansa bile gizlenir."
+    },
+    "visibility": {
+      "label": "Genel görünürlük",
+      "visible": "Tüm kullanıcılara görünür",
+      "visibleDesc": "Makale Yayında VE Etkin, bu yüzden kullanıcılar görüntüleyebilir.",
+      "hidden": "Kullanıcılara görünmez",
+      "conditions": "Durum Yayında olmalı VE Etkin açık olmalıdır."
+    },
+    "deleteTitle": "Dokümantasyon makalesi silinsin mi?",
+    "deleteDescription": "{{title}} makalesi kalıcı olarak kaldırılacak. Bu işlem geri alınamaz.",
+    "deleteConfirm": "Makaleyi sil",
+    "deleteCancel": "İptal",
+    "errors": {
+      "load": "Dokümantasyon yüklenemedi.",
+      "refresh": "Yenileme başarısız.",
+      "create": "Makale oluşturulamadı.",
+      "update": "Makale kaydedilemedi.",
+      "delete": "Makale silinemedi.",
+      "toggleStatus": "Yayın durumu güncellenemedi.",
+      "toggleEnabled": "Etkin durumu güncellenemedi.",
+      "save": "Kaydetme başarısız.",
+      "validation": "Lütfen vurgulanan alanları düzeltin.",
+      "unknown": "Bilinmeyen kaydetme modu.",
+      "translationProcessor": "Çeviri işlemcisi kullanılamıyor.",
+      "regenerate": "Çeviriler yeniden oluşturulamadı.",
+      "backfill": "Doldurma başlatılamadı."
+    },
+    "toasts": {
+      "created": "Makale oluşturuldu.",
+      "updated": "Makale kaydedildi.",
+      "deleted": "Makale silindi.",
+      "published": "Makale yayınlandı.",
+      "unpublished": "Makale taslağa taşındı.",
+      "enabled": "Makale etkinleştirildi.",
+      "disabled": "Makale devre dışı bırakıldı.",
+      "translationDonePerLang": "{{lang}} için çeviriler güncellendi: {{done}} tamamlandı.",
+      "translationFailedPerLang": "{{lang}} için çeviriler başarısız: {{failed}} hata.",
+      "translationCircuitBreaker": "Tekrarlayan hatalar nedeniyle çeviri servisi geçici olarak duraklatıldı. Lütfen daha sonra tekrar deneyin.",
+      "regenerateAllCurrent": "Tüm mevcut makaleler için çeviriler yeniden oluşturuluyor.",
+      "regenerateScheduled": "Çeviri yeniden oluşturma planlandı.",
+      "backfillStarting": "Doldurma işlemi başlıyor…",
+      "backfillStopped": "Doldurma kullanıcı tarafından durduruldu.",
+      "backfillDone": "Doldurma tamamlandı: {{done}} makale işlendi."
+    },
+    "translations": {
+      "heading": "Çeviri durumu",
+      "subheading": "Hangi dillerin güncel, beklemede veya çevirisi eksik olduğunu takip edin.",
+      "progressLabel": "Genel ilerleme",
+      "progress": "{{total}} dilin {{complete}} tanesi tamamlandı",
+      "currentSummary": "{{count}} güncel",
+      "progressSummary": "{{count}} devam ediyor",
+      "failedSummary": "{{count}} başarısız",
+      "statusCurrent": "Güncel",
+      "statusPending": "Beklemede",
+      "statusFailed": "Başarısız",
+      "statusOutdated": "Güncel değil",
+      "statusMissing": "Eksik"
+    },
+    "backfill": {
+      "activeLabel": "Doldurma çalışıyor",
+      "progressLabel": "Doldurma ilerlemesi",
+      "stopping": "Durduruluyor…",
+      "stop": "Durdur"
     }
   },
   "adminFaqs": {

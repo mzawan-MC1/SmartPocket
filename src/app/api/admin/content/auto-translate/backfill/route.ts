@@ -13,27 +13,33 @@ import {
   loadFaqCategoryInputOrNull,
   loadFaqItemInputOrNull,
 } from '@/lib/faqs-admin-server';
+import {
+  buildDocumentationSourceBundle,
+  scheduleDocumentationTranslations,
+  type DocumentationArticleRecord,
+} from '@/lib/documentation-translate-server';
 import type { CmsPageRecord } from '@/lib/cms-pages';
 import { CONTENT_TRANSLATION_ENABLED_LANGS } from '@/lib/content-translate-server';
 
 export const maxDuration = 60;
 
-type BackfillScope = 'all' | 'blog' | 'faq';
+type BackfillScope = 'all' | 'blog' | 'faq' | 'documentation';
 
 type BackfillCursor = {
   blogCursor?: string;
   faqCategoryCursor?: string;
   faqItemCursor?: string;
+  documentationCursor?: string;
 };
 
 type ScheduleFailure = {
-  type: 'blog' | 'faq_category' | 'faq_item';
+  type: 'blog' | 'faq_category' | 'faq_item' | 'documentation_article';
   id: string;
   message: string;
 };
 
 type ScheduledWorkItem = {
-  type: 'blog' | 'faq_item' | 'faq_category';
+  type: 'blog' | 'faq_item' | 'faq_category' | 'documentation_article';
   id: string;
   language: string;
   parentEnSourceHash?: string;
@@ -55,7 +61,7 @@ function sanitizeBatchSize(raw: unknown): number {
 }
 
 function isValidScope(v: unknown): v is BackfillScope {
-  return v === 'all' || v === 'blog' || v === 'faq';
+  return v === 'all' || v === 'blog' || v === 'faq' || v === 'documentation';
 }
 
 function toIsoCursor(v: unknown): string | undefined {
@@ -78,6 +84,7 @@ export async function POST(request: Request) {
       blogCursor: toIsoCursor(rawBody.cursor?.blogCursor),
       faqCategoryCursor: toIsoCursor(rawBody.cursor?.faqCategoryCursor),
       faqItemCursor: toIsoCursor(rawBody.cursor?.faqItemCursor),
+      documentationCursor: toIsoCursor(rawBody.cursor?.documentationCursor),
     };
 
     const nextCursor: BackfillCursor = {};
@@ -86,10 +93,12 @@ export async function POST(request: Request) {
     let blogRemainingEstimate = 0;
     let faqCategoryRemainingEstimate = 0;
     let faqItemRemainingEstimate = 0;
+    let documentationRemainingEstimate = 0;
 
     const blogPageIds: string[] = [];
     const faqCategoryIds: string[] = [];
     const faqItemIds: string[] = [];
+    const documentationIds: string[] = [];
 
     if (scope === 'all' || scope === 'blog') {
       let query = auth.admin
@@ -229,6 +238,47 @@ export async function POST(request: Request) {
       }
     }
 
+    if (scope === 'all' || scope === 'documentation') {
+      let docQuery = auth.admin
+        .from('documentation_articles')
+        .select('*', { count: 'exact' })
+        .order('created_at', { ascending: true })
+        .limit(batchSize + 1);
+      if (cursor.documentationCursor) {
+        docQuery = docQuery.gt('created_at', cursor.documentationCursor);
+      }
+      const { data: docData, error: docErr, count: docCount } = await docQuery;
+      if (docErr) throw docErr;
+
+      const docRows = (docData as DocumentationArticleRecord[] | null) || [];
+      const docPage = docRows.slice(0, batchSize);
+      const docHasMore = docRows.length > batchSize;
+      if (docHasMore && docPage.length > 0) {
+        nextCursor.documentationCursor = docPage[docPage.length - 1].created_at;
+      }
+      documentationRemainingEstimate = docCount ?? 0;
+
+      for (const article of docPage) {
+        completedScanCount += 1;
+        documentationIds.push(article.id);
+        try {
+          const bundle = buildDocumentationSourceBundle({
+            title: article.title,
+            summary: article.summary,
+            content_html: article.content_html,
+            category: article.category,
+          });
+          await scheduleDocumentationTranslations(auth.admin, article.id, bundle, { regenerateAll: false });
+        } catch (err: any) {
+          failures.push({
+            type: 'documentation_article',
+            id: article.id,
+            message: err instanceof Error ? String(err.message || 'Scheduling failed.') : 'Scheduling failed.',
+          });
+        }
+      }
+    }
+
     const scheduledWorkItems: ScheduledWorkItem[] = [];
 
     if (blogPageIds.length > 0) {
@@ -291,8 +341,28 @@ export async function POST(request: Request) {
       }
     }
 
+    if (documentationIds.length > 0) {
+      const { data: docTranslations, error: docTransErr } = await auth.admin
+        .from('documentation_translations')
+        .select('article_id, language_code, documentation_articles!inner(en_source_version_hash)')
+        .in('article_id', documentationIds)
+        .in('translation_status', WORK_STATUSES)
+        .in('language_code', CONTENT_TRANSLATION_ENABLED_LANGS as readonly string[]);
+      if (!docTransErr && docTranslations) {
+        for (const row of docTranslations as any[]) {
+          if (!(CONTENT_TRANSLATION_ENABLED_LANGS as readonly string[]).includes(String(row.language_code || ''))) continue;
+          scheduledWorkItems.push({
+            type: 'documentation_article',
+            id: row.article_id,
+            language: row.language_code,
+            parentEnSourceHash: row.documentation_articles?.en_source_version_hash,
+          });
+        }
+      }
+    }
+
     const totalRemainingEstimate =
-      blogRemainingEstimate + faqCategoryRemainingEstimate + faqItemRemainingEstimate;
+      blogRemainingEstimate + faqCategoryRemainingEstimate + faqItemRemainingEstimate + documentationRemainingEstimate;
 
     return applySupabaseCookies(
       NextResponse.json(

@@ -2474,11 +2474,11 @@
     "quickLinks": {
       "documentation": {
         "title": "Documentation",
-        "description": "Guides et tutoriels"
+        "description": "Guides et didacticiels"
       },
-      "community": {
-        "title": "Communaute",
-        "description": "Poser une question a la communaute"
+      "support": {
+        "title": "Support",
+        "description": "Créer et suivre les tickets de support"
       },
       "email": {
         "title": "Support e-mail"
@@ -2514,6 +2514,40 @@
     "faqCtaDescription": "Parcourez la bibliothèque FAQ Smart Pocket pour l'aide de configuration, les workflows et les réponses du support.",
     "openFaqs": "Ouvrir la FAQ",
     "pageDescription": "Parcourez les FAQ et contactez le support."
+  },
+  "documentation": {
+    "title": "Documentation",
+    "description": "Des guides simples étape par étape pour vous aider à tirer le meilleur parti de Smart Pocket.",
+    "badge": "Guides",
+    "searchPlaceholder": "Rechercher des guides, sujets ou modules…",
+    "allCategories": "Tous les guides",
+    "backToList": "Retour à la documentation",
+    "updated": "Mis à jour",
+    "categories": {
+      "gettingStarted": "Premiers pas",
+      "aismartentry": "Saisie intelligente IA",
+      "transactions": "Transactions",
+      "accounts": "Comptes et portefeuilles",
+      "personalSubscriptions": "Abonnements",
+      "budgets": "Budgets",
+      "recurringTransactions": "Transactions récurrentes",
+      "reimbursements": "Remboursements",
+      "settlements": "Règlements",
+      "peopleSpaces": "Personnes et espaces",
+      "plansSubscriptions": "Plans et facturation",
+      "supportTroubleshooting": "Support et dépannage",
+      "general": "Général"
+    },
+    "emptyTitle": "Aucun guide disponible pour l'instant",
+    "emptyDescription": "La documentation est en préparation. Revenez bientôt ou contactez le support si vous avez besoin d'aide.",
+    "openSupport": "Contacter le support",
+    "noResultsTitle": "Aucun guide ne correspond à votre recherche",
+    "noResultsDescription": "Essayez un mot-clé différent ou effacez les filtres.",
+    "clearFilters": "Effacer les filtres",
+    "supportCtaTitle": "Vous avez toujours besoin d'aide ?",
+    "supportCtaDescription": "Si ce guide n'a pas répondu à votre question, ouvrez un ticket de support et notre équipe vous aidera.",
+    "createTicketAction": "Créer un ticket de support",
+    "readGuide": "Lire le guide"
   },
   "onboarding": {
     "title": "Configurer Smart Pocket",
@@ -4219,6 +4253,182 @@
         "secondary": "18:17 EAU",
         "helper": "GitHub Actions s'execute deux fois par jour a 02:17 et 14:17 UTC."
       }
+    }
+  },
+  "adminDocumentation": {
+    "title": "Documentation",
+    "description": "Gérez les guides d'aide multilingues. Les utilisateurs ne voient que les articles publiés et activés.",
+    "refresh": "Actualiser",
+    "createAction": "Nouvel article",
+    "searchPlaceholder": "Rechercher titre, slug, résumé ou catégorie…",
+    "filters": {
+      "allLanguages": "Toutes les langues",
+      "allStatuses": "Tous les statuts",
+      "published": "Publié",
+      "draft": "Brouillon",
+      "allVisibility": "Toute visibilité",
+      "enabled": "Activé",
+      "disabled": "Désactivé"
+    },
+    "emptyTitle": "Aucun article de documentation",
+    "emptyDescription": "Créez votre premier guide d'aide. Les guides publiés apparaissent sur la page Documentation.",
+    "noResultsTitle": "Aucun article ne correspond à vos filtres",
+    "noResultsDescription": "Ajustez la requête de recherche ou les filtres.",
+    "clearFilters": "Effacer les filtres",
+    "columns": {
+      "title": "Titre",
+      "category": "Catégorie",
+      "language": "Langue",
+      "status": "Statut",
+      "enabled": "Visible",
+      "order": "Ordre",
+      "updated": "Mis à jour",
+      "translations": "Traductions",
+      "actions": "Actions"
+    },
+    "labels": {
+      "enabled": "Activé",
+      "disabled": "Désactivé",
+      "sourceLanguage": "Langue source"
+    },
+    "actions": {
+      "viewPublic": "Voir la page publique",
+      "edit": "Modifier",
+      "publish": "Publier",
+      "unpublish": "Mettre en brouillon",
+      "publishShort": "Pub",
+      "unpublishShort": "Brouillon",
+      "enable": "Activer",
+      "disable": "Désactiver",
+      "enableShort": "On",
+      "disableShort": "Off",
+      "delete": "Supprimer",
+      "regenerateTranslations": "Régénérer les traductions",
+      "regenerating": "Régénération…",
+      "backfillTranslations": "Remplir les traductions",
+      "backfilling": "Remplissage…",
+      "stopBackfill": "Arrêter le remplissage"
+    },
+    "languages": {
+      "en": "Anglais",
+      "ar": "Arabe",
+      "fr": "Français",
+      "ru": "Russe",
+      "tr": "Turc",
+      "zh-CN": "Chinois simplifié",
+      "es": "Espagnol",
+      "pt-BR": "Portugais brésilien"
+    },
+    "categories": {
+      "gettingStarted": "Premiers pas",
+      "aismartentry": "Saisie intelligente IA",
+      "transactions": "Transactions",
+      "accounts": "Comptes et portefeuilles",
+      "personalSubscriptions": "Abonnements",
+      "budgets": "Budgets",
+      "recurringTransactions": "Transactions récurrentes",
+      "reimbursements": "Remboursements",
+      "settlements": "Règlements",
+      "peopleSpaces": "Personnes et espaces",
+      "plansSubscriptions": "Plans et facturation",
+      "supportTroubleshooting": "Support et dépannage",
+      "general": "Général"
+    },
+    "createTitle": "Nouvel article de documentation",
+    "createDescription": "Créez un nouveau guide d'aide multilingue.",
+    "editTitle": "Modifier l'article de documentation",
+    "editDescription": "Mettez à jour le contenu et les paramètres du guide d'aide.",
+    "viewPublic": "Voir le public",
+    "saveAndPublish": "Enregistrer et publier",
+    "saveDraft": "Enregistrer",
+    "validationBanner": "Veuillez corriger les erreurs de validation ci-dessous avant d'enregistrer.",
+    "field": {
+      "title": "Titre",
+      "titlePlaceholder": "ex. Comment ajouter votre premier portefeuille",
+      "slug": "Slug",
+      "slugPlaceholder": "ex. adding-your-first-wallet",
+      "slugHelp": "Unique par langue. Généré automatiquement à partir du titre mais modifiable.",
+      "slugHelpSource": "Slug copié depuis l'article source.",
+      "englishCanonical": "Article canonique anglais",
+      "summary": "Résumé court",
+      "summaryPlaceholder": "Ce que ce guide enseigne en une ou deux lignes.",
+      "content": "Contenu du document",
+      "contentPlaceholder": "Écrivez des étapes claires et simples. Utilisez des titres, des paragraphes courts et des listes numérotées ou à puces.",
+      "category": "Catégorie / Module",
+      "language": "Langue",
+      "languageLocked": "La langue est verrouillée après création.",
+      "displayOrder": "Ordre d'affichage",
+      "displayOrderHelp": "Les numéros les plus bas apparaissent en premier. Laissez à 0 pour l'ordre par défaut.",
+      "status": "Publication",
+      "published": "Publié",
+      "statusPublished": "Visible des utilisateurs si activé.",
+      "statusDraft": "Masqué des utilisateurs jusqu'à publication.",
+      "enabled": "Activé",
+      "enabledOn": "Peut apparaître si publié.",
+      "enabledOff": "Masqué même si publié."
+    },
+    "visibility": {
+      "label": "Visibilité publique",
+      "visible": "Visible de tous les utilisateurs",
+      "visibleDesc": "L'article est Publié ET Activé, donc les utilisateurs peuvent le voir.",
+      "hidden": "Non visible des utilisateurs",
+      "conditions": "Le statut doit être Publié ET Activé doit être sur On."
+    },
+    "deleteTitle": "Supprimer l'article de documentation ?",
+    "deleteDescription": "L'article « {{title}} » sera définitivement supprimé. Cette action est irréversible.",
+    "deleteConfirm": "Supprimer l'article",
+    "deleteCancel": "Annuler",
+    "errors": {
+      "load": "Échec du chargement de la documentation.",
+      "refresh": "Échec de l'actualisation.",
+      "create": "Échec de la création de l'article.",
+      "update": "Échec de l'enregistrement de l'article.",
+      "delete": "Échec de la suppression de l'article.",
+      "toggleStatus": "Échec de la mise à jour du statut de publication.",
+      "toggleEnabled": "Échec de la mise à jour du statut d'activation.",
+      "save": "Échec de l'enregistrement.",
+      "validation": "Veuillez corriger les champs en surbrillance.",
+      "unknown": "Mode d'enregistrement inconnu.",
+      "translationProcessor": "Le processeur de traductions est indisponible.",
+      "regenerate": "Échec de la régénération des traductions.",
+      "backfill": "Échec du démarrage du remplissage."
+    },
+    "toasts": {
+      "created": "Article créé.",
+      "updated": "Article enregistré.",
+      "deleted": "Article supprimé.",
+      "published": "Article publié.",
+      "unpublished": "Article mis en brouillon.",
+      "enabled": "Article activé.",
+      "disabled": "Article désactivé.",
+      "translationDonePerLang": "Traductions mises à jour pour {{lang}} : {{done}} terminées.",
+      "translationFailedPerLang": "Traductions échouées pour {{lang}} : {{failed}} erreurs.",
+      "translationCircuitBreaker": "Service de traduction interrompu en raison d'erreurs répétées. Veuillez réessayer plus tard.",
+      "regenerateAllCurrent": "Régénération des traductions pour tous les articles actuels.",
+      "regenerateScheduled": "Régénération des traductions planifiée.",
+      "backfillStarting": "Démarrage du processus de remplissage…",
+      "backfillStopped": "Remplissage arrêté par l'utilisateur.",
+      "backfillDone": "Remplissage terminé : {{done}} articles traités."
+    },
+    "translations": {
+      "heading": "Statut des traductions",
+      "subheading": "Suivez quelles langues sont à jour, en attente ou manquantes.",
+      "progressLabel": "Progression globale",
+      "progress": "{{complete}} sur {{total}} langues terminées",
+      "currentSummary": "{{count}} à jour",
+      "progressSummary": "{{count}} en cours",
+      "failedSummary": "{{count}} en échec",
+      "statusCurrent": "À jour",
+      "statusPending": "En attente",
+      "statusFailed": "Échec",
+      "statusOutdated": "Périmé",
+      "statusMissing": "Manquant"
+    },
+    "backfill": {
+      "activeLabel": "Remplissage en cours",
+      "progressLabel": "Progression du remplissage",
+      "stopping": "Arrêt…",
+      "stop": "Arrêter"
     }
   },
   "adminFaqs": {
