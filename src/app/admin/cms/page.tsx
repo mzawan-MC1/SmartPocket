@@ -235,15 +235,53 @@ export default function AdminCmsPage() {
   };
 
   const addHeaderItem = () => {
-    setHeaderMenu((m) => [...m, { id: `hm-${Date.now()}`, label: 'New Link', href: '/' }]);
+    setHeaderMenu((m) => [...m, { id: `hm-${Date.now()}`, label: 'New Link', href: '/', children: undefined }]);
   };
 
   const removeHeaderItem = (id: string) => {
     setHeaderMenu((m) => m.filter((i) => i.id !== id));
   };
 
-  const updateHeaderItem = (id: string, field: keyof MenuItem, value: string) => {
+  const updateHeaderItem = (id: string, field: keyof MenuItem, value: any) => {
     setHeaderMenu((m) => m.map((i) => (i.id === id ? { ...i, [field]: value } : i)));
+  };
+
+  const addHeaderChild = (parentId: string) => {
+    setHeaderMenu((m) =>
+      m.map((item) => {
+        if (item.id !== parentId) return item;
+        const nextChildren = [...(item.children || [])];
+        nextChildren.push({ id: `${parentId}-child-${Date.now()}`, label: 'Child Link', href: '/' });
+        return { ...item, children: nextChildren };
+      })
+    );
+  };
+
+  const removeHeaderChild = (parentId: string, childId: string) => {
+    setHeaderMenu((m) =>
+      m.map((item) => {
+        if (item.id !== parentId) return item;
+        const nextChildren = (item.children || []).filter((c) => c.id !== childId);
+        return { ...item, children: nextChildren.length > 0 ? nextChildren : undefined };
+      })
+    );
+  };
+
+  const updateHeaderChild = (
+    parentId: string,
+    childId: string,
+    field: keyof MenuItem,
+    value: string
+  ) => {
+    setHeaderMenu((m) =>
+      m.map((item) => {
+        if (item.id !== parentId) return item;
+        const nextChildren = (item.children || []).map((c) =>
+          c.id === childId ? { ...c, [field]: value } : c
+        );
+        return { ...item, children: nextChildren };
+      })
+    );
   };
 
   const addFooterLink = (sectionId: string) => {
@@ -391,32 +429,76 @@ export default function AdminCmsPage() {
       {activeTab === 'header' ? (
         <div className="card-elevated p-5 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-600 text-foreground">Header Navigation Links</h2>
+            <div>
+              <h2 className="text-base font-600 text-foreground">Header Navigation Links</h2>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Top-level links are shown directly. Any link with children becomes a public dropdown / submenu on the website.
+              </p>
+            </div>
             <button onClick={addHeaderItem} className="btn-secondary text-xs py-1.5">
               <Plus size={13} /> Add Link
             </button>
           </div>
           <div className="space-y-3">
             {headerMenu.map((item) => (
-              <div key={item.id} className="flex items-center gap-3 rounded-xl border border-border p-3">
-                <GripVertical size={14} className="text-muted-foreground flex-shrink-0" />
-                <input
-                  type="text"
-                  className="input-base flex-1 text-sm"
-                  placeholder="Label"
-                  value={item.label}
-                  onChange={(e) => updateHeaderItem(item.id, 'label', e.target.value)}
-                />
-                <input
-                  type="text"
-                  className="input-base flex-1 text-sm font-mono"
-                  placeholder="/path"
-                  value={item.href}
-                  onChange={(e) => updateHeaderItem(item.id, 'href', e.target.value)}
-                />
-                <button onClick={() => removeHeaderItem(item.id)} className="text-negative hover:opacity-70 flex-shrink-0">
-                  <Trash2 size={14} />
-                </button>
+              <div key={item.id} className="space-y-2 rounded-xl border border-border p-3">
+                <div className="flex items-center gap-3">
+                  <GripVertical size={14} className="text-muted-foreground flex-shrink-0" />
+                  <input
+                    type="text"
+                    className="input-base flex-1 text-sm font-600"
+                    placeholder="Label (e.g. Documentation)"
+                    value={item.label}
+                    onChange={(e) => updateHeaderItem(item.id, 'label', e.target.value)}
+                  />
+                  <input
+                    type="text"
+                    className="input-base flex-1 text-sm font-mono"
+                    placeholder="/path (e.g. /help/documentation)"
+                    value={item.href}
+                    onChange={(e) => updateHeaderItem(item.id, 'href', e.target.value)}
+                  />
+                  <button onClick={() => removeHeaderItem(item.id)} className="text-negative hover:opacity-70 flex-shrink-0">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+                <div className="space-y-2 ps-7">
+                  {(item.children || []).map((child) => (
+                    <div key={child.id} className="flex items-center gap-2 rounded-lg border border-dashed border-border px-2.5 py-2">
+                      <Layout size={12} className="text-accent flex-shrink-0" />
+                      <span className="text-[10px] uppercase tracking-[0.12em] font-700 text-accent/80 flex-shrink-0">
+                        Submenu
+                      </span>
+                      <input
+                        type="text"
+                        className="input-base flex-1 text-xs"
+                        placeholder="Child label"
+                        value={child.label}
+                        onChange={(e) => updateHeaderChild(item.id, child.id, 'label', e.target.value)}
+                      />
+                      <input
+                        type="text"
+                        className="input-base flex-1 text-xs font-mono"
+                        placeholder="/path"
+                        value={child.href}
+                        onChange={(e) => updateHeaderChild(item.id, child.id, 'href', e.target.value)}
+                      />
+                      <button
+                        onClick={() => removeHeaderChild(item.id, child.id)}
+                        className="text-negative/80 hover:opacity-70 flex-shrink-0"
+                        title="Remove submenu link"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    onClick={() => addHeaderChild(item.id)}
+                    className="text-[11px] text-accent hover:underline inline-flex items-center gap-1"
+                  >
+                    <Plus size={12} /> Add submenu child link
+                  </button>
+                </div>
               </div>
             ))}
           </div>

@@ -9,35 +9,8 @@ import LanguageSwitcher from '@/components/LanguageSwitcher';
 import TrackedAnalyticsLink from '@/components/analytics/TrackedAnalyticsLink';
 import { getTranslatedPublicNavLabel } from '@/components/public/public-labels';
 import { usePlatformSettings } from '@/contexts/PlatformSettingsContext';
-import { shouldShowBrandTextBesideLogo } from '@/lib/platform-settings';
+import { shouldShowBrandTextBesideLogo, type PlatformNavLink } from '@/lib/platform-settings';
 import { useLanguage } from '@/contexts/LanguageContext';
-
-type FeaturedDocLink = { id: string; title: string; href: string };
-
-function useFeaturedHeaderDocs(language: string): FeaturedDocLink[] {
-  const [items, setItems] = useState<FeaturedDocLink[]>([]);
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      try {
-        const res = await fetch(
-          `/api/public/documentation/featured?slot=header&limit=4&lang=${encodeURIComponent(String(language || 'en'))}`,
-          { cache: 'force-cache' as unknown as RequestCache }
-        );
-        if (!res.ok) return;
-        const json = await res.json();
-        if (cancelled) return;
-        if (Array.isArray(json?.articles)) {
-          setItems(json.articles);
-        }
-      } catch {}
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [language]);
-  return items;
-}
 
 export default function PublicHeader() {
   const pathname = usePathname();
@@ -48,29 +21,18 @@ export default function PublicHeader() {
   const showBrandText = shouldShowBrandTextBesideLogo(branding.logoUrl);
   const showSingleLanguageTagline = language === 'en';
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [mobileDocsOpen, setMobileDocsOpen] = useState(false);
+  const [mobileParentOpen, setMobileParentOpen] = useState<Record<string, boolean>>({});
   const [currentHash, setCurrentHash] = useState('');
   const [isScrolled, setIsScrolled] = useState(false);
   const isHomePage = pathname === '/home' || pathname === '/';
   const searchKey = searchParams.toString();
-  const featuredHeaderDocs = useFeaturedHeaderDocs(language);
 
-  const DOCS_HREF = '/help/documentation';
-  const DOCS_MENU_ID = 'hm-documentation';
-  const headerMenuLinks = React.useMemo(
-    () => publicUi.headerMenu.filter((l) => l.id !== DOCS_MENU_ID),
-    [publicUi.headerMenu]
-  );
-  const docsMenuEntry = React.useMemo(
-    () => publicUi.headerMenu.find((l) => l.id === DOCS_MENU_ID),
-    [publicUi.headerMenu]
-  );
-  const docsMainLabel = docsMenuEntry?.label || t('documentation.title', { ns: 'portal', defaultValue: 'Documentation' });
+  const headerMenuLinks = React.useMemo(() => publicUi.headerMenu, [publicUi.headerMenu]);
 
   // Close mobile menu on route or query change
   useEffect(() => {
     setMobileOpen(false);
-    setMobileDocsOpen(false);
+    setMobileParentOpen({});
   }, [pathname, searchKey]);
 
   useEffect(() => {
@@ -122,18 +84,22 @@ export default function PublicHeader() {
     return pathname === href || pathname.startsWith(`${href}/`);
   };
 
-  const [docsDropdownOpen, setDocsDropdownOpen] = useState(false);
-  const dropdownWrapperRef = React.useRef<HTMLDivElement | null>(null);
+  const hasChildren = (item: PlatformNavLink) =>
+    Array.isArray(item.children) && item.children.length > 0;
+
+  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const dropdownWrapperRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
   useEffect(() => {
-    if (!docsDropdownOpen) return;
+    if (!openDropdown) return;
     const onDoc = (e: MouseEvent) => {
       const tgt = e.target as Node | null;
-      if (dropdownWrapperRef.current && tgt && !dropdownWrapperRef.current.contains(tgt)) {
-        setDocsDropdownOpen(false);
+      const wrapper = dropdownWrapperRefs.current[openDropdown];
+      if (wrapper && tgt && !wrapper.contains(tgt)) {
+        setOpenDropdown(null);
       }
     };
     const onEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setDocsDropdownOpen(false);
+      if (e.key === 'Escape') setOpenDropdown(null);
     };
     document.addEventListener('mousedown', onDoc);
     document.addEventListener('keydown', onEsc);
@@ -141,7 +107,15 @@ export default function PublicHeader() {
       document.removeEventListener('mousedown', onDoc);
       document.removeEventListener('keydown', onEsc);
     };
-  }, [docsDropdownOpen]);
+  }, [openDropdown]);
+
+  const toggleDropdown = (id: string) => {
+    setOpenDropdown((prev) => (prev === id ? null : id));
+  };
+
+  const toggleMobileParent = (id: string) => {
+    setMobileParentOpen((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
   const headerClass = `${
     isHomePage
@@ -185,89 +159,101 @@ export default function PublicHeader() {
 
           {/* Desktop nav */}
           <nav className="hidden xl:flex items-center gap-1.5">
-            {headerMenuLinks.map((item) => (
-              <Link
-                key={item.id}
-                href={item.href}
-                className={navLinkBase(isActive(item.href))}
-              >
-                {getTranslatedPublicNavLabel(item.href, item.label, t)}
-              </Link>
-            ))}
-            {/* Documentation dropdown */}
-            {docsMenuEntry ? (
-              <div className="relative" ref={dropdownWrapperRef}>
-                <button
-                  type="button"
-                  onClick={() => setDocsDropdownOpen((v) => !v)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'ArrowDown') {
-                      setDocsDropdownOpen(true);
-                    }
-                  }}
-                  aria-haspopup="menu"
-                  aria-expanded={docsDropdownOpen}
-                  aria-controls="public-header-docs-menu"
-                  className={`${navLinkBase(isActive(DOCS_HREF) || docsDropdownOpen)} inline-flex items-center gap-1.5`}
-                >
-                  <span>{docsMainLabel}</span>
-                  <ChevronDown
-                    size={14}
-                    className={`transition-transform ${docsDropdownOpen ? 'rotate-180' : ''}`}
-                  />
-                </button>
-                {docsDropdownOpen ? (
+            {headerMenuLinks.map((item) => {
+              const withChildren = hasChildren(item);
+              const dropdownId = `header-dropdown-${item.id}`;
+              const isOpen = openDropdown === item.id;
+              if (withChildren) {
+                return (
                   <div
-                    id="public-header-docs-menu"
-                    role="menu"
-                    className="absolute right-0 top-[calc(100%+0.25rem)] z-50 w-[18rem] rounded-2xl border border-border bg-card p-2 shadow-card-lg"
+                    key={item.id}
+                    className="relative"
+                    ref={(el) => {
+                      dropdownWrapperRefs.current[item.id] = el;
+                    }}
                   >
-                    <Link
-                      role="menuitem"
-                      href={DOCS_HREF}
-                      onClick={() => setDocsDropdownOpen(false)}
-                      className={`flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-sm font-700 transition-colors ${
-                        isActive(DOCS_HREF)
-                          ? isHomePage
-                            ? 'bg-cyan-50 text-cyan-700'
-                            : 'text-accent bg-accent/8'
-                          : isHomePage
-                            ? 'text-slate-700 hover:bg-slate-100 hover:text-slate-950'
-                            : 'text-foreground hover:bg-muted/60'
-                      }`}
+                    <button
+                      type="button"
+                      onClick={() => toggleDropdown(item.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'ArrowDown') setOpenDropdown(item.id);
+                      }}
+                      aria-haspopup="menu"
+                      aria-expanded={isOpen}
+                      aria-controls={dropdownId}
+                      className={`${navLinkBase(isActive(item.href) || isOpen)} inline-flex items-center gap-1.5`}
                     >
-                      <span>{docsMainLabel}</span>
-                      <span className="text-[10px] font-700 uppercase tracking-[0.12em] opacity-60">
-                        {t('documentation.badge', { ns: 'portal', defaultValue: 'Guides' })}
-                      </span>
-                    </Link>
-                    {featuredHeaderDocs.length > 0 ? (
+                      <span>{getTranslatedPublicNavLabel(item.href, item.label, t)}</span>
+                      <ChevronDown
+                        size={14}
+                        className={`transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                      />
+                    </button>
+                    {isOpen ? (
                       <div
-                        className={`mt-1 flex flex-col gap-0.5 pt-1 ${
-                          isHomePage ? 'border-t border-slate-100' : 'border-t border-border'
-                        }`}
+                        id={dropdownId}
+                        role="menu"
+                        className="absolute right-0 top-[calc(100%+0.25rem)] z-50 w-[18rem] rounded-2xl border border-border bg-card p-2 shadow-card-lg"
                       >
-                        {featuredHeaderDocs.map((a) => (
-                          <Link
-                            role="menuitem"
-                            key={`feat-${a.id}`}
-                            href={a.href}
-                            onClick={() => setDocsDropdownOpen(false)}
-                            className={`block rounded-xl px-3 py-2 text-sm transition-colors ${
-                              isHomePage
-                                ? 'text-slate-600 hover:bg-slate-100 hover:text-slate-950'
-                                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                        <Link
+                          role="menuitem"
+                          href={item.href}
+                          onClick={() => setOpenDropdown(null)}
+                          className={`flex items-center justify-between gap-2 rounded-xl px-3 py-2 text-sm font-700 transition-colors ${
+                            isActive(item.href)
+                              ? isHomePage
+                                ? 'bg-cyan-50 text-cyan-700'
+                                : 'text-accent bg-accent/8'
+                              : isHomePage
+                                ? 'text-slate-700 hover:bg-slate-100 hover:text-slate-950'
+                                : 'text-foreground hover:bg-muted/60'
+                          }`}
+                        >
+                          <span>{getTranslatedPublicNavLabel(item.href, item.label, t)}</span>
+                          <span className="text-[10px] font-700 uppercase tracking-[0.12em] opacity-60">
+                            {t('documentation.badge', { ns: 'portal', defaultValue: 'Overview' })}
+                          </span>
+                        </Link>
+                        {item.children && item.children.length > 0 ? (
+                          <div
+                            className={`mt-1 flex flex-col gap-0.5 pt-1 ${
+                              isHomePage ? 'border-t border-slate-100' : 'border-t border-border'
                             }`}
                           >
-                            <span className="line-clamp-2">{a.title}</span>
-                          </Link>
-                        ))}
+                            {item.children.map((child) => (
+                              <Link
+                                role="menuitem"
+                                key={child.id}
+                                href={child.href}
+                                onClick={() => setOpenDropdown(null)}
+                                className={`block rounded-xl px-3 py-2 text-sm transition-colors ${
+                                  isHomePage
+                                    ? 'text-slate-600 hover:bg-slate-100 hover:text-slate-950'
+                                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                                }`}
+                              >
+                                <span className="line-clamp-2">
+                                  {getTranslatedPublicNavLabel(child.href, child.label, t)}
+                                </span>
+                              </Link>
+                            ))}
+                          </div>
+                        ) : null}
                       </div>
                     ) : null}
                   </div>
-                ) : null}
-              </div>
-            ) : null}
+                );
+              }
+              return (
+                <Link
+                  key={item.id}
+                  href={item.href}
+                  className={navLinkBase(isActive(item.href))}
+                >
+                  {getTranslatedPublicNavLabel(item.href, item.label, t)}
+                </Link>
+              );
+            })}
           </nav>
 
           {/* Desktop right actions */}
@@ -333,33 +319,92 @@ export default function PublicHeader() {
                   </div>
                 )}
                 <div className="max-h-[calc(100dvh-7.5rem)] overflow-y-auto pr-1 space-y-1">
-                  {headerMenuLinks.map((item) => (
-                    <Link
-                      key={item.id}
-                      href={item.href}
-                      onClick={() => setMobileOpen(false)}
-                      className={`block px-3.5 py-3 rounded-xl text-sm font-600 transition-colors ${
-                        isActive(item.href)
-                          ? isHomePage
-                            ? 'border border-cyan-200 bg-cyan-50 text-cyan-700'
-                            : 'text-accent bg-accent/8 border border-accent/15'
-                          : isHomePage
-                            ? 'border border-transparent text-slate-700 hover:bg-slate-100 hover:text-slate-950'
-                            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-transparent'
-                      }`}
-                    >
-                      {getTranslatedPublicNavLabel(item.href, item.label, t)}
-                    </Link>
-                  ))}
-                  {docsMenuEntry ? (
-                    <div>
-                      <button
-                        type="button"
-                        onClick={() => setMobileDocsOpen((v) => !v)}
-                        aria-expanded={mobileDocsOpen}
-                        aria-controls="public-mobile-docs-sub"
-                        className={`flex w-full items-center justify-between gap-2 px-3.5 py-3 rounded-xl text-sm font-600 transition-colors ${
-                          isActive(DOCS_HREF) || mobileDocsOpen
+                  {headerMenuLinks.map((item) => {
+                    const withChildren = hasChildren(item);
+                    const mobileChildOpen = Boolean(mobileParentOpen[item.id]);
+                    if (withChildren) {
+                      return (
+                        <div key={item.id}>
+                          <button
+                            type="button"
+                            onClick={() => toggleMobileParent(item.id)}
+                            aria-expanded={mobileChildOpen}
+                            aria-controls={`public-mobile-sub-${item.id}`}
+                            className={`flex w-full items-center justify-between gap-2 px-3.5 py-3 rounded-xl text-sm font-600 transition-colors ${
+                              isActive(item.href) || mobileChildOpen
+                                ? isHomePage
+                                  ? 'border border-cyan-200 bg-cyan-50 text-cyan-700'
+                                  : 'text-accent bg-accent/8 border border-accent/15'
+                                : isHomePage
+                                  ? 'border border-transparent text-slate-700 hover:bg-slate-100 hover:text-slate-950'
+                                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-transparent'
+                            }`}
+                          >
+                            <span>{getTranslatedPublicNavLabel(item.href, item.label, t)}</span>
+                            <ChevronDown
+                              size={16}
+                              className={`transition-transform ${mobileChildOpen ? 'rotate-180' : ''}`}
+                            />
+                          </button>
+                          {mobileChildOpen ? (
+                            <div
+                              id={`public-mobile-sub-${item.id}`}
+                              className={`mt-1 mb-2 space-y-1 rounded-2xl border px-2 py-2 ${
+                                isHomePage ? 'border-slate-200 bg-slate-50' : 'border-border bg-background'
+                              }`}
+                            >
+                              <Link
+                                href={item.href}
+                                onClick={() => setMobileOpen(false)}
+                                className={`block rounded-xl px-3 py-2 text-sm font-700 transition-colors ${
+                                  isHomePage
+                                    ? 'text-cyan-700 hover:bg-white'
+                                    : 'text-accent hover:bg-card'
+                                }`}
+                              >
+                                <span className="inline-flex items-center gap-1.5">
+                                  {getTranslatedPublicNavLabel(item.href, item.label, t)}
+                                  <span className="text-[10px] font-700 uppercase tracking-[0.12em] opacity-60">
+                                    {t('documentation.badge', { ns: 'portal', defaultValue: 'Overview' })}
+                                  </span>
+                                </span>
+                              </Link>
+                              {item.children && item.children.length > 0 ? (
+                                <div
+                                  className={`mt-1 space-y-0.5 pt-1 ${
+                                    isHomePage ? 'border-t border-slate-200' : 'border-t border-border'
+                                  }`}
+                                >
+                                  {item.children.map((child) => (
+                                    <Link
+                                      key={child.id}
+                                      href={child.href}
+                                      onClick={() => setMobileOpen(false)}
+                                      className={`block rounded-xl px-3 py-2 text-sm transition-colors ${
+                                        isHomePage
+                                          ? 'text-slate-600 hover:bg-white hover:text-slate-950'
+                                          : 'text-muted-foreground hover:text-foreground hover:bg-card'
+                                      }`}
+                                    >
+                                      <span className="line-clamp-2">
+                                        {getTranslatedPublicNavLabel(child.href, child.label, t)}
+                                      </span>
+                                    </Link>
+                                  ))}
+                                </div>
+                              ) : null}
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    }
+                    return (
+                      <Link
+                        key={item.id}
+                        href={item.href}
+                        onClick={() => setMobileOpen(false)}
+                        className={`block px-3.5 py-3 rounded-xl text-sm font-600 transition-colors ${
+                          isActive(item.href)
                             ? isHomePage
                               ? 'border border-cyan-200 bg-cyan-50 text-cyan-700'
                               : 'text-accent bg-accent/8 border border-accent/15'
@@ -368,61 +413,10 @@ export default function PublicHeader() {
                               : 'text-muted-foreground hover:text-foreground hover:bg-muted/50 border border-transparent'
                         }`}
                       >
-                        <span>{docsMainLabel}</span>
-                        <ChevronDown
-                          size={16}
-                          className={`transition-transform ${mobileDocsOpen ? 'rotate-180' : ''}`}
-                        />
-                      </button>
-                      {mobileDocsOpen ? (
-                        <div
-                          id="public-mobile-docs-sub"
-                          className={`mt-1 mb-2 space-y-1 rounded-2xl border px-2 py-2 ${
-                            isHomePage ? 'border-slate-200 bg-slate-50' : 'border-border bg-background'
-                          }`}
-                        >
-                          <Link
-                            href={DOCS_HREF}
-                            onClick={() => setMobileOpen(false)}
-                            className={`block rounded-xl px-3 py-2 text-sm font-700 transition-colors ${
-                              isHomePage
-                                ? 'text-cyan-700 hover:bg-white'
-                                : 'text-accent hover:bg-card'
-                            }`}
-                          >
-                            <span className="inline-flex items-center gap-1.5">
-                              {docsMainLabel}
-                              <span className="text-[10px] font-700 uppercase tracking-[0.12em] opacity-60">
-                                {t('documentation.badge', { ns: 'portal', defaultValue: 'Guides' })}
-                              </span>
-                            </span>
-                          </Link>
-                          {featuredHeaderDocs.length > 0 ? (
-                            <div
-                              className={`mt-1 space-y-0.5 pt-1 ${
-                                isHomePage ? 'border-t border-slate-200' : 'border-t border-border'
-                              }`}
-                            >
-                              {featuredHeaderDocs.map((a) => (
-                                <Link
-                                  key={`feat-mobile-${a.id}`}
-                                  href={a.href}
-                                  onClick={() => setMobileOpen(false)}
-                                  className={`block rounded-xl px-3 py-2 text-sm transition-colors ${
-                                    isHomePage
-                                      ? 'text-slate-600 hover:bg-white hover:text-slate-950'
-                                      : 'text-muted-foreground hover:text-foreground hover:bg-card'
-                                  }`}
-                                >
-                                  <span className="line-clamp-2">{a.title}</span>
-                                </Link>
-                              ))}
-                            </div>
-                          ) : null}
-                        </div>
-                      ) : null}
-                    </div>
-                  ) : null}
+                        {getTranslatedPublicNavLabel(item.href, item.label, t)}
+                      </Link>
+                    );
+                  })}
                   <div className={`mt-3 flex flex-col gap-2 pt-3 ${isHomePage ? 'border-t border-slate-200' : 'border-t border-border'}`}>
                     <Link
                       href="/sign-up-login?mode=login"
@@ -450,3 +444,4 @@ export default function PublicHeader() {
     </header>
   );
 }
+

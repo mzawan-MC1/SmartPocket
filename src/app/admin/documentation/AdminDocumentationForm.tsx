@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -18,7 +18,9 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import RichTextEditor from '@/components/cms/RichTextEditor';
+import RichTextEditor, {
+  type RichTextEditorHandle,
+} from '@/components/cms/RichTextEditor';
 import type {
   DocumentationArticleInput,
   DocumentationArticleRecord,
@@ -130,6 +132,7 @@ export default function AdminDocumentationForm({
   const [insertImageCaption, setInsertImageCaption] = React.useState('');
   const [insertImageAlt, setInsertImageAlt] = React.useState('');
   const [insertImageUploading, setInsertImageUploading] = React.useState(false);
+  const editorRef = useRef<RichTextEditorHandle>(null);
 
   const providerDisabledMessage = React.useMemo(() => {
     if (!translation) return null;
@@ -661,6 +664,7 @@ export default function AdminDocumentationForm({
                 </button>
               </div>
               <RichTextEditor
+                ref={editorRef}
                 value={form.content_html}
                 onChange={(html) => updateField('content_html', html)}
                 placeholder={tp(
@@ -826,12 +830,14 @@ export default function AdminDocumentationForm({
                         ? `<figure style="margin:1.25rem 0; display:flex; flex-direction:column; align-items:center; gap:0.5rem;">${imgTag}<figcaption style="font-size:0.8rem; text-align:center; color:inherit; opacity:0.8;">${caption}</figcaption></figure>`
                         : imgTag;
 
-                      const previous = form.content_html || '';
-                      const next = previous
-                        ? `${previous}${previous.endsWith('\n') ? '' : '\n'}${block}\n`
-                        : `${block}\n`;
-
-                      updateField('content_html', next);
+                      const insertResult = editorRef.current?.insertHtmlAtSelection(block);
+                      if (!insertResult || insertResult.inserted === false) {
+                        const previous = form.content_html || '';
+                        const next = previous
+                          ? `${previous}${previous.endsWith('\n') ? '' : '\n'}${block}\n`
+                          : `${block}\n`;
+                        updateField('content_html', next);
+                      }
                       toast.success(
                         tp('adminDocumentation.toast.imageInserted', 'Image inserted into document content.')
                       );
@@ -935,15 +941,29 @@ export default function AdminDocumentationForm({
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 pt-2">
-              <label className="flex items-center justify-between gap-2 rounded-xl border border-border bg-card px-3 py-2 text-xs cursor-pointer">
+            <div className="grid grid-cols-1 gap-3 pt-2">
+              <div className="rounded-xl border border-info/15 bg-info/5 px-3 py-2 text-[11px] text-info">
+                <span className="font-700">Header navigation</span>
+                <span className="mx-1 opacity-70">·</span>
+                <span>
+                  Add documentation links to the public header (including submenu children) from{' '}
+                  <Link href="/admin/cms?tab=header" className="underline underline-offset-2">
+                    Admin → CMS → Header Menu
+                  </Link>
+                  . The direct "Featured in header" toggle below is no longer used.
+                </span>
+              </div>
+              <label className="flex items-center justify-between gap-2 rounded-xl border border-border bg-card px-3 py-2 text-xs cursor-pointer opacity-60">
                 <span className="font-700 text-muted-foreground">
                   {tp('adminDocumentation.field.featuredInHeader', 'Featured in header')}
+                  <span className="ms-1.5 text-[10px] font-500 text-muted-foreground/70 normal-case tracking-normal">
+                    (managed in CMS Header Menu)
+                  </span>
                 </span>
                 <input
                   type="checkbox"
-                  checked={form.featured_in_header}
-                  onChange={(e) => updateField('featured_in_header', e.target.checked)}
+                  disabled
+                  checked={false}
                   className="h-4 w-4 accent-info"
                 />
               </label>

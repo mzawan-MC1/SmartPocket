@@ -8,6 +8,7 @@ export interface PlatformNavLink {
   id: string;
   label: string;
   href: string;
+  children?: PlatformNavLink[];
 }
 
 export interface PlatformFooterSection {
@@ -203,7 +204,14 @@ export const DEFAULT_HEADER_MENU: PlatformNavLink[] = [
   { id: 'hm-about', label: 'About', href: '/home#about' },
   { id: 'hm-features', label: 'Features', href: '/home#features' },
   { id: 'hm-pricing', label: 'Pricing', href: '/home#pricing' },
-  { id: 'hm-documentation', label: 'Documentation', href: '/help/documentation' },
+  {
+    id: 'hm-documentation',
+    label: 'Documentation',
+    href: '/help/documentation',
+    children: [
+      { id: 'hm-docs-main', label: 'All guides', href: '/help/documentation' },
+    ],
+  },
   { id: 'hm-contact', label: 'Contact', href: '/contact' },
 ];
 
@@ -542,25 +550,53 @@ export function normalizeSeoKeywordList(value: unknown, fallback: string[] = [])
 function normalizeNavLinks(value: unknown, fallback: PlatformNavLink[]) {
   if (!Array.isArray(value)) return fallback;
   const seenDestinations = new Set<string>();
-  const links = value
-    .filter(isObject)
-    .map((entry, index) => ({
-      id: typeof entry.id === 'string' && entry.id.trim() ? entry.id.trim() : `link-${index}`,
-      label: typeof entry.label === 'string' && entry.label.trim() ? entry.label.trim() : '',
-      href: typeof entry.href === 'string' && entry.href.trim() ? normalizePublicNavHref(entry.href.trim()) : '',
-    }))
-    .filter((entry) => {
-      if (!entry.label || !entry.href) {
-        return false;
+  const walk = (entry: unknown, index: number): PlatformNavLink | null => {
+    if (!isObject(entry)) return null;
+    const id = typeof entry.id === 'string' && entry.id.trim() ? entry.id.trim() : `link-${index}`;
+    const label = typeof entry.label === 'string' && entry.label.trim() ? entry.label.trim() : '';
+    const href = typeof entry.href === 'string' && entry.href.trim() ? normalizePublicNavHref(entry.href.trim()) : '';
+    if (!label || !href) return null;
+    if (seenDestinations.has(href)) return null;
+    seenDestinations.add(href);
+    const normalized: PlatformNavLink = { id, label, href };
+    if (Array.isArray(entry.children)) {
+      const childSeen = new Set<string>();
+      const children: PlatformNavLink[] = [];
+      for (let i = 0; i < entry.children.length; i++) {
+        const rawChild = entry.children[i];
+        if (!isObject(rawChild)) continue;
+        const childId =
+          typeof rawChild.id === 'string' && rawChild.id.trim()
+            ? rawChild.id.trim()
+            : `${id}-child-${i}`;
+        const childLabel =
+          typeof rawChild.label === 'string' && rawChild.label.trim() ? rawChild.label.trim() : '';
+        const childHref =
+          typeof rawChild.href === 'string' && rawChild.href.trim()
+            ? normalizePublicNavHref(rawChild.href.trim())
+            : '';
+        if (!childLabel || !childHref) continue;
+        if (childSeen.has(childHref)) continue;
+        childSeen.add(childHref);
+        const grandchildChildren = Array.isArray((rawChild as any).children)
+          ? (rawChild as any).children
+          : undefined;
+        const child: PlatformNavLink = { id: childId, label: childLabel, href: childHref };
+        if (grandchildChildren) {
+          const deepWalk = walk(rawChild, i);
+          if (deepWalk?.children?.length) child.children = deepWalk.children;
+        }
+        children.push(child);
       }
-
-      if (seenDestinations.has(entry.href)) {
-        return false;
-      }
-
-      seenDestinations.add(entry.href);
-      return true;
-    });
+      if (children.length > 0) normalized.children = children;
+    }
+    return normalized;
+  };
+  const links: PlatformNavLink[] = [];
+  value.forEach((entry, idx) => {
+    const normalized = walk(entry, idx);
+    if (normalized) links.push(normalized);
+  });
   return links.length > 0 ? links : fallback;
 }
 

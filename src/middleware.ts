@@ -161,6 +161,7 @@ export async function middleware(request: NextRequest) {
     '/terms',
     '/offline',
     '/invite',
+    '/help/documentation',
   ];
 
   const isPublicRoute =
