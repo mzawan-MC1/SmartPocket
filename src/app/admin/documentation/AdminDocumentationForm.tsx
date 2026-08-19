@@ -18,9 +18,9 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import RichTextEditor, {
-  type RichTextEditorHandle,
-} from '@/components/cms/RichTextEditor';
+import DocumentationTipTapEditor, {
+  type DocumentationTipTapEditorHandle,
+} from '@/components/documentation/DocumentationTipTapEditor';
 import type {
   DocumentationArticleInput,
   DocumentationArticleRecord,
@@ -132,7 +132,7 @@ export default function AdminDocumentationForm({
   const [insertImageCaption, setInsertImageCaption] = React.useState('');
   const [insertImageAlt, setInsertImageAlt] = React.useState('');
   const [insertImageUploading, setInsertImageUploading] = React.useState(false);
-  const editorRef = useRef<RichTextEditorHandle>(null);
+  const editorRef = useRef<DocumentationTipTapEditorHandle>(null);
 
   const providerDisabledMessage = React.useMemo(() => {
     if (!translation) return null;
@@ -663,7 +663,7 @@ export default function AdminDocumentationForm({
                   {tp('adminDocumentation.actions.insertScreenshot', 'Insert screenshot')}
                 </button>
               </div>
-              <RichTextEditor
+              <DocumentationTipTapEditor
                 ref={editorRef}
                 value={form.content_html}
                 onChange={(html) => updateField('content_html', html)}
@@ -671,7 +671,7 @@ export default function AdminDocumentationForm({
                   'adminDocumentation.field.contentPlaceholder',
                   'Write clear, simple steps. Use headings, short paragraphs, and numbered or bulleted lists.'
                 )}
-                editorClassName="min-h-[320px]"
+                editorClassName="min-h-[420px]"
               />
               {fieldError('content_html') ? (
                 <p className="mt-1 text-xs text-negative">{fieldError('content_html')}</p>
@@ -818,20 +818,20 @@ export default function AdminDocumentationForm({
                       }
 
                       const url: string = String(json?.url || '');
-                      const alt: string = String(
+                      const altRaw: string = String(
                         json?.alt || insertImageAlt.trim() || insertImageCaption.trim() || insertImageFile.name
-                      ).replace(/"/g, '&quot;');
-                      const caption: string = String(json?.caption || insertImageCaption.trim() || '');
+                      );
+                      const alt = altRaw.replace(/"/g, '&quot;').trim();
+                      const caption: string = String(json?.caption || insertImageCaption.trim() || '').trim();
                       if (!url) throw new Error('Upload succeeded but returned no URL.');
 
-                      const safeUrl = url.replace(/"/g, '%22');
-                      const imgTag = `<img src="${safeUrl}" alt="${alt}" loading="lazy" />`;
-                      const block = caption
-                        ? `<figure style="margin:1.25rem 0; display:flex; flex-direction:column; align-items:center; gap:0.5rem;">${imgTag}<figcaption style="font-size:0.8rem; text-align:center; color:inherit; opacity:0.8;">${caption}</figcaption></figure>`
-                        : imgTag;
-
-                      const insertResult = editorRef.current?.insertHtmlAtSelection(block);
+                      const insertResult = editorRef.current?.insertImageAtSelection(url, alt, caption);
                       if (!insertResult || insertResult.inserted === false) {
+                        const safeUrl = url.replace(/"/g, '%22');
+                        const imgTag = `<img src="${safeUrl}" alt="${alt}" loading="lazy" />`;
+                        const block = caption
+                          ? `<figure style="margin:1.25rem 0; display:flex; flex-direction:column; align-items:center; gap:0.5rem;">${imgTag}<figcaption style="font-size:0.8rem; text-align:center; color:inherit; opacity:0.8;">${caption.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</figcaption></figure>`
+                          : imgTag;
                         const previous = form.content_html || '';
                         const next = previous
                           ? `${previous}${previous.endsWith('\n') ? '' : '\n'}${block}\n`

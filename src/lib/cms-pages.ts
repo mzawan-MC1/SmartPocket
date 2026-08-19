@@ -140,6 +140,8 @@ const ALLOWED_TAGS = new Set([
   'code',
   'div',
   'em',
+  'figcaption',
+  'figure',
   'h1',
   'h2',
   'h3',
@@ -147,6 +149,8 @@ const ALLOWED_TAGS = new Set([
   'h5',
   'h6',
   'hr',
+  'i',
+  'img',
   'li',
   'ol',
   'p',
@@ -157,7 +161,7 @@ const ALLOWED_TAGS = new Set([
   'ul',
 ]);
 
-const SELF_CLOSING_TAGS = new Set(['br', 'hr']);
+const SELF_CLOSING_TAGS = new Set(['br', 'hr', 'img']);
 
 function escapeHtml(value: string) {
   return value
@@ -166,6 +170,15 @@ function escapeHtml(value: string) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
+}
+
+function isSafeImageUrl(url: string): boolean {
+  const trimmed = String(url || '').trim();
+  if (!trimmed) return false;
+  if (trimmed.startsWith('/')) return true;
+  if (/^https?:\/\//i.test(trimmed)) return true;
+  if (/^data:image\/(png|jpe?g|gif|webp|svg\+xml);base64,/i.test(trimmed)) return true;
+  return false;
 }
 
 function sanitizeAttributes(tagName: string, attrs: string) {
@@ -185,8 +198,39 @@ function sanitizeAttributes(tagName: string, attrs: string) {
         ? href
         : '#';
 
-    const isExternal = safeHref.startsWith('http://') || safeHref.startsWith('https://');
-    return ` href="${escapeHtml(safeHref)}"${isExternal ? ' target="_blank" rel="noopener noreferrer"' : ''}`;
+    const targetMatch = attrs.match(/\btarget\s*=\s*(["'])(.*?)\1/i);
+    const targetValue = targetMatch?.[2]?.trim() || '';
+    const explicitTarget =
+      targetValue === '_blank' || targetValue === '_self' || targetValue === '_top'
+        ? targetValue
+        : '';
+
+    const isExternal =
+      safeHref.startsWith('http://') || safeHref.startsWith('https://');
+    const effectiveTarget = explicitTarget || (isExternal ? '_blank' : '');
+    const relAttr = effectiveTarget === '_blank' ? ' rel="noopener noreferrer"' : '';
+    return (
+      ` href="${escapeHtml(safeHref)}"` +
+      (effectiveTarget ? ` target="${escapeHtml(effectiveTarget)}"` : '') +
+      relAttr
+    );
+  }
+
+  if (tagName === 'img') {
+    const srcMatch = attrs.match(/\bsrc\s*=\s*(["'])(.*?)\1/i);
+    const altMatch = attrs.match(/\balt\s*=\s*(["'])(.*?)\1/i);
+    const loadingMatch = attrs.match(/\bloading\s*=\s*(["'])(.*?)\1/i);
+    const src = srcMatch?.[2]?.trim() || '';
+    const alt = altMatch?.[2]?.trim() || '';
+    const loading = loadingMatch?.[2]?.trim() || '';
+
+    if (!isSafeImageUrl(src)) {
+      return '';
+    }
+    const safeSrc = escapeHtml(src);
+    const safeAlt = escapeHtml(alt.replace(/\s+/g, ' ').trim());
+    const safeLoading = loading === 'lazy' || loading === 'eager' ? loading : 'lazy';
+    return ` src="${safeSrc}" alt="${safeAlt}" loading="${safeLoading}"`;
   }
 
   return '';

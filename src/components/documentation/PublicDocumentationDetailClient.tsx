@@ -115,7 +115,30 @@ export default function PublicDocumentationDetailClient({
           <div className="mx-auto max-w-3xl">
             <CmsHtml
               html={article.contentHtml}
-              className={`prose prose-slate max-w-none text-[0.95rem] leading-[1.75] text-muted-foreground [&_a]:text-accent [&_a]:no-underline hover:[&_a]:underline [&_h1]:text-foreground [&_h1]:text-2xl [&_h1]:font-800 [&_h2]:text-foreground [&_h2]:text-xl [&_h2]:font-800 [&_h3]:text-foreground [&_h3]:text-lg [&_h3]:font-800 [&_ol]:ps-6 [&_ul]:ps-6 [&_p]:text-foreground/85 [&_p]:my-4 [&_blockquote]:border-s-4 [&_blockquote]:border-accent/40 [&_blockquote]:bg-accent/5 [&_blockquote]:ps-4 [&_blockquote]:py-2 [&_blockquote]:text-foreground/80 [&_blockquote]:my-4 [&_code]:rounded-md [&_code]:bg-slate-100 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-xs [&_code]:text-slate-900 dark:[&_code]:text-slate-100 [&_code]:ring-1 [&_code]:ring-slate-200 [&_pre]:overflow-x-auto [&_pre]:rounded-2xl [&_pre]:border [&_pre]:border-border [&_pre]:bg-muted/30 [&_pre]:p-4 [&_pre]:font-mono [&_pre]:text-xs [&_pre_code]:!bg-transparent [&_pre_code]:!p-0 [&_pre_code]:!ring-0 [&_pre_code]:!text-slate-900 dark:[&_pre_code]:!text-slate-100 [&_hr]:my-6 [&_hr]:border-border [&_img]:w-full [&_img]:h-auto [&_img]:max-w-full [&_img]:rounded-2xl [&_img]:border [&_img]:border-border [&_img]:shadow-sm [&_img]:my-5 [&_figure]:my-6 [&_figure]:flex [&_figure]:flex-col [&_figure]:items-center [&_figure_img]:my-2 [&_figcaption]:mt-2 [&_figcaption]:text-xs [&_figcaption]:text-center [&_figcaption]:text-muted-foreground ${contentIsRtl ? 'text-right' : 'text-left'}`}
+              className={`prose prose-slate max-w-none text-[0.95rem] leading-[1.75] text-muted-foreground
+                [&_a]:text-accent [&_a]:no-underline hover:[&_a]:underline
+                [&_h1]:text-foreground [&_h1]:text-2xl [&_h1]:font-800 [&_h1]:mt-6 [&_h1]:mb-3
+                [&_h2]:text-foreground [&_h2]:text-xl [&_h2]:font-800 [&_h2]:mt-6 [&_h2]:mb-3
+                [&_h3]:text-foreground [&_h3]:text-lg [&_h3]:font-800 [&_h3]:mt-5 [&_h3]:mb-2
+                [&_h4]:text-foreground [&_h4]:mt-4 [&_h4]:mb-2 [&_h4]:font-700
+                [&_ol]:!list-decimal [&_ol]:my-4 [&_ol]:space-y-1 [&_ol_li]:ps-2 [&_ol]:ps-6
+                [&_ul]:!list-disc [&_ul]:my-4 [&_ul]:space-y-1 [&_ul_li]:ps-2 [&_ul]:ps-6
+                [&_ol_ol]:mt-2 [&_ol_ul]:mt-2 [&_ul_ul]:mt-2 [&_ul_ol]:mt-2
+                [&_ol_ol]:!list-[lower-alpha] [&_ul_ul]:!list-circle
+                [&_li]:leading-7
+                [&_p]:text-foreground/85 [&_p]:my-4
+                [&_blockquote]:border-s-4 [&_blockquote]:border-accent/40 [&_blockquote]:bg-accent/5 [&_blockquote]:ps-4 [&_blockquote]:py-2 [&_blockquote]:text-foreground/80 [&_blockquote]:my-5 [&_blockquote]:rounded-e-lg
+                [&_strong]:text-foreground [&_strong]:font-800
+                [&_u]:underline [&_u]:decoration-accent/40 [&_u]:decoration-2 [&_u]:underline-offset-4
+                [&_em]:italic
+                [&_code]:rounded-md [&_code]:bg-slate-100 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-xs [&_code]:text-slate-900 dark:[&_code]:text-slate-100 [&_code]:ring-1 [&_code]:ring-slate-200
+                [&_pre]:overflow-x-auto [&_pre]:rounded-2xl [&_pre]:border [&_pre]:border-border [&_pre]:bg-muted/30 [&_pre]:p-4 [&_pre]:font-mono [&_pre]:text-xs
+                [&_pre_code]:!bg-transparent [&_pre_code]:!p-0 [&_pre_code]:!ring-0 [&_pre_code]:!text-slate-900 dark:[&_pre_code]:!text-slate-100
+                [&_hr]:my-6 [&_hr]:border-border
+                [&_img]:w-full [&_img]:h-auto [&_img]:max-w-full [&_img]:rounded-2xl [&_img]:border [&_img]:border-border/70 [&_img]:shadow-sm [&_img]:my-5 [&_img]:mx-auto
+                [&_figure]:my-6 [&_figure]:flex [&_figure]:flex-col [&_figure]:items-center [&_figure_img]:my-2 [&_figure_img]:w-full [&_figure_img]:rounded-2xl [&_figure_img]:border [&_figure_img]:border-border/70 [&_figure_img]:shadow-sm
+                [&_figcaption]:mt-2 [&_figcaption]:text-xs [&_figcaption]:text-center [&_figcaption]:text-muted-foreground
+                ${contentIsRtl ? 'text-right' : 'text-left'}`}
             />
           </div>
         </div>
