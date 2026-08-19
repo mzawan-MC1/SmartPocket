@@ -118,6 +118,18 @@ export default function AdminDocumentationForm({
   const stopProcessingRef = React.useRef(false);
   const [stopProcessing, setStopProcessing] = React.useState(false);
 
+  const providerDisabledMessage = React.useMemo(() => {
+    if (!translation) return null;
+    const known = translation.statuses.find(
+      (s) =>
+        s.status === 'failed' &&
+        s.errorMessage &&
+        (s.errorMessage.includes('OPENROUTER_ENABLED') ||
+          s.errorMessage.includes('OpenRouter provider is disabled'))
+    );
+    return known?.errorMessage || null;
+  }, [translation]);
+
   const tp = React.useCallback(
     (key: string, defaultValue: string, options?: Record<string, unknown>) =>
       t(key, { ns: 'portal', defaultValue, ...options }),
@@ -500,6 +512,26 @@ export default function AdminDocumentationForm({
               ) : null}
             </div>
           </div>
+
+          {providerDisabledMessage ? (
+            <div className="rounded-2xl border border-warning/40 bg-warning/[0.05] px-4 py-3 text-sm text-warning flex items-start gap-2">
+              <ShieldAlert size={16} className="mt-0.5 shrink-0" />
+              <div className="min-w-0">
+                <p className="font-700 text-foreground text-xs uppercase tracking-[0.12em]">
+                  {tp('adminDocumentation.errors.translationProcessor', 'Translation provider configuration required')}
+                </p>
+                <p className="mt-1 text-[13px] leading-5 text-warning-foreground/90">
+                  {providerDisabledMessage}
+                </p>
+                <p className="mt-1 text-[12px] leading-5 text-muted-foreground">
+                  {tp(
+                    'adminDocumentation.errors.providerHint',
+                    'Regenerate Translations and Backfill Translations will keep failing until this environment variable is set correctly on the server and the deployment is restarted.'
+                  )}
+                </p>
+              </div>
+            </div>
+          ) : null}
 
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
             {translation.statuses.map((row) => (

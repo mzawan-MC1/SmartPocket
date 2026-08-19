@@ -5,6 +5,16 @@ import { SUPPORTED_LANGUAGE_CODES } from '@/i18n/registry';
 export const DOCUMENTATION_LANGUAGES = SUPPORTED_LANGUAGE_CODES;
 export type DocumentationLanguageCode = (typeof DOCUMENTATION_LANGUAGES)[number];
 
+export function isDocumentationContentRtl(localeCode: DocumentationLanguageCode | string): boolean {
+  return String(localeCode).toLowerCase() === 'ar';
+}
+
+export function documentationContentDir(
+  localeCode: DocumentationLanguageCode | string
+): 'rtl' | 'ltr' {
+  return isDocumentationContentRtl(localeCode) ? 'rtl' : 'ltr';
+}
+
 export type DocumentationStatus = 'draft' | 'published';
 
 export const DOCUMENTATION_CATEGORIES = [

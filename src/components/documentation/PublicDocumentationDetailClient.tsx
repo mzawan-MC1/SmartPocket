@@ -9,6 +9,8 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import Badge from '@/components/ui/Badge';
 import CmsHtml from '@/components/cms/CmsHtml';
 import {
+  documentationContentDir,
+  isDocumentationContentRtl,
   normalizeDocumentationLanguage,
   type DocumentationLanguageCode,
   type PublicDocumentationArticle,
@@ -33,7 +35,10 @@ export default function PublicDocumentationDetailClient({
   const activeLanguage = normalizeDocumentationLanguage(language);
   const resolvedData = dataByLanguage[activeLanguage] || dataByLanguage.en;
   const article = resolvedData.article;
-  const isRtl = dir === 'rtl';
+
+  const contentLocale = resolvedData.effectiveLocale;
+  const contentDir = documentationContentDir(contentLocale);
+  const contentIsRtl = isDocumentationContentRtl(contentLocale);
 
   if (!article) {
     return null;
@@ -70,7 +75,7 @@ export default function PublicDocumentationDetailClient({
         </Link>
       </nav>
 
-      <article className="overflow-hidden rounded-[28px] border border-border bg-card shadow-card-sm">
+      <article dir={contentDir} className="mx-auto max-w-4xl overflow-hidden rounded-[28px] border border-border bg-card shadow-card-sm">
         <header className="border-b border-border px-5 py-6 sm:px-8 sm:py-8">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
@@ -84,10 +89,10 @@ export default function PublicDocumentationDetailClient({
                   </span>
                 ) : null}
               </div>
-              <h1 className="mt-4 text-2xl font-800 text-foreground sm:text-3xl">
+              <h1 className={`mt-4 text-2xl font-800 text-foreground sm:text-3xl ${contentIsRtl ? 'text-right' : 'text-left'}`}>
                 {article.title}
               </h1>
-              <p className="mt-3 text-sm leading-6 text-muted-foreground sm:text-base sm:leading-7">
+              <p className={`mt-3 text-sm leading-6 text-muted-foreground sm:text-base sm:leading-7 ${contentIsRtl ? 'text-right' : 'text-left'}`}>
                 {article.summary}
               </p>
             </div>
@@ -97,11 +102,11 @@ export default function PublicDocumentationDetailClient({
           </div>
         </header>
 
-        <div dir={isRtl ? 'rtl' : 'ltr'} className="px-5 py-7 sm:px-8 sm:py-10">
+        <div dir={contentDir} className={`px-5 py-7 sm:px-8 sm:py-10 ${contentIsRtl ? 'text-right' : 'text-left'}`}>
           <div className="mx-auto max-w-3xl">
             <CmsHtml
               html={article.contentHtml}
-              className="prose prose-slate max-w-none text-[0.95rem] leading-[1.75] text-muted-foreground [&_a]:text-accent [&_a]:no-underline hover:[&_a]:underline [&_h1]:text-foreground [&_h1]:text-2xl [&_h1]:font-800 [&_h2]:text-foreground [&_h2]:text-xl [&_h2]:font-800 [&_h3]:text-foreground [&_h3]:text-lg [&_h3]:font-800 [&_ol]:ps-6 [&_p]:text-foreground/85 [&_p]:my-4 [&_ul]:ps-6 [&_blockquote]:border-l-4 [&_blockquote]:border-accent/40 [&_blockquote]:bg-accent/5 [&_blockquote]:ps-4 [&_blockquote]:py-2 [&_blockquote]:text-foreground/80 [&_blockquote]:my-4 [&_code]:rounded-md [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-xs [&_code]:text-accent-foreground [&_pre]:overflow-x-auto [&_pre]:rounded-2xl [&_pre]:border [&_pre]:border-border [&_pre]:bg-muted/30 [&_pre]:p-4 [&_pre]:font-mono [&_pre]:text-xs [&_hr]:my-6 [&_hr]:border-border"
+              className={`prose prose-slate max-w-none text-[0.95rem] leading-[1.75] text-muted-foreground [&_a]:text-accent [&_a]:no-underline hover:[&_a]:underline [&_h1]:text-foreground [&_h1]:text-2xl [&_h1]:font-800 [&_h2]:text-foreground [&_h2]:text-xl [&_h2]:font-800 [&_h3]:text-foreground [&_h3]:text-lg [&_h3]:font-800 [&_ol]:ps-6 [&_ul]:ps-6 [&_p]:text-foreground/85 [&_p]:my-4 [&_blockquote]:border-s-4 [&_blockquote]:border-accent/40 [&_blockquote]:bg-accent/5 [&_blockquote]:ps-4 [&_blockquote]:py-2 [&_blockquote]:text-foreground/80 [&_blockquote]:my-4 [&_code]:rounded-md [&_code]:bg-muted [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:font-mono [&_code]:text-xs [&_code]:text-accent-foreground [&_pre]:overflow-x-auto [&_pre]:rounded-2xl [&_pre]:border [&_pre]:border-border [&_pre]:bg-muted/30 [&_pre]:p-4 [&_pre]:font-mono [&_pre]:text-xs [&_hr]:my-6 [&_hr]:border-border ${contentIsRtl ? 'text-right' : 'text-left'}`}
             />
           </div>
         </div>

@@ -13,6 +13,8 @@ import EmptyState from '@/components/ui/EmptyState';
 import StatusBadge from '@/components/ui/StatusBadge';
 import CmsHtml from '@/components/cms/CmsHtml';
 import {
+  documentationContentDir,
+  isDocumentationContentRtl,
   normalizeDocumentationLanguage,
   type DocumentationLanguageCode,
   type PublicDocumentationArticle,
@@ -163,11 +165,15 @@ export default function PublicDocumentationClient({
         </section>
       ) : (
         <section className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredArticles.map((article) => (
+          {filteredArticles.map((article) => {
+            const cardDir = documentationContentDir(article.localeCode);
+            const cardIsRtl = isDocumentationContentRtl(article.localeCode);
+            return (
             <Link
               key={article.id}
               href={`/help/documentation/${article.slug}`}
-              className="card-elevated group flex h-full flex-col p-5 transition-shadow hover:shadow-card-md"
+              dir={cardDir}
+              className={`card-elevated group flex h-full flex-col p-5 transition-shadow hover:shadow-card-md ${cardIsRtl ? 'text-right' : 'text-left'}`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-accent/10 text-accent">
@@ -178,10 +184,10 @@ export default function PublicDocumentationClient({
                 ) : null}
               </div>
               <div className="mt-4 min-w-0 flex-1">
-                <h3 className="text-base font-800 text-foreground group-hover:text-accent transition-colors">
+                <h3 className={`text-base font-800 text-foreground group-hover:text-accent transition-colors ${cardIsRtl ? 'text-right' : 'text-left'}`}>
                   {article.title}
                 </h3>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground line-clamp-3">
+                <p className={`mt-2 text-sm leading-6 text-muted-foreground line-clamp-3 ${cardIsRtl ? 'text-right' : 'text-left'}`}>
                   {article.summary}
                 </p>
               </div>
@@ -192,7 +198,8 @@ export default function PublicDocumentationClient({
                 <ChevronRight size={16} className="text-accent" />
               </div>
             </Link>
-          ))}
+            );
+          })}
         </section>
       )}
 
