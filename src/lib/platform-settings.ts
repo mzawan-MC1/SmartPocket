@@ -203,6 +203,7 @@ export const DEFAULT_HEADER_MENU: PlatformNavLink[] = [
   { id: 'hm-about', label: 'About', href: '/home#about' },
   { id: 'hm-features', label: 'Features', href: '/home#features' },
   { id: 'hm-pricing', label: 'Pricing', href: '/home#pricing' },
+  { id: 'hm-documentation', label: 'Documentation', href: '/help/documentation' },
   { id: 'hm-contact', label: 'Contact', href: '/contact' },
 ];
 
@@ -221,6 +222,7 @@ export const DEFAULT_FOOTER_SECTIONS: PlatformFooterSection[] = [
     title: 'Learn',
     links: [
       { id: 'fl-blog', label: 'Blog', href: '/blog' },
+      { id: 'fl-documentation', label: 'Documentation', href: '/help/documentation' },
       { id: 'fl-ai-receipt-scanner', label: 'AI Receipt Scanner', href: '/ai-receipt-scanner' },
       { id: 'fl-ai-voice-expense-tracker', label: 'AI Voice Expense Tracker', href: '/ai-voice-expense-tracker' },
     ],

@@ -3037,7 +3037,11 @@
     "supportCtaTitle": "Hâlâ yardıma mı ihtiyacınız var?",
     "supportCtaDescription": "Bu kılavuz sorunuza yanıt vermediyse, bir destek bileti oluşturun, ekibimiz size yardımcı olsun.",
     "createTicketAction": "Destek bileti oluştur",
-    "readGuide": "Kılavuzu oku"
+    "readGuide": "Kılavuzu oku",
+    "continueLearning": "Öğrenmeye devam et",
+    "relatedArticles": "İlgili makaleler",
+    "noRelatedArticles": "Henüz ilgili kılavuz yok. Daha fazlasını keşfetmek için tüm belgeleri inceleyin.",
+    "learning": "Öğrenme"
   },
   "onboarding": {
     "title": "Smart Pocket'a Hoş Geldiniz",
@@ -4307,7 +4311,12 @@
       "regenerating": "Yeniden oluşturuluyor…",
       "backfillTranslations": "Çevirileri doldur",
       "backfilling": "Dolduruluyor…",
-      "stopBackfill": "Doldurmayı durdur"
+      "stopBackfill": "Doldurmayı durdur",
+      "insertScreenshot": "Ekran görüntüsü ekle",
+      "uploadImage": "Görsel / ekran görüntüsü yükle",
+      "uploadImageHelp": "Bir ekran görüntüsü yükleyin. Maks. 5 MB. PNG / JPG / WEBP / GIF.",
+      "browseFile": "Gözat",
+      "uploadAndInsert": "Yükle ve ekle"
     },
     "languages": {
       "en": "İngilizce",
@@ -4365,7 +4374,22 @@
       "statusDraft": "Yayınlanana kadar kullanıcılardan gizlenir.",
       "enabled": "Etkin",
       "enabledOn": "Yayınlanırsa görünebilir.",
-      "enabledOff": "Yayınlansa bile gizlenir."
+      "enabledOff": "Yayınlansa bile gizlenir.",
+      "featuredInFooter": "Altbilginde öne çıkar",
+      "featuredInFooterOn": "Bağlantı, yayınlandığında ve etkinleştirildiğinde genel sitenin altbilgisi «Öğrenme» bölümünde görünür.",
+      "featuredInFooterOff": "Bu makaleyi altbilgi öğrenme bölümünde listeleme.",
+      "featuredInHeader": "Üstbilginde öne çıkar",
+      "featuredInHeaderOn": "Bağlantı, yayınlandığında ve etkinleştirildiğinde genel sitenin üstbilgisi Belgeleme açılır menüsünde görünür.",
+      "featuredInHeaderOff": "Bu makaleyi üstbilgi öne çıkan bağlantılarına dahil etme.",
+      "featuredOrder": "Öne çıkarılma sırası",
+      "featuredOrderHelp": "Küçük sayılar öne çıkan listelerde önce görünür. Varsayılan için 0 bırakın.",
+      "imageFile": "Görsel dosyası",
+      "imageFilePlaceholder": "PNG / JPG / WEBP / GIF seç",
+      "imageAlt": "Alt metin",
+      "imageAltPlaceholder": "Erişilebilirlik ve ekran okuyucular için kısa açıklama",
+      "imageCaption": "Açıklama",
+      "imageCaptionPlaceholder": "Ekran görüntüsünün altında görünen kısa açıklama",
+      "optional": "isteğe bağlı"
     },
     "visibility": {
       "label": "Genel görünürlük",

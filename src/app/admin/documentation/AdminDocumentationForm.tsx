@@ -7,12 +7,14 @@ import {
   ArrowLeft,
   Check,
   Eye,
+  ImagePlus,
   Languages,
   Loader2,
   RefreshCw,
   Save,
   ShieldAlert,
   Square,
+  X,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -47,6 +49,9 @@ const createEmptyForm = (): FormState => ({
   status: 'draft',
   enabled: true,
   display_order: 0,
+  featured_in_footer: false,
+  featured_in_header: false,
+  featured_order: 0,
 });
 
 const recordToForm = (record: DocumentationArticleRecord): FormState => ({
@@ -59,6 +64,9 @@ const recordToForm = (record: DocumentationArticleRecord): FormState => ({
   status: record.status,
   enabled: record.enabled,
   display_order: record.display_order,
+  featured_in_footer: Boolean(record.featured_in_footer),
+  featured_in_header: Boolean(record.featured_in_header),
+  featured_order: Number(record.featured_order || 0),
 });
 
 function statusChipClass(status: string, hashMatch: boolean) {
@@ -117,6 +125,11 @@ export default function AdminDocumentationForm({
   const [processingProgress, setProcessingProgress] = React.useState({ completed: 0, total: 0, failed: 0 });
   const stopProcessingRef = React.useRef(false);
   const [stopProcessing, setStopProcessing] = React.useState(false);
+  const [insertImageOpen, setInsertImageOpen] = React.useState(false);
+  const [insertImageFile, setInsertImageFile] = React.useState<File | null>(null);
+  const [insertImageCaption, setInsertImageCaption] = React.useState('');
+  const [insertImageAlt, setInsertImageAlt] = React.useState('');
+  const [insertImageUploading, setInsertImageUploading] = React.useState(false);
 
   const providerDisabledMessage = React.useMemo(() => {
     if (!translation) return null;
@@ -633,6 +646,19 @@ export default function AdminDocumentationForm({
                 <label className="block text-xs font-700 uppercase tracking-[0.12em] text-muted-foreground">
                   {tp('adminDocumentation.field.content', 'Document content')} <span className="text-negative">*</span>
                 </label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInsertImageFile(null);
+                    setInsertImageCaption('');
+                    setInsertImageAlt('');
+                    setInsertImageOpen(true);
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-2.5 py-1.5 text-xs font-600 text-foreground transition-colors hover:bg-muted"
+                >
+                  <ImagePlus size={14} />
+                  {tp('adminDocumentation.actions.insertScreenshot', 'Insert screenshot')}
+                </button>
               </div>
               <RichTextEditor
                 value={form.content_html}
@@ -649,6 +675,195 @@ export default function AdminDocumentationForm({
             </div>
           </div>
         </div>
+
+        {insertImageOpen ? (
+          <div
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/45 px-4 backdrop-blur-[1px]"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="admin-doc-insert-image-title"
+            onClick={(e) => {
+              if (e.target === e.currentTarget && !insertImageUploading) {
+                setInsertImageOpen(false);
+              }
+            }}
+          >
+            <div className="w-full max-w-md rounded-2xl border border-border bg-card p-5 shadow-card-lg">
+              <div className="mb-4 flex items-start justify-between gap-3">
+                <div>
+                  <h3
+                    id="admin-doc-insert-image-title"
+                    className="text-sm font-800 text-foreground"
+                  >
+                    {tp('adminDocumentation.actions.uploadImage', 'Upload image / screenshot')}
+                  </h3>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {tp(
+                      'adminDocumentation.actions.uploadImageHelp',
+                      'PNG, JPG, WEBP or GIF. Maximum 5 MB. The image is inserted at the end of the current content.'
+                    )}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  disabled={insertImageUploading}
+                  onClick={() => setInsertImageOpen(false)}
+                  className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground disabled:opacity-50"
+                  aria-label="Close"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-xs font-700 text-muted-foreground mb-1.5">
+                    {tp('adminDocumentation.field.imageFile', 'Image file')} <span className="text-negative">*</span>
+                  </label>
+                  <label className="flex cursor-pointer items-center justify-between gap-3 rounded-xl border border-dashed border-border bg-background px-3 py-2.5 hover:border-accent/40">
+                    <span className="truncate text-xs text-muted-foreground">
+                      {insertImageFile
+                        ? `${insertImageFile.name} • ${Math.round(insertImageFile.size / 1024)} KB`
+                        : tp('adminDocumentation.field.imageFilePlaceholder', 'Choose a PNG / JPG / WEBP / GIF file')}
+                    </span>
+                    <span className="shrink-0 rounded-lg border border-border px-2 py-1 text-[11px] font-700 text-foreground">
+                      {tp('adminDocumentation.actions.browseFile', 'Browse')}
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/jpg,image/webp,image/gif"
+                      className="hidden"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0] ?? null;
+                        setInsertImageFile(f);
+                        if (f && !insertImageAlt) {
+                          const base = f.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim();
+                          setInsertImageAlt(base.slice(0, 200));
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-700 text-muted-foreground mb-1.5">
+                    {tp('adminDocumentation.field.imageAlt', 'Alt text')}
+                  </label>
+                  <input
+                    type="text"
+                    value={insertImageAlt}
+                    onChange={(e) => setInsertImageAlt(e.target.value)}
+                    placeholder={tp(
+                      'adminDocumentation.field.imageAltPlaceholder',
+                      'Brief description for accessibility / screen readers'
+                    )}
+                    className="input w-full text-sm"
+                    maxLength={240}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-700 text-muted-foreground mb-1.5">
+                    {tp('adminDocumentation.field.imageCaption', 'Caption')}{' '}
+                    <span className="font-400 normal-case tracking-normal text-muted-foreground/70">
+                      ({tp('adminDocumentation.field.optional', 'optional')})
+                    </span>
+                  </label>
+                  <input
+                    type="text"
+                    value={insertImageCaption}
+                    onChange={(e) => setInsertImageCaption(e.target.value)}
+                    placeholder={tp(
+                      'adminDocumentation.field.imageCaptionPlaceholder',
+                      'Short caption displayed below the screenshot'
+                    )}
+                    className="input w-full text-sm"
+                    maxLength={240}
+                  />
+                </div>
+              </div>
+
+              <div className="mt-5 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  disabled={insertImageUploading}
+                  onClick={() => setInsertImageOpen(false)}
+                  className="btn-secondary text-xs px-3 py-2 disabled:opacity-50"
+                >
+                  {tp('common.actions.cancel', 'Cancel')}
+                </button>
+                <button
+                  type="button"
+                  disabled={!insertImageFile || insertImageUploading}
+                  onClick={async () => {
+                    if (!insertImageFile) return;
+                    try {
+                      setInsertImageUploading(true);
+                      const fd = new FormData();
+                      fd.append('file', insertImageFile);
+                      if (insertImageCaption.trim()) fd.append('caption', insertImageCaption.trim());
+                      if (insertImageAlt.trim()) fd.append('alt', insertImageAlt.trim());
+
+                      const res = await fetch('/api/admin/documentation/upload-image', {
+                        method: 'POST',
+                        body: fd,
+                      });
+                      const json = await res.json();
+                      if (!res.ok) {
+                        throw new Error(json?.error || 'Failed to upload image.');
+                      }
+
+                      const url: string = String(json?.url || '');
+                      const alt: string = String(
+                        json?.alt || insertImageAlt.trim() || insertImageCaption.trim() || insertImageFile.name
+                      ).replace(/"/g, '&quot;');
+                      const caption: string = String(json?.caption || insertImageCaption.trim() || '');
+                      if (!url) throw new Error('Upload succeeded but returned no URL.');
+
+                      const safeUrl = url.replace(/"/g, '%22');
+                      const imgTag = `<img src="${safeUrl}" alt="${alt}" loading="lazy" />`;
+                      const block = caption
+                        ? `<figure style="margin:1.25rem 0; display:flex; flex-direction:column; align-items:center; gap:0.5rem;">${imgTag}<figcaption style="font-size:0.8rem; text-align:center; color:inherit; opacity:0.8;">${caption}</figcaption></figure>`
+                        : imgTag;
+
+                      const previous = form.content_html || '';
+                      const next = previous
+                        ? `${previous}${previous.endsWith('\n') ? '' : '\n'}${block}\n`
+                        : `${block}\n`;
+
+                      updateField('content_html', next);
+                      toast.success(
+                        tp('adminDocumentation.toast.imageInserted', 'Image inserted into document content.')
+                      );
+                      setInsertImageOpen(false);
+                      setInsertImageFile(null);
+                      setInsertImageCaption('');
+                      setInsertImageAlt('');
+                    } catch (err: any) {
+                      const msg = err instanceof Error ? err.message : String(err || 'Image upload failed.');
+                      toast.error(msg);
+                    } finally {
+                      setInsertImageUploading(false);
+                    }
+                  }}
+                  className="btn-primary text-xs px-3 py-2 inline-flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  {insertImageUploading ? (
+                    <>
+                      <Loader2 size={13} className="animate-spin" />
+                      {tp('adminDocumentation.actions.uploadingImage', 'Uploading…')}
+                    </>
+                  ) : (
+                    <>
+                      <ImagePlus size={13} />
+                      {tp('adminDocumentation.actions.uploadAndInsert', 'Upload & insert')}
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         <aside className="space-y-5">
           <div className="card-elevated p-5 space-y-4">
@@ -701,6 +916,48 @@ export default function AdminDocumentationForm({
               <p className="mt-1 text-[11px] text-muted-foreground">
                 {tp('adminDocumentation.field.displayOrderHelp', 'Lower numbers appear first. Default 0.')}
               </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-700 uppercase tracking-[0.12em] text-muted-foreground mb-2">
+                {tp('adminDocumentation.field.featuredOrder', 'Featured order')}
+              </label>
+              <input
+                type="number"
+                min={-9999}
+                max={9999}
+                value={form.featured_order}
+                onChange={(e) => updateField('featured_order', Number(e.target.value))}
+                className="input-base"
+              />
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                {tp('adminDocumentation.field.featuredOrderHelp', 'Lower numbers appear first in public header/footer featured slots.')}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <label className="flex items-center justify-between gap-2 rounded-xl border border-border bg-card px-3 py-2 text-xs cursor-pointer">
+                <span className="font-700 text-muted-foreground">
+                  {tp('adminDocumentation.field.featuredInHeader', 'Featured in header')}
+                </span>
+                <input
+                  type="checkbox"
+                  checked={form.featured_in_header}
+                  onChange={(e) => updateField('featured_in_header', e.target.checked)}
+                  className="h-4 w-4 accent-info"
+                />
+              </label>
+              <label className="flex items-center justify-between gap-2 rounded-xl border border-border bg-card px-3 py-2 text-xs cursor-pointer">
+                <span className="font-700 text-muted-foreground">
+                  {tp('adminDocumentation.field.featuredInFooter', 'Featured in footer')}
+                </span>
+                <input
+                  type="checkbox"
+                  checked={form.featured_in_footer}
+                  onChange={(e) => updateField('featured_in_footer', e.target.checked)}
+                  className="h-4 w-4 accent-info"
+                />
+              </label>
             </div>
 
             <div className="grid grid-cols-2 gap-3 pt-2">

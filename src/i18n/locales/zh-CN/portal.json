@@ -3037,7 +3037,11 @@
     "supportCtaTitle": "仍需要帮助？",
     "supportCtaDescription": "如果本指南未能解答您的问题，请创建支持工单，我们的团队将为您提供帮助。",
     "createTicketAction": "创建支持工单",
-    "readGuide": "阅读指南"
+    "readGuide": "阅读指南",
+    "continueLearning": "继续学习",
+    "relatedArticles": "相关文章",
+    "noRelatedArticles": "暂无相关指南。浏览全部文档以了解更多内容。",
+    "learning": "学习中心"
   },
   "onboarding": {
     "title": "设置 Smart Pocket",
@@ -4307,7 +4311,12 @@
       "regenerating": "正在重新生成…",
       "backfillTranslations": "回填翻译",
       "backfilling": "正在回填…",
-      "stopBackfill": "停止回填"
+      "stopBackfill": "停止回填",
+      "insertScreenshot": "插入截图",
+      "uploadImage": "上传图片 / 截图",
+      "uploadImageHelp": "上传截图。最大 5 MB。PNG / JPG / WEBP / GIF。",
+      "browseFile": "浏览",
+      "uploadAndInsert": "上传并插入"
     },
     "languages": {
       "en": "英语",
@@ -4365,7 +4374,22 @@
       "statusDraft": "发布前对用户隐藏。",
       "enabled": "已启用",
       "enabledOn": "发布后可以显示。",
-      "enabledOff": "即使发布也会隐藏。"
+      "enabledOff": "即使发布也会隐藏。",
+      "featuredInFooter": "在页脚推荐",
+      "featuredInFooterOn": "当文章发布且启用后，链接将显示在公共站点页脚的“学习中心”版块中。",
+      "featuredInFooterOff": "不在页脚的学习中心版块中列出此文章。",
+      "featuredInHeader": "在页眉推荐",
+      "featuredInHeaderOn": "当文章发布且启用后，链接将显示在公共站点页眉“文档”下拉菜单中。",
+      "featuredInHeaderOff": "不在页眉推荐链接中包含此文章。",
+      "featuredOrder": "推荐顺序",
+      "featuredOrderHelp": "数字越小越靠前显示。保留为 0 表示使用默认顺序。",
+      "imageFile": "图片文件",
+      "imageFilePlaceholder": "选择 PNG / JPG / WEBP / GIF 文件",
+      "imageAlt": "替代文本",
+      "imageAltPlaceholder": "简短描述，用于无障碍访问和屏幕阅读器",
+      "imageCaption": "图片说明",
+      "imageCaptionPlaceholder": "截图下方显示的简短说明",
+      "optional": "可选"
     },
     "visibility": {
       "label": "公开可见性",

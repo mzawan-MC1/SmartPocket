@@ -2548,7 +2548,11 @@
     "supportCtaTitle": "ما زلت بحاجة إلى مساعدة؟",
     "supportCtaDescription": "إذا لم يجب هذا الدليل على سؤالك، أنشئ تذكرة دعم وسيساعدك فريقنا.",
     "createTicketAction": "إنشاء تذكرة دعم",
-    "readGuide": "اقرأ الدليل"
+    "readGuide": "اقرأ الدليل",
+    "continueLearning": "استمر في التعلم",
+    "relatedArticles": "مقالات ذات صلة",
+    "noRelatedArticles": "لا توجد أدلة ذات صلة حتى الآن. استكشف جميع الدروس لاكتشاف المزيد.",
+    "learning": "التعلم"
   },
   "onboarding": {
     "title": "إعداد Smart Pocket",
@@ -4317,7 +4321,12 @@
       "regenerating": "جارٍ إعادة الإنشاء…",
       "backfillTranslations": "ملء الترجمات التلقائي",
       "backfilling": "جارٍ الملء التلقائي…",
-      "stopBackfill": "إيقاف الملء التلقائي"
+      "stopBackfill": "إيقاف الملء التلقائي",
+      "insertScreenshot": "إدراج لقطة شاشة",
+      "uploadImage": "رفع صورة / لقطة شاشة",
+      "uploadImageHelp": "ارفع لقطة شاشة. الحد الأقصى 5 ميجابايت. PNG / JPG / WEBP / GIF.",
+      "browseFile": "استعراض",
+      "uploadAndInsert": "رفع وإدراج"
     },
     "languages": {
       "en": "الإنجليزية",
@@ -4375,7 +4384,22 @@
       "statusDraft": "مخفي عن المستخدمين حتى يتم النشر.",
       "enabled": "مفعّل",
       "enabledOn": "يمكن الظهور إذا تم نشره.",
-      "enabledOff": "مخفي حتى لو تم نشره."
+      "enabledOff": "مخفي حتى لو تم نشره.",
+      "featuredInFooter": "مميز في التذييل",
+      "featuredInFooterOn": "يظهر كرابط مميز في قسم \"التعلم\" في التذييل العام عند النشر والتفعيل.",
+      "featuredInFooterOff": "لا تدرج هذا المقال في قسم التعلم بالتذييل.",
+      "featuredInHeader": "مميز في الرأس",
+      "featuredInHeaderOn": "يظهر كرابط مميز في القائمة المنسدلة للتوثيق عند النشر والتفعيل.",
+      "featuredInHeaderOff": "لا تدرج هذا المقال في الروابط المميزة بالرأس.",
+      "featuredOrder": "ترتيب المميزات",
+      "featuredOrderHelp": "الأرقام الأصغر تظهر أولاً في قوائم الروابط المميزة. اتركها 0 للترتيب الافتراضي.",
+      "imageFile": "ملف الصورة",
+      "imageFilePlaceholder": "اختر ملف PNG أو JPG أو WEBP أو GIF",
+      "imageAlt": "نص بديل",
+      "imageAltPlaceholder": "وصف مختصر لقارئ الشاشة وإمكانية الوصول",
+      "imageCaption": "التسمية التوضيحية",
+      "imageCaptionPlaceholder": "تسمية قصيرة تظهر تحت لقطة الشاشة",
+      "optional": "اختياري"
     },
     "visibility": {
       "label": "الظهور العام",

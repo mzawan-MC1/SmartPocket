@@ -73,10 +73,11 @@ export async function PATCH(
 
     const body = (await request.json()) as Partial<DocumentationArticleInput>;
 
-    if (
-      Object.keys(body).length === 1 &&
-      ('enabled' in body || 'status' in body)
-    ) {
+    const quickToggleKeys = ['enabled', 'status', 'featured_in_footer', 'featured_in_header', 'featured_order'] as const;
+    const quickToggleKey = Object.keys(body).length === 1 ? (Object.keys(body)[0] as typeof quickToggleKeys[number] | undefined) : undefined;
+    const isQuickToggle = !!quickToggleKey && quickToggleKeys.includes(quickToggleKey);
+
+    if (isQuickToggle) {
       let updatePayload: Partial<DocumentationArticleRecord> = {
         updated_by: userId,
       };
@@ -94,6 +95,19 @@ export async function PATCH(
         if (nextStatus === 'draft') {
           updatePayload.published_at = null;
         }
+      }
+
+      if ('featured_in_footer' in body) {
+        updatePayload.featured_in_footer = body.featured_in_footer === true;
+      }
+
+      if ('featured_in_header' in body) {
+        updatePayload.featured_in_header = body.featured_in_header === true;
+      }
+
+      if ('featured_order' in body) {
+        const raw = Number(body.featured_order);
+        updatePayload.featured_order = Number.isFinite(raw) ? Math.trunc(raw) : 0;
       }
 
       const { data, error } = await admin
@@ -123,6 +137,9 @@ export async function PATCH(
       status: existing.status,
       enabled: existing.enabled,
       display_order: existing.display_order,
+      featured_in_footer: existing.featured_in_footer ?? false,
+      featured_in_header: existing.featured_in_header ?? false,
+      featured_order: existing.featured_order ?? 0,
       ...body,
     });
 
@@ -181,6 +198,9 @@ export async function PATCH(
       status: payload.status,
       enabled: payload.enabled,
       display_order: payload.display_order,
+      featured_in_footer: payload.featured_in_footer,
+      featured_in_header: payload.featured_in_header,
+      featured_order: payload.featured_order,
       en_source_version_hash: enSourceVersionHash,
       published_at:
         payload.status === 'published'

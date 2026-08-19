@@ -14,6 +14,7 @@ import { CONTENT_TRANSLATION_ENABLED_LANGS } from '@/lib/content-translate-serve
 type PublicArticleRow = Pick<DocumentationArticleRecord,
   | 'id' | 'title' | 'slug' | 'summary' | 'content_html'
   | 'category' | 'status' | 'enabled' | 'display_order'
+  | 'featured_in_footer' | 'featured_in_header' | 'featured_order'
   | 'published_at' | 'updated_at' | 'en_source_version_hash'
 >;
 
@@ -166,4 +167,115 @@ export async function getPublicDocumentationDetail(
 
 export function isNonEnglishContentLanguage(code: string): boolean {
   return CONTENT_TRANSLATION_ENABLED_LANGS.includes(code as any);
+}
+
+export async function getRelatedPublicDocumentationArticles(
+  currentSlug: string,
+  category: string,
+  preferredLanguage: SupportedLanguage,
+  limit = 4
+): Promise<{ articles: PublicDocumentationArticle[] }> {
+  const supabase = await createServerComponentSupabaseClient();
+  const primaryLocale = normalizeDocumentationLanguage(preferredLanguage);
+  const isEnglish = primaryLocale === 'en';
+  const safeSlug = currentSlug.toLowerCase().trim();
+  const safeCategory = String(category || '').toLowerCase().trim();
+
+  const sameCategoryIds: string[] = [];
+  const allExcludingCurrent: PublicArticleRow[] = [];
+
+  const { data: allRows } = await supabase
+    .from('documentation_articles')
+    .select(`
+      id, title, slug, summary, content_html, category, status, enabled,
+      display_order, featured_in_footer, featured_in_header, featured_order,
+      published_at, updated_at, en_source_version_hash
+    `)
+    .eq('enabled', true)
+    .eq('status', 'published')
+    .neq('slug', safeSlug)
+    .order('display_order', { ascending: true })
+    .order('created_at', { ascending: false });
+
+  for (const r of (allRows || []) as PublicArticleRow[]) {
+    if (safeCategory && String(r.category || '').toLowerCase().trim() === safeCategory) {
+      sameCategoryIds.push(r.id);
+    }
+    allExcludingCurrent.push(r);
+  }
+
+  const sameCategoryRows = allExcludingCurrent.filter((r) => sameCategoryIds.includes(r.id));
+  const remaining = allExcludingCurrent.filter((r) => !sameCategoryIds.includes(r.id));
+
+  const orderedRows = [...sameCategoryRows, ...remaining].slice(0, Math.max(3, limit));
+
+  const ids = orderedRows.map((r) => r.id);
+  let translationsById: Record<string, TranslationEligible> = {};
+  if (!isEnglish && ids.length > 0) {
+    const { data: trans } = await supabase
+      .from('documentation_translations')
+      .select(`
+        article_id, language_code, title, summary, content_html,
+        translation_status, source_version_hash
+      `)
+      .in('article_id', ids)
+      .eq('language_code', primaryLocale);
+    for (const t of (trans || []) as TranslationEligible[]) {
+      translationsById[t.article_id] = t;
+    }
+  }
+
+  const articles = orderedRows.map((source) =>
+    mergeToPublic(source, translationsById[source.id] ?? null, 'en', primaryLocale)
+  );
+
+  return { articles };
+}
+
+export async function getFeaturedPublicDocumentationArticles(
+  slot: 'header' | 'footer',
+  preferredLanguage: SupportedLanguage,
+  limit = 4
+): Promise<{ articles: PublicDocumentationArticle[] }> {
+  const supabase = await createServerComponentSupabaseClient();
+  const primaryLocale = normalizeDocumentationLanguage(preferredLanguage);
+  const isEnglish = primaryLocale === 'en';
+  const filterColumn = slot === 'footer' ? 'featured_in_footer' : 'featured_in_header';
+
+  const { data: rows } = await supabase
+    .from('documentation_articles')
+    .select(`
+      id, title, slug, summary, content_html, category, status, enabled,
+      display_order, featured_in_footer, featured_in_header, featured_order,
+      published_at, updated_at, en_source_version_hash
+    `)
+    .eq('enabled', true)
+    .eq('status', 'published')
+    .eq(filterColumn, true)
+    .order('featured_order', { ascending: true })
+    .order('display_order', { ascending: true })
+    .order('created_at', { ascending: false });
+
+  const sources = ((rows || []) as PublicArticleRow[]).slice(0, limit);
+  const ids = sources.map((s) => s.id);
+  let translationsById: Record<string, TranslationEligible> = {};
+  if (!isEnglish && ids.length > 0) {
+    const { data: trans } = await supabase
+      .from('documentation_translations')
+      .select(`
+        article_id, language_code, title, summary, content_html,
+        translation_status, source_version_hash
+      `)
+      .in('article_id', ids)
+      .eq('language_code', primaryLocale);
+    for (const t of (trans || []) as TranslationEligible[]) {
+      translationsById[t.article_id] = t;
+    }
+  }
+
+  const articles = sources.map((source) =>
+    mergeToPublic(source, translationsById[source.id] ?? null, 'en', primaryLocale)
+  );
+
+  return { articles };
 }

@@ -82,6 +82,28 @@ export default function PublicFooter() {
     ? 'text-sm leading-relaxed break-words text-slate-400 transition-colors hover:text-white'
     : 'text-sm leading-relaxed break-words text-muted-foreground hover:text-foreground transition-colors';
 
+  const [featuredFooterDocs, setFeaturedFooterDocs] = React.useState<Array<{ id: string; title: string; href: string }>>([]);
+  React.useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch(
+          `/api/public/documentation/featured?slot=footer&limit=4&lang=${encodeURIComponent(String(language || 'en'))}`,
+          { cache: 'force-cache' as unknown as RequestCache }
+        );
+        if (!res.ok) return;
+        const json = await res.json();
+        if (cancelled) return;
+        if (Array.isArray(json?.articles)) {
+          setFeaturedFooterDocs(json.articles);
+        }
+      } catch {}
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [language]);
+
   return (
     <footer
       className={isHomePage ? 'border-t border-white/10 bg-[#041229] text-white' : 'border-t border-border bg-card/95 backdrop-blur-sm'}
@@ -223,6 +245,14 @@ export default function PublicFooter() {
                       </li>
                     );
                   })}
+                  {section.id === 'footer-section-learn' &&
+                    featuredFooterDocs.map((f, idx) => (
+                      <li key={`feat-${idx}-${f.id}`}>
+                        <Link href={f.href} className={linkClasses}>
+                          {f.title}
+                        </Link>
+                      </li>
+                    ))}
                 </ul>
               </div>
             ))}
@@ -284,6 +314,14 @@ export default function PublicFooter() {
                       </li>
                     );
                   })}
+                  {section.id === 'footer-section-learn' &&
+                    featuredFooterDocs.map((f, idx) => (
+                      <li key={`feat-sm-${idx}-${f.id}`}>
+                        <Link href={f.href} className={linkClasses}>
+                          {f.title}
+                        </Link>
+                      </li>
+                    ))}
                 </ul>
               </div>
             ))}

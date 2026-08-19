@@ -6,8 +6,9 @@ import { resolveMetadataLanguage } from '@/lib/site-metadata';
 import PublicDocumentationDetailClient from '@/components/documentation/PublicDocumentationDetailClient';
 import {
   getPublicDocumentationDetail,
+  getRelatedPublicDocumentationArticles,
 } from '@/lib/documentation-server';
-import AppLayout from '@/components/AppLayout';
+import PublicLayout from '@/app/(public)/layout';
 
 export const revalidate = 0;
 
@@ -44,13 +45,27 @@ export default async function DocumentationDetailPage({
     notFound();
   }
 
+  const relatedResults = await Promise.all(
+    SUPPORTED_LANGUAGE_CODES.map((language) =>
+      getRelatedPublicDocumentationArticles(slug, resolved.article!.category, language, 4)
+    )
+  );
+  const relatedByLanguage = SUPPORTED_LANGUAGE_CODES.reduce(
+    (accumulator, language, index) => {
+      accumulator[language] = relatedResults[index];
+      return accumulator;
+    },
+    {} as Record<SupportedLanguage, Awaited<ReturnType<typeof getRelatedPublicDocumentationArticles>>>
+  );
+
   return (
-    <AppLayout activeRoute="/help">
+    <PublicLayout>
       <div className="page-section page-shell-readable">
         <PublicDocumentationDetailClient
           dataByLanguage={detailByLanguage}
+          relatedByLanguage={relatedByLanguage}
         />
       </div>
-    </AppLayout>
+    </PublicLayout>
   );
 }

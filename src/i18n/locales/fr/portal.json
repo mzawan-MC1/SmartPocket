@@ -2547,7 +2547,11 @@
     "supportCtaTitle": "Vous avez toujours besoin d'aide ?",
     "supportCtaDescription": "Si ce guide n'a pas répondu à votre question, ouvrez un ticket de support et notre équipe vous aidera.",
     "createTicketAction": "Créer un ticket de support",
-    "readGuide": "Lire le guide"
+    "readGuide": "Lire le guide",
+    "continueLearning": "Continuer d'apprendre",
+    "relatedArticles": "Articles connexes",
+    "noRelatedArticles": "Aucun guide connexe pour l'instant. Explorez toute la documentation pour en découvrir davantage.",
+    "learning": "Apprentissage"
   },
   "onboarding": {
     "title": "Configurer Smart Pocket",
@@ -4307,7 +4311,12 @@
       "regenerating": "Régénération…",
       "backfillTranslations": "Remplir les traductions",
       "backfilling": "Remplissage…",
-      "stopBackfill": "Arrêter le remplissage"
+      "stopBackfill": "Arrêter le remplissage",
+      "insertScreenshot": "Insérer une capture",
+      "uploadImage": "Télécharger une image / capture",
+      "uploadImageHelp": "Téléchargez une capture. Max 5 Mo. PNG / JPG / WEBP / GIF.",
+      "browseFile": "Parcourir",
+      "uploadAndInsert": "Télécharger et insérer"
     },
     "languages": {
       "en": "Anglais",
@@ -4365,7 +4374,22 @@
       "statusDraft": "Masqué des utilisateurs jusqu'à publication.",
       "enabled": "Activé",
       "enabledOn": "Peut apparaître si publié.",
-      "enabledOff": "Masqué même si publié."
+      "enabledOff": "Masqué même si publié.",
+      "featuredInFooter": "À la une (pied de page)",
+      "featuredInFooterOn": "Le lien apparaît dans la section « Apprentissage » du pied de page public, une fois publié et activé.",
+      "featuredInFooterOff": "Ne pas afficher cet article dans la section Apprentissage du pied de page.",
+      "featuredInHeader": "À la une (en-tête)",
+      "featuredInHeaderOn": "Le lien apparaît dans le menu déroulant Documentation de l'en-tête public, une fois publié et activé.",
+      "featuredInHeaderOff": "Ne pas inclure cet article dans les liens à la une de l'en-tête.",
+      "featuredOrder": "Ordre d'affichage",
+      "featuredOrderHelp": "Les petits nombres apparaissent en premier dans les listes à la une. Laisser 0 pour l'ordre par défaut.",
+      "imageFile": "Fichier image",
+      "imageFilePlaceholder": "Choisir un fichier PNG / JPG / WEBP / GIF",
+      "imageAlt": "Texte de remplacement",
+      "imageAltPlaceholder": "Courte description pour l'accessibilité et les lecteurs d'écran",
+      "imageCaption": "Légende",
+      "imageCaptionPlaceholder": "Courte légende affichée sous la capture d'écran",
+      "optional": "optionnel"
     },
     "visibility": {
       "label": "Visibilité publique",

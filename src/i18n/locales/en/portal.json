@@ -3037,7 +3037,11 @@
     "supportCtaTitle": "Still need help?",
     "supportCtaDescription": "If this guide didn't answer your question, open a support ticket and our team will help you.",
     "createTicketAction": "Create support ticket",
-    "readGuide": "Read guide"
+    "readGuide": "Read guide",
+    "continueLearning": "Continue learning",
+    "relatedArticles": "Related articles",
+    "noRelatedArticles": "No related guides yet. Explore all documentation to discover more.",
+    "learning": "Learning"
   },
   "onboarding": {
     "title": "Set up Smart Pocket",
@@ -4365,7 +4369,22 @@
       "statusDraft": "Hidden from users until published.",
       "enabled": "Enabled",
       "enabledOn": "Can appear if published.",
-      "enabledOff": "Hidden even if published."
+      "enabledOff": "Hidden even if published.",
+      "featuredInFooter": "Featured in footer",
+      "featuredInFooterOn": "Featured link shown in the public Learn footer section when published and enabled.",
+      "featuredInFooterOff": "Do not list this article in the footer Learn section.",
+      "featuredInHeader": "Featured in header",
+      "featuredInHeaderOn": "Featured link shown in the public header Documentation dropdown when published and enabled.",
+      "featuredInHeaderOff": "Do not include in header featured links.",
+      "featuredOrder": "Featured order",
+      "featuredOrderHelp": "Lower numbers appear first in featured header/footer lists. Leave 0 for default.",
+      "imageFile": "Image file",
+      "imageFilePlaceholder": "Choose a PNG / JPG / WEBP / GIF file",
+      "imageAlt": "Alt text",
+      "imageAltPlaceholder": "Short description for accessibility and screen readers",
+      "imageCaption": "Caption",
+      "imageCaptionPlaceholder": "Short caption displayed below the screenshot",
+      "optional": "optional"
     },
     "visibility": {
       "label": "Public visibility",

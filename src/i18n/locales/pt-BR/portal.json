@@ -3037,7 +3037,11 @@
     "supportCtaTitle": "Ainda precisa de ajuda?",
     "supportCtaDescription": "Se este guia não respondeu à sua pergunta, abra um chamado de suporte e nossa equipe ajudará você.",
     "createTicketAction": "Criar chamado de suporte",
-    "readGuide": "Ler guia"
+    "readGuide": "Ler guia",
+    "continueLearning": "Continuar aprendendo",
+    "relatedArticles": "Artigos relacionados",
+    "noRelatedArticles": "Ainda não há guias relacionados. Explore toda a documentação para descobrir mais.",
+    "learning": "Aprendizado"
   },
   "onboarding": {
     "title": "Configurar o Smart Pocket",
@@ -4307,7 +4311,12 @@
       "regenerating": "Regenerando…",
       "backfillTranslations": "Preencher traduções",
       "backfilling": "Preenchendo…",
-      "stopBackfill": "Parar preenchimento"
+      "stopBackfill": "Parar preenchimento",
+      "insertScreenshot": "Inserir captura",
+      "uploadImage": "Enviar imagem / captura",
+      "uploadImageHelp": "Envie uma captura. Máx. 5 MB. PNG / JPG / WEBP / GIF.",
+      "browseFile": "Procurar",
+      "uploadAndInsert": "Enviar e inserir"
     },
     "languages": {
       "en": "Inglês",
@@ -4365,7 +4374,22 @@
       "statusDraft": "Oculto para os usuários até ser publicado.",
       "enabled": "Habilitado",
       "enabledOn": "Pode aparecer se publicado.",
-      "enabledOff": "Oculto mesmo se publicado."
+      "enabledOff": "Oculto mesmo se publicado.",
+      "featuredInFooter": "Em destaque no rodapé",
+      "featuredInFooterOn": "O link aparece na seção «Aprendizado» do rodapé público quando publicado e ativado.",
+      "featuredInFooterOff": "Não listar este artigo na seção Aprendizado do rodapé.",
+      "featuredInHeader": "Em destaque no cabeçalho",
+      "featuredInHeaderOn": "O link aparece no menu suspenso Documentação do cabeçalho público quando publicado e ativado.",
+      "featuredInHeaderOff": "Não incluir este artigo nos links em destaque do cabeçalho.",
+      "featuredOrder": "Ordem de destaque",
+      "featuredOrderHelp": "Números menores aparecem primeiro nas listas em destaque. Deixe 0 para a ordem padrão.",
+      "imageFile": "Arquivo de imagem",
+      "imageFilePlaceholder": "Escolher PNG / JPG / WEBP / GIF",
+      "imageAlt": "Texto alternativo",
+      "imageAltPlaceholder": "Breve descrição para acessibilidade e leitores de tela",
+      "imageCaption": "Legenda",
+      "imageCaptionPlaceholder": "Legenda curta exibida abaixo da captura de tela",
+      "optional": "opcional"
     },
     "visibility": {
       "label": "Visibilidade pública",

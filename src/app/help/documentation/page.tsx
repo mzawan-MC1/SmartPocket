@@ -2,21 +2,16 @@ import type { SupportedLanguage } from '@/i18n/resources';
 import { SUPPORTED_LANGUAGE_CODES } from '@/i18n/registry';
 import PublicDocumentationClient from '@/components/documentation/PublicDocumentationClient';
 import { getPublicDocumentationList } from '@/lib/documentation-server';
-import { createServerComponentSupabaseClient } from '@/lib/supabase/server';
-import AppLayout from '@/components/AppLayout';
+import PublicLayout from '@/app/(public)/layout';
 
 export const revalidate = 0;
 
 type DocPageLanguageData = Awaited<ReturnType<typeof getPublicDocumentationList>>;
 
 export default async function DocumentationPage() {
-  const [supabase, ...docPageDataResults] = await Promise.all([
-    createServerComponentSupabaseClient(),
-    ...SUPPORTED_LANGUAGE_CODES.map((language) => getPublicDocumentationList(language)),
-  ]);
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const docPageDataResults = await Promise.all(
+    SUPPORTED_LANGUAGE_CODES.map((language) => getPublicDocumentationList(language))
+  );
 
   const docDataByLanguage = SUPPORTED_LANGUAGE_CODES.reduce(
     (accumulator, language, index) => {
@@ -33,16 +28,16 @@ export default async function DocumentationPage() {
     >
   );
 
-  const supportHref = user ? '/support/new' : '/contact';
+  const supportHref = '/contact';
 
   return (
-    <AppLayout activeRoute="/help">
+    <PublicLayout>
       <div className="page-section page-shell-readable">
         <PublicDocumentationClient
           dataByLanguage={docDataByLanguage}
           supportHref={supportHref}
         />
       </div>
-    </AppLayout>
+    </PublicLayout>
   );
 }

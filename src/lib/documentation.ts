@@ -45,6 +45,9 @@ export type DocumentationArticleRecord = {
   status: DocumentationStatus;
   enabled: boolean;
   display_order: number;
+  featured_in_footer: boolean;
+  featured_in_header: boolean;
+  featured_order: number;
   published_at: string | null;
   created_by: string | null;
   updated_by: string | null;
@@ -83,6 +86,9 @@ export type DocumentationArticleInput = {
   status: DocumentationStatus;
   enabled: boolean;
   display_order: number;
+  featured_in_footer: boolean;
+  featured_in_header: boolean;
+  featured_order: number;
 };
 
 export type PublicDocumentationArticle = {
@@ -185,6 +191,9 @@ export function normalizeDocumentationArticleInput(
     status: input.status === 'published' ? 'published' : 'draft',
     enabled: input.enabled !== false,
     display_order: normalizeDocumentationSortOrder(input.display_order),
+    featured_in_footer: input.featured_in_footer === true,
+    featured_in_header: input.featured_in_header === true,
+    featured_order: normalizeDocumentationSortOrder(input.featured_order),
   };
 }
 
