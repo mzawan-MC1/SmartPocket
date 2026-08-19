@@ -8,6 +8,7 @@ use std::{
 
 use tauri::{AppHandle, Manager, Runtime, Url, WebviewUrl, WebviewWindow, WebviewWindowBuilder, WindowEvent};
 use tauri_plugin_deep_link::DeepLinkExt;
+use tauri_plugin_dialog::{DialogExt, MessageDialogButtons, MessageDialogKind};
 use updater::NativeUpdaterState;
 use tauri_plugin_opener::{Builder as OpenerPluginBuilder, OpenerExt};
 
@@ -546,6 +547,106 @@ fn register_desktop_callback_handler<R: Runtime>(app: &AppHandle<R>) {
     }
 }
 
+fn show_startup_failure_dialog<R: Runtime>(app: Option<&AppHandle<R>>, message: &str) {
+    let dialog_title = "Smart Pocket could not start";
+    let dialog_body = format!(
+        "{}\n\nIf this happens on a fresh Windows installation, please install the Microsoft Edge WebView2 Runtime from:\nhttps://developer.microsoft.com/microsoft-edge/webview2/",
+        message
+    );
+    println!(
+        "[SmartPocketDesktop] startup failure: {}",
+        message.replace('\n', " | ")
+    );
+    match app {
+        Some(handle) => {
+            let mut builder = handle
+                .dialog()
+                .message(dialog_body.to_string())
+                .title(dialog_title.to_string())
+                .kind(MessageDialogKind::Error)
+                .buttons(MessageDialogButtons::Ok);
+            if let Some(window) = handle.get_webview_window(MAIN_WINDOW_LABEL) {
+                builder = builder.parent(&window);
+            }
+            let _ = builder.blocking_show();
+        }
+        None => {
+            let _ = native_msgbox(dialog_title, &dialog_body);
+        }
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn native_msgbox(title: &str, message: &str) -> Result<(), &'static str> {
+    use std::ffi::OsStr;
+    use std::iter::once;
+    use std::os::windows::ffi::OsStrExt;
+
+    type HWND = isize;
+    type LPCWSTR = *const u16;
+    type UINT = u32;
+
+    const MB_OK: UINT = 0x00000000;
+    const MB_ICONERROR: UINT = 0x00000010;
+    const MB_SYSTEMMODAL: UINT = 0x00001000;
+    const MB_SETFOREGROUND: UINT = 0x00010000;
+
+    unsafe extern "system" {
+        fn MessageBoxW(hWnd: HWND, lpText: LPCWSTR, lpCaption: LPCWSTR, uType: UINT) -> i32;
+    }
+
+    fn to_wide(value: &str) -> Vec<u16> {
+        OsStr::new(value).encode_wide().chain(once(0)).collect()
+    }
+
+    let wide_title = to_wide(title);
+    let wide_body = to_wide(message);
+    let _ = unsafe {
+        MessageBoxW(
+            0,
+            wide_body.as_ptr(),
+            wide_title.as_ptr(),
+            MB_OK | MB_ICONERROR | MB_SYSTEMMODAL | MB_SETFOREGROUND,
+        )
+    };
+    Ok(())
+}
+
+#[cfg(not(target_os = "windows"))]
+fn native_msgbox(_title: &str, _message: &str) -> Result<(), &'static str> {
+    Ok(())
+}
+
+fn install_startup_panic_hook() {
+    let previous = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        let payload = info
+            .payload()
+            .downcast_ref::<&str>()
+            .copied()
+            .or_else(|| info.payload().downcast_ref::<String>().map(|s| s.as_str()))
+            .unwrap_or("unexpected panic");
+        let location = info
+            .location()
+            .map(|loc| format!(" ({}:{})", loc.file(), loc.line()))
+            .unwrap_or_default();
+        eprintln!(
+            "[SmartPocketDesktop] panic at startup: {}{}",
+            payload, location
+        );
+        let _ = native_msgbox(
+            "Smart Pocket could not start",
+            &format!(
+                "{}\n\nIf you just installed Smart Pocket, install the Microsoft Edge WebView2 Runtime from:\nhttps://developer.microsoft.com/microsoft-edge/webview2/\n\nError: {}{}",
+                "Smart Pocket requires Microsoft Edge WebView2 Runtime.",
+                payload,
+                location
+            ),
+        );
+        previous(info);
+    }));
+}
+
 fn handle_navigation<R: Runtime>(app: &AppHandle<R>, url: &Url) -> bool {
     if is_allowed_app_navigation(url) && url.path() == DESKTOP_OAUTH_LAUNCH_PATH {
         match extract_oauth_launch_target(url) {
@@ -589,8 +690,8 @@ fn handle_navigation<R: Runtime>(app: &AppHandle<R>, url: &Url) -> bool {
     false
 }
 
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub fn run() {
+fn run_app() -> Result<(), Box<dyn std::error::Error>> {
+    install_startup_panic_hook();
     tauri::Builder::default()
         .manage(NativeUpdaterState::default())
         .plugin(tauri_plugin_single_instance::init(|app, args, _cwd| {
@@ -616,7 +717,7 @@ pub fn run() {
                 .iter()
                 .find(|window| window.label == MAIN_WINDOW_LABEL)
                 .cloned()
-                .expect("missing main window config");
+                .ok_or_else(|| "missing main window config".to_string())?;
 
             main_window.url = main_window_url();
             println!(
@@ -628,7 +729,8 @@ pub fn run() {
             let persisted_state = load_window_state(&app.handle().clone());
             let window_state_store = Arc::new(Mutex::new(persisted_state.clone()));
 
-            let builder = WebviewWindowBuilder::from_config(app, &main_window)?
+            let builder = WebviewWindowBuilder::from_config(app, &main_window)
+                .map_err(|err| format!("main window builder failed: {}", err))?
                 .on_navigation(move |url| handle_navigation(&app_handle, url))
                 .inner_size(
                     persisted_state.width.max(MIN_WINDOW_WIDTH),
@@ -641,7 +743,9 @@ pub fn run() {
                 _ => builder.center(),
             };
 
-            let main_window = builder.build()?;
+            let main_window = builder
+                .build()
+                .map_err(|err| format!("main window build failed: {}", err))?;
 
             let state_handle = app.handle().clone();
             let state_store = window_state_store.clone();
@@ -666,5 +770,22 @@ pub fn run() {
             Ok(())
         })
         .run(tauri::generate_context!())
-        .expect("error while running Smart Pocket desktop shell");
+        .map_err(|err| format!("desktop shell failed to run: {}", err))?;
+    Ok(())
+}
+
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
+pub fn run() {
+    let result = std::panic::catch_unwind(|| -> Result<(), Box<dyn std::error::Error>> { run_app() });
+    match result {
+        Ok(Ok(())) => {}
+        Ok(Err(err)) => {
+            let message = format!("{}", err);
+            show_startup_failure_dialog::<tauri::Wry>(None, &message);
+            std::process::exit(1);
+        }
+        Err(_payload) => {
+            std::process::exit(1);
+        }
+    }
 }
