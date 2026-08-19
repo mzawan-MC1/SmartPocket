@@ -14,6 +14,8 @@ import {
   isGeminiConfiguredForContentTranslation,
   resolveContentTranslationProvider,
   getContentTranslationModel,
+  normalizeGeminiModel,
+  resolveGeminiTranslationModel,
   type ContentTranslationProviderName,
 } from './ai-provider-config';
 import { getGeminiClient } from './gemini-client';
@@ -203,11 +205,15 @@ export async function callStructuredContentTranslation(
   }
   let lastFailure: TranslationProviderFailure | null = null;
   for (const candidate of providersToTry) {
-    const model = attempt.model ?? getContentTranslationModel(candidate.provider);
+    const rawModel = attempt.model ?? getContentTranslationModel(candidate.provider);
+    const model =
+      candidate.provider === 'gemini'
+        ? resolveGeminiTranslationModel()
+        : rawModel;
     const one =
       candidate.provider === 'gemini'
         ? await callGeminiTranslation(
-            { attemptId: attempt.attemptId, contentType: attempt.contentType, contentId: attempt.contentId, startTs: attempt.startTs, model },
+            { attemptId: attempt.attemptId, contentType: attempt.contentType, contentId: attempt.contentId, startTs: attempt.startTs, model: normalizeGeminiModel(model) },
             targetLanguage,
             fields,
             timeoutMs
@@ -243,7 +249,7 @@ export async function callStructuredContentTranslation(
     },
     providerUsed: lastFailure?.providerUsed ?? preferred,
     providerFallback: lastFailure?.providerFallback ?? false,
-    modelUsed: attempt.model ?? getContentTranslationModel(lastFailure?.providerUsed ?? preferred),
+    modelUsed: normalizeGeminiModel(attempt.model ?? getContentTranslationModel(lastFailure?.providerUsed ?? preferred)),
   };
 }
 
@@ -253,7 +259,7 @@ async function callGeminiTranslation(
   fields: Record<string, string>,
   timeoutMs: number
 ): Promise<{ fieldsOut: Record<string, string> | null; failure: TranslationFailure | null }> {
-  const model = attempt.model;
+  const model = normalizeGeminiModel(attempt.model || resolveGeminiTranslationModel());
   if (Object.keys(fields).length === 0) {
     writeAttemptLog({
       attemptId: attempt.attemptId,
@@ -563,6 +569,16 @@ ${JSON.stringify(fields, null, 2)}`;
       errorMessageSafe: msg.slice(0, 300),
       elapsedMs: Date.now() - attempt.startTs,
     });
+    const looksLikeModelNotFound =
+      (msg.includes('"code":404') || msg.includes(':404,') || /\b404\b/.test(msg)) &&
+      (msg.toLowerCase().includes('model') || msg.includes('This model'));
+    if (looksLikeModelNotFound) {
+      const safe =
+        'Gemini translation model is not available. Check GEMINI_TRANSLATION_MODEL or use the configured Gemini text model. (Attempted model: ' +
+        String(model).slice(0, 120) +
+        ')';
+      return { fieldsOut: null, failure: { stage: 'provider_request_failed', safeMessage: safe } };
+    }
     return { fieldsOut: null, failure: { stage: 'provider_request_failed', safeMessage: `Gemini translation failed: ${msg.slice(0, 240)}` } };
   } finally {
     clearTimeout(timer);

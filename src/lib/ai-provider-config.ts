@@ -183,6 +183,26 @@ export function isGeminiConfiguredForContentTranslation(): boolean {
   const cfg = getAIConfig();
   return Boolean(cfg.gemini.apiKey && cfg.gemini.apiKey.length > 0 && cfg.runtime.enabled);
 }
+export function normalizeGeminiModel(rawModel: string): string {
+  let s = String(rawModel ?? '').trim();
+  if (!s) return s;
+  while (s.startsWith('models/')) {
+    s = s.slice('models/'.length);
+  }
+  return s;
+}
+export function resolveGeminiTranslationModel(): string {
+  const cfg = getAIConfig();
+  const explicit = normalizeGeminiModel(cfg.gemini.models.translation || '');
+  const textModel = normalizeGeminiModel(cfg.gemini.models.fast || '');
+  const reasoningModel = normalizeGeminiModel(cfg.gemini.models.reasoning || '');
+  const multimodalModel = normalizeGeminiModel(cfg.gemini.models.multimodal || '');
+  if (explicit) return explicit;
+  if (textModel) return textModel;
+  if (reasoningModel) return reasoningModel;
+  if (multimodalModel) return multimodalModel;
+  return 'gemini-3.5-flash-lite';
+}
 export type ContentTranslationProviderName = 'gemini' | 'openrouter';
 export function resolveContentTranslationProvider(): ContentTranslationProviderName {
   const cfg = getAIConfig();
@@ -197,7 +217,7 @@ export function resolveContentTranslationProvider(): ContentTranslationProviderN
 export function getContentTranslationModel(provider: ContentTranslationProviderName): string {
   const cfg = getAIConfig();
   if (provider === 'openrouter') return cfg.openrouter.defaultModel;
-  return cfg.gemini.models.translation;
+  return resolveGeminiTranslationModel();
 }
 
 // Reset cache (useful for unit tests or runtime env tampering)

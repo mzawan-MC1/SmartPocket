@@ -129,7 +129,8 @@ export default function AdminDocumentationForm({
           s.errorMessage.includes('Gemini translation provider is unavailable') ||
           s.errorMessage.includes('Gemini client is not configured') ||
           s.errorMessage.includes('GEMINI_API_KEY') ||
-          s.errorMessage.includes('Legacy OpenRouter translation fallback is disabled'))
+          s.errorMessage.includes('Legacy OpenRouter translation fallback is disabled') ||
+          s.errorMessage.includes('Gemini translation model is not available'))
     );
     return known?.errorMessage || null;
   }, [translation]);
