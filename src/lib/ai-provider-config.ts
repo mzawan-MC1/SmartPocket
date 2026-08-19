@@ -12,6 +12,7 @@ export interface GeminiModelConfig {
   reasoning: string;
   multimodal: string;
   multimodalFallback: string;
+  translation: string;
 }
 
 export interface AIProviderConfig {
@@ -122,6 +123,9 @@ export function resolveAIProviderConfig(): AIProviderConfig {
         reasoning: readEnv('GEMINI_REASONING_MODEL', 'gemini-3.5-flash') as string,
         multimodal: readEnv('GEMINI_MULTIMODAL_MODEL', 'gemini-3.5-flash-lite') as string,
         multimodalFallback: readEnv('GEMINI_MULTIMODAL_FALLBACK_MODEL', 'gemini-3.1-flash-lite') as string,
+        translation: (readEnv('GEMINI_TRANSLATION_MODEL') ||
+          readEnv('GEMINI_TEXT_MODEL') ||
+          readEnv('GEMINI_FAST_MODEL', 'gemini-3.5-flash-lite')) as string,
       },
     },
     stt: {
@@ -174,6 +178,26 @@ export function isOpenRouterEnabled(): boolean {
 }
 export function getGeminiModels(): GeminiModelConfig {
   return getAIConfig().gemini.models;
+}
+export function isGeminiConfiguredForContentTranslation(): boolean {
+  const cfg = getAIConfig();
+  return Boolean(cfg.gemini.apiKey && cfg.gemini.apiKey.length > 0 && cfg.runtime.enabled);
+}
+export type ContentTranslationProviderName = 'gemini' | 'openrouter';
+export function resolveContentTranslationProvider(): ContentTranslationProviderName {
+  const cfg = getAIConfig();
+  const primary = cfg.language.primary;
+  if (primary === 'gemini' && isGeminiConfiguredForContentTranslation()) return 'gemini';
+  if (primary === 'openrouter' && cfg.openrouter.enabled) return 'openrouter';
+  if (primary === 'gemini' && cfg.openrouter.enabled) return 'openrouter';
+  if (isGeminiConfiguredForContentTranslation()) return 'gemini';
+  if (cfg.openrouter.enabled) return 'openrouter';
+  return 'gemini';
+}
+export function getContentTranslationModel(provider: ContentTranslationProviderName): string {
+  const cfg = getAIConfig();
+  if (provider === 'openrouter') return cfg.openrouter.defaultModel;
+  return cfg.gemini.models.translation;
 }
 
 // Reset cache (useful for unit tests or runtime env tampering)

@@ -125,7 +125,11 @@ export default function AdminDocumentationForm({
         s.status === 'failed' &&
         s.errorMessage &&
         (s.errorMessage.includes('OPENROUTER_ENABLED') ||
-          s.errorMessage.includes('OpenRouter provider is disabled'))
+          s.errorMessage.includes('OpenRouter provider is disabled') ||
+          s.errorMessage.includes('Gemini translation provider is unavailable') ||
+          s.errorMessage.includes('Gemini client is not configured') ||
+          s.errorMessage.includes('GEMINI_API_KEY') ||
+          s.errorMessage.includes('Legacy OpenRouter translation fallback is disabled'))
     );
     return known?.errorMessage || null;
   }, [translation]);

@@ -6,8 +6,17 @@ import { loadAIConfig, type OpenRouterTextRewriteResponse } from './ai-gateway';
 import {
   getOpenRouterBaseUrl,
   getOpenRouterHeaders,
+  extractGeminiCandidateText,
 } from './ai-gateway';
-import { isOpenRouterEnabled } from './ai-provider-config';
+import {
+  getAIConfig,
+  isOpenRouterEnabled,
+  isGeminiConfiguredForContentTranslation,
+  resolveContentTranslationProvider,
+  getContentTranslationModel,
+  type ContentTranslationProviderName,
+} from './ai-provider-config';
+import { getGeminiClient } from './gemini-client';
 import { safeParseJSON } from './ai-types';
 import { SUPPORTED_LANGUAGE_CODES, type SupportedLanguage } from '@/i18n/registry';
 
@@ -166,7 +175,401 @@ export function buildDocumentationEnglishSourceHash(doc: {
   return buildSourceHash([doc.title, doc.summary, doc.content_html, doc.category]);
 }
 
-async function callOpenRouterTranslation(
+export type TranslationProviderFailure = {
+  stage: TranslationAttemptStage;
+  safeMessage: string;
+  providerUsed: ContentTranslationProviderName;
+  providerFallback?: boolean;
+};
+
+export async function callStructuredContentTranslation(
+  attempt: { attemptId: string; contentType: TranslationAttemptLog['contentType']; contentId?: string; startTs: number; model?: string },
+  targetLanguage: SupportedLanguage,
+  fields: Record<string, string>,
+  timeoutMs: number
+): Promise<{
+  fieldsOut: Record<string, string> | null;
+  failure: TranslationProviderFailure | null;
+  providerUsed: ContentTranslationProviderName;
+  providerFallback: boolean;
+  modelUsed: string;
+}> {
+  const preferred = resolveContentTranslationProvider();
+  const providersToTry: Array<{ provider: ContentTranslationProviderName; isFallback: boolean }> = [];
+  providersToTry.push({ provider: preferred, isFallback: false });
+  const cfg = getAIConfig();
+  if (preferred === 'gemini' && cfg.openrouter.enabled) {
+    providersToTry.push({ provider: 'openrouter', isFallback: true });
+  }
+  let lastFailure: TranslationProviderFailure | null = null;
+  for (const candidate of providersToTry) {
+    const model = attempt.model ?? getContentTranslationModel(candidate.provider);
+    const one =
+      candidate.provider === 'gemini'
+        ? await callGeminiTranslation(
+            { attemptId: attempt.attemptId, contentType: attempt.contentType, contentId: attempt.contentId, startTs: attempt.startTs, model },
+            targetLanguage,
+            fields,
+            timeoutMs
+          )
+        : await callLegacyOpenRouterTranslation(
+            { attemptId: attempt.attemptId, contentType: attempt.contentType, contentId: attempt.contentId, startTs: attempt.startTs, model },
+            targetLanguage,
+            fields,
+            timeoutMs
+          );
+    if (one.fieldsOut) {
+      return {
+        fieldsOut: one.fieldsOut,
+        failure: null,
+        providerUsed: candidate.provider,
+        providerFallback: candidate.isFallback,
+        modelUsed: model,
+      };
+    }
+    if (one.failure) {
+      lastFailure = { ...one.failure, providerUsed: candidate.provider, providerFallback: candidate.isFallback };
+    }
+  }
+  return {
+    fieldsOut: null,
+    failure: lastFailure ?? {
+      stage: 'provider_request_failed',
+      safeMessage: preferred === 'gemini'
+        ? 'Gemini translation provider is unavailable. Please verify Gemini API configuration on the server.'
+        : 'Translation provider unavailable. Please verify translation API configuration on the server.',
+      providerUsed: preferred,
+      providerFallback: false,
+    },
+    providerUsed: lastFailure?.providerUsed ?? preferred,
+    providerFallback: lastFailure?.providerFallback ?? false,
+    modelUsed: attempt.model ?? getContentTranslationModel(lastFailure?.providerUsed ?? preferred),
+  };
+}
+
+async function callGeminiTranslation(
+  attempt: { attemptId: string; contentType: TranslationAttemptLog['contentType']; contentId?: string; startTs: number; model: string },
+  targetLanguage: SupportedLanguage,
+  fields: Record<string, string>,
+  timeoutMs: number
+): Promise<{ fieldsOut: Record<string, string> | null; failure: TranslationFailure | null }> {
+  const model = attempt.model;
+  if (Object.keys(fields).length === 0) {
+    writeAttemptLog({
+      attemptId: attempt.attemptId,
+      contentType: attempt.contentType,
+      contentId: attempt.contentId,
+      targetLanguage,
+      model,
+      providerStatus: null,
+      stage: 'disabled_or_empty_input',
+      responseShape: 'null',
+      candidateTextExists: false,
+      candidateTextLength: 0,
+      errorCategory: 'disabled_or_empty_input',
+      errorMessageSafe: 'No translatable fields provided.',
+      elapsedMs: Date.now() - attempt.startTs,
+    });
+    return { fieldsOut: null, failure: { stage: 'disabled_or_empty_input', safeMessage: 'No translatable fields provided.' } };
+  }
+  const config = getAIConfig();
+  if (!config.runtime.enabled) {
+    writeAttemptLog({
+      attemptId: attempt.attemptId,
+      contentType: attempt.contentType,
+      contentId: attempt.contentId,
+      targetLanguage,
+      model,
+      providerStatus: null,
+      stage: 'disabled_or_empty_input',
+      responseShape: 'null',
+      candidateTextExists: false,
+      candidateTextLength: 0,
+      errorCategory: 'disabled_or_empty_input',
+      errorMessageSafe: 'AI translation is disabled in platform settings.',
+      elapsedMs: Date.now() - attempt.startTs,
+    });
+    return { fieldsOut: null, failure: { stage: 'disabled_or_empty_input', safeMessage: 'AI translation is disabled in platform settings.' } };
+  }
+  if (!isGeminiConfiguredForContentTranslation()) {
+    writeAttemptLog({
+      attemptId: attempt.attemptId,
+      contentType: attempt.contentType,
+      contentId: attempt.contentId,
+      targetLanguage,
+      model,
+      providerStatus: null,
+      stage: 'provider_request_failed',
+      responseShape: 'null',
+      candidateTextExists: false,
+      candidateTextLength: 0,
+      errorCategory: 'provider_request_failed',
+      errorMessageSafe: 'Gemini translation provider is unavailable. Please verify Gemini API configuration on the server.',
+      elapsedMs: Date.now() - attempt.startTs,
+    });
+    return { fieldsOut: null, failure: { stage: 'provider_request_failed', safeMessage: 'Gemini translation provider is unavailable. Please verify Gemini API configuration on the server.' } };
+  }
+
+  const fieldKeys = Object.keys(fields);
+  const schemaProperties = fieldKeys.reduce<Record<string, { type: 'string' }>>((acc, k) => {
+    acc[k] = { type: 'string' };
+    return acc;
+  }, {});
+  const required = [...fieldKeys];
+  const responseJsonSchema: Record<string, unknown> = {
+    type: 'object',
+    properties: schemaProperties,
+    required,
+    additionalProperties: false,
+  };
+
+  const userPrompt = `Translate the following English fields into ${targetLanguage}.
+
+Target language BCP-47: ${targetLanguage}.
+
+Return ONLY valid JSON with exactly these keys:
+${JSON.stringify(fieldKeys, null, 2)}
+
+English source fields:
+${JSON.stringify(fields, null, 2)}`;
+
+  let providerStatus: number | null = null;
+  let responseShape: string = 'null';
+  let candidateTextExists = false;
+  let candidateTextLength = 0;
+
+  const controller = new AbortController();
+  let providerTimeoutTriggered = false;
+  const timer = setTimeout(() => {
+    providerTimeoutTriggered = true;
+    controller.abort();
+  }, timeoutMs);
+
+  try {
+    const handle = getGeminiClient();
+    const client = handle.requireClient('content-translation-gemini');
+    const result = await client.models.generateContent({
+      model,
+      contents: [
+        {
+          role: 'user',
+          parts: [{ text: userPrompt }],
+        },
+      ],
+      config: {
+        systemInstruction: {
+          role: 'system',
+          parts: [{ text: TRANSLATION_SYSTEM_PROMPT }],
+        },
+        temperature: 0.2,
+        maxOutputTokens: 4096,
+        responseMimeType: 'application/json',
+        responseJsonSchema,
+        candidateCount: 1,
+        abortSignal: controller.signal,
+      },
+    });
+    providerStatus = 200;
+    let contentText = '';
+    try {
+      contentText = (extractGeminiCandidateText(result) || '').trim();
+    } catch (e) {
+      const errMsg = e instanceof Error ? e.message : String(e || 'extract_failed');
+      if (String(errMsg).toLowerCase().includes('safety') || String(errMsg).toLowerCase().includes('recitation')) {
+        writeAttemptLog({
+          attemptId: attempt.attemptId,
+          contentType: attempt.contentType,
+          contentId: attempt.contentId,
+          targetLanguage,
+          model,
+          providerStatus,
+          stage: 'provider_request_failed',
+          responseShape,
+          candidateTextExists: false,
+          candidateTextLength: 0,
+          errorCategory: 'provider_request_failed',
+          errorMessageSafe: `Gemini translation blocked: ${errMsg.slice(0, 200)}`,
+          elapsedMs: Date.now() - attempt.startTs,
+        });
+        return { fieldsOut: null, failure: { stage: 'provider_request_failed', safeMessage: `Gemini translation blocked: ${errMsg.slice(0, 200)}` } };
+      }
+      contentText = '';
+    }
+    contentText = contentText
+      .replace(/^```[\w-]*\s*/i, '')
+      .replace(/\s*```$/, '')
+      .trim();
+    candidateTextExists = !!contentText;
+    candidateTextLength = contentText.length;
+    responseShape = candidateTextExists ? 'string' : 'null';
+
+    if (!contentText) {
+      writeAttemptLog({
+        attemptId: attempt.attemptId,
+        contentType: attempt.contentType,
+        contentId: attempt.contentId,
+        targetLanguage,
+        model,
+        providerStatus,
+        stage: 'provider_returned_no_text',
+        responseShape,
+        candidateTextExists,
+        candidateTextLength,
+        errorCategory: 'provider_returned_no_text',
+        errorMessageSafe: 'Gemini returned no text content for translation.',
+        elapsedMs: Date.now() - attempt.startTs,
+      });
+      return { fieldsOut: null, failure: { stage: 'provider_returned_no_text', safeMessage: 'Gemini returned no text content for translation.' } };
+    }
+
+    const parsed = safeParseJSON(contentText) as Record<string, unknown> | null;
+    if (!parsed || typeof parsed !== 'object') {
+      const snippet = String(contentText).slice(0, 240);
+      writeAttemptLog({
+        attemptId: attempt.attemptId,
+        contentType: attempt.contentType,
+        contentId: attempt.contentId,
+        targetLanguage,
+        model,
+        providerStatus,
+        stage: 'invalid_json',
+        responseShape,
+        candidateTextExists,
+        candidateTextLength,
+        errorCategory: 'invalid_json',
+        errorMessageSafe: 'Could not parse Gemini translation response.',
+        elapsedMs: Date.now() - attempt.startTs,
+      });
+      return { fieldsOut: null, failure: { stage: 'invalid_json', safeMessage: 'Could not parse Gemini translation response. First 240 chars: ' + snippet } };
+    }
+
+    const requiredCoreFields = ['title', 'content_html', 'name', 'description', 'question', 'answer_html', 'summary', 'category'];
+    const missing: string[] = [];
+    for (const key of Object.keys(fields)) {
+      const sourceHasContent = fields[key].trim().length > 0;
+      const isRequiredCore = requiredCoreFields.includes(key);
+      if ((sourceHasContent || isRequiredCore)) {
+        const outVal = (parsed as Record<string, unknown>)[key];
+        if (typeof outVal !== 'string') missing.push(key);
+      }
+    }
+    if (missing.length > 0) {
+      const firstKeys = JSON.stringify(Object.keys(parsed)).slice(0, 120);
+      writeAttemptLog({
+        attemptId: attempt.attemptId,
+        contentType: attempt.contentType,
+        contentId: attempt.contentId,
+        targetLanguage,
+        model,
+        providerStatus,
+        stage: 'schema_validation_failed',
+        responseShape,
+        candidateTextExists,
+        candidateTextLength,
+        errorCategory: 'schema_validation_failed',
+        errorMessageSafe: `Missing or wrong-typed translated fields from Gemini. Missing keys=${missing.join(',')}`,
+        elapsedMs: Date.now() - attempt.startTs,
+      });
+      return { fieldsOut: null, failure: { stage: 'schema_validation_failed', safeMessage: `Missing or wrong-typed translated fields from Gemini. Missing keys=${missing.join(',')}; first_keys=${firstKeys}` } };
+    }
+
+    const resultFields: Record<string, string> = {};
+    for (const key of Object.keys(fields)) {
+      resultFields[key] = typeof parsed[key] === 'string' ? String(parsed[key]) : fields[key];
+    }
+
+    let anyNonEmptyRequired = false;
+    for (const key of Object.keys(fields)) {
+      const sourceHasContent = fields[key].trim().length > 0;
+      const isRequiredCore = requiredCoreFields.includes(key);
+      if ((sourceHasContent || isRequiredCore) && resultFields[key].trim().length > 0) {
+        anyNonEmptyRequired = true;
+        break;
+      }
+    }
+    if (!anyNonEmptyRequired) {
+      writeAttemptLog({
+        attemptId: attempt.attemptId,
+        contentType: attempt.contentType,
+        contentId: attempt.contentId,
+        targetLanguage,
+        model,
+        providerStatus,
+        stage: 'required_translation_fields_empty',
+        responseShape,
+        candidateTextExists,
+        candidateTextLength,
+        errorCategory: 'required_translation_fields_empty',
+        errorMessageSafe: 'All required translation fields came back empty.',
+        elapsedMs: Date.now() - attempt.startTs,
+      });
+      return { fieldsOut: null, failure: { stage: 'required_translation_fields_empty', safeMessage: 'All required translation fields came back empty.' } };
+    }
+
+    writeAttemptLog({
+      attemptId: attempt.attemptId,
+      contentType: attempt.contentType,
+      contentId: attempt.contentId,
+      targetLanguage,
+      model,
+      providerStatus,
+      stage: 'success',
+      responseShape,
+      candidateTextExists,
+      candidateTextLength,
+      errorCategory: null,
+      errorMessageSafe: null,
+      elapsedMs: Date.now() - attempt.startTs,
+    });
+    return { fieldsOut: resultFields, failure: null };
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err || 'Unknown');
+    if (msg.toLowerCase().includes('abort') || msg.toLowerCase().includes('timeout')) {
+      const resolvedStage: Exclude<TranslationAttemptStage, 'start' | 'success'> = providerTimeoutTriggered
+        ? 'provider_timeout'
+        : 'abort_or_timeout';
+      const safeMsg = providerTimeoutTriggered
+        ? `Gemini translation call exceeded the ${timeoutMs} ms timeout configured for translation.`
+        : 'Gemini translation call aborted or timed out.';
+      writeAttemptLog({
+        attemptId: attempt.attemptId,
+        contentType: attempt.contentType,
+        contentId: attempt.contentId,
+        targetLanguage,
+        model,
+        providerStatus,
+        stage: resolvedStage,
+        responseShape,
+        candidateTextExists,
+        candidateTextLength,
+        errorCategory: resolvedStage,
+        errorMessageSafe: safeMsg,
+        elapsedMs: Date.now() - attempt.startTs,
+      });
+      return { fieldsOut: null, failure: { stage: resolvedStage, safeMessage: safeMsg } };
+    }
+    writeAttemptLog({
+      attemptId: attempt.attemptId,
+      contentType: attempt.contentType,
+      contentId: attempt.contentId,
+      targetLanguage,
+      model,
+      providerStatus,
+      stage: 'provider_request_failed',
+      responseShape,
+      candidateTextExists,
+      candidateTextLength,
+      errorCategory: 'provider_request_failed',
+      errorMessageSafe: msg.slice(0, 300),
+      elapsedMs: Date.now() - attempt.startTs,
+    });
+    return { fieldsOut: null, failure: { stage: 'provider_request_failed', safeMessage: `Gemini translation failed: ${msg.slice(0, 240)}` } };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function callLegacyOpenRouterTranslation(
   attempt: { attemptId: string; contentType: TranslationAttemptLog['contentType']; contentId?: string; startTs: number; model: string },
   targetLanguage: SupportedLanguage,
   fields: Record<string, string>,
@@ -177,7 +580,7 @@ async function callOpenRouterTranslation(
       fieldsOut: null,
       failure: {
         stage: 'provider_request_failed',
-        safeMessage: 'OpenRouter provider is disabled. Set OPENROUTER_ENABLED=true to enable content translation.',
+        safeMessage: 'Legacy OpenRouter translation fallback is disabled. Set OPENROUTER_ENABLED=true to enable the legacy provider fallback. (not required with Gemini active)',
       },
     };
   }
@@ -485,22 +888,6 @@ export async function translateBlogFields(
 ): Promise<TranslateFieldsResult<BlogFieldsTranslated>> {
   const attemptId = newAttemptId();
   const startTs = Date.now();
-  const model = process.env.OPENROUTER_MODEL || 'openai/gpt-4.1-mini';
-  writeAttemptLog({
-    attemptId,
-    contentType: 'blog_fields',
-    contentId: options?.contentId,
-    targetLanguage,
-    model,
-    providerStatus: null,
-    stage: 'start',
-    responseShape: 'null',
-    candidateTextExists: false,
-    candidateTextLength: 0,
-    errorCategory: null,
-    errorMessageSafe: null,
-    elapsedMs: 0,
-  });
   const textFields: Record<string, string> = {
     title: englishFields.title,
     excerpt: englishFields.excerpt,
@@ -516,14 +903,29 @@ export async function translateBlogFields(
     twitter_title: englishFields.twitter_title,
     twitter_description: englishFields.twitter_description,
   };
-  const translated = await callOpenRouterTranslation(
-    { attemptId, contentType: 'blog_fields', contentId: options?.contentId, startTs, model },
+  const translated = await callStructuredContentTranslation(
+    { attemptId, contentType: 'blog_fields', contentId: options?.contentId, startTs },
     targetLanguage,
     textFields,
     TRANSLATION_PROVIDER_TIMEOUT_MS
   );
+  writeAttemptLog({
+    attemptId,
+    contentType: 'blog_fields',
+    contentId: options?.contentId,
+    targetLanguage,
+    model: translated.modelUsed,
+    providerStatus: null,
+    stage: 'start',
+    responseShape: 'null',
+    candidateTextExists: false,
+    candidateTextLength: 0,
+    errorCategory: null,
+    errorMessageSafe: null,
+    elapsedMs: 0,
+  });
   if (translated.failure || !translated.fieldsOut) {
-    return { translatedFields: null, attemptId, failure: translated.failure };
+    return { translatedFields: null, attemptId, failure: translated.failure ? ({ stage: translated.failure.stage, safeMessage: translated.failure.safeMessage } as TranslationFailure) : null };
   }
   const splitTags = (csv: string) =>
     csv
@@ -558,13 +960,18 @@ export async function translateFaqCategoryFields(
 ): Promise<TranslateFieldsResult<{ name: string; description: string }>> {
   const attemptId = newAttemptId();
   const startTs = Date.now();
-  const model = process.env.OPENROUTER_MODEL || 'openai/gpt-4.1-mini';
+  const translated = await callStructuredContentTranslation(
+    { attemptId, contentType: 'faq_category_fields', contentId: options?.contentId, startTs },
+    targetLanguage,
+    { name: english.name, description: english.description },
+    TRANSLATION_PROVIDER_TIMEOUT_MS
+  );
   writeAttemptLog({
     attemptId,
     contentType: 'faq_category_fields',
     contentId: options?.contentId,
     targetLanguage,
-    model,
+    model: translated.modelUsed,
     providerStatus: null,
     stage: 'start',
     responseShape: 'null',
@@ -574,14 +981,8 @@ export async function translateFaqCategoryFields(
     errorMessageSafe: null,
     elapsedMs: 0,
   });
-  const translated = await callOpenRouterTranslation(
-    { attemptId, contentType: 'faq_category_fields', contentId: options?.contentId, startTs, model },
-    targetLanguage,
-    { name: english.name, description: english.description },
-    TRANSLATION_PROVIDER_TIMEOUT_MS
-  );
   if (translated.failure || !translated.fieldsOut) {
-    return { translatedFields: null, attemptId, failure: translated.failure };
+    return { translatedFields: null, attemptId, failure: translated.failure ? ({ stage: translated.failure.stage, safeMessage: translated.failure.safeMessage } as TranslationFailure) : null };
   }
   return {
     translatedFields: {
@@ -600,13 +1001,22 @@ export async function translateFaqItemFields(
 ): Promise<TranslateFieldsResult<{ question: string; answer_html: string; keywords: string[] }>> {
   const attemptId = newAttemptId();
   const startTs = Date.now();
-  const model = process.env.OPENROUTER_MODEL || 'openai/gpt-4.1-mini';
+  const translated = await callStructuredContentTranslation(
+    { attemptId, contentType: 'faq_item_fields', contentId: options?.contentId, startTs },
+    targetLanguage,
+    {
+      question: english.question,
+      answer_html: english.answer_html,
+      keywords_csv: (english.keywords || []).join(', '),
+    },
+    TRANSLATION_PROVIDER_TIMEOUT_MS
+  );
   writeAttemptLog({
     attemptId,
     contentType: 'faq_item_fields',
     contentId: options?.contentId,
     targetLanguage,
-    model,
+    model: translated.modelUsed,
     providerStatus: null,
     stage: 'start',
     responseShape: 'null',
@@ -616,18 +1026,8 @@ export async function translateFaqItemFields(
     errorMessageSafe: null,
     elapsedMs: 0,
   });
-  const translated = await callOpenRouterTranslation(
-    { attemptId, contentType: 'faq_item_fields', contentId: options?.contentId, startTs, model },
-    targetLanguage,
-    {
-      question: english.question,
-      answer_html: english.answer_html,
-      keywords_csv: (english.keywords || []).join(', '),
-    },
-    TRANSLATION_PROVIDER_TIMEOUT_MS
-  );
   if (translated.failure || !translated.fieldsOut) {
-    return { translatedFields: null, attemptId, failure: translated.failure };
+    return { translatedFields: null, attemptId, failure: translated.failure ? ({ stage: translated.failure.stage, safeMessage: translated.failure.safeMessage } as TranslationFailure) : null };
   }
   return {
     translatedFields: {
@@ -662,24 +1062,8 @@ export async function translateDocumentationFields(
 ): Promise<TranslateFieldsResult<DocumentationFieldsTranslated>> {
   const attemptId = newAttemptId();
   const startTs = Date.now();
-  const model = process.env.OPENROUTER_MODEL || 'openai/gpt-4.1-mini';
-  writeAttemptLog({
-    attemptId,
-    contentType: 'documentation_fields',
-    contentId: options?.contentId,
-    targetLanguage,
-    model,
-    providerStatus: null,
-    stage: 'start',
-    responseShape: 'null',
-    candidateTextExists: false,
-    candidateTextLength: 0,
-    errorCategory: null,
-    errorMessageSafe: null,
-    elapsedMs: 0,
-  });
-  const translated = await callOpenRouterTranslation(
-    { attemptId, contentType: 'documentation_fields', contentId: options?.contentId, startTs, model },
+  const translated = await callStructuredContentTranslation(
+    { attemptId, contentType: 'documentation_fields', contentId: options?.contentId, startTs },
     targetLanguage,
     {
       title: english.title,
@@ -689,8 +1073,23 @@ export async function translateDocumentationFields(
     },
     TRANSLATION_PROVIDER_TIMEOUT_MS
   );
+  writeAttemptLog({
+    attemptId,
+    contentType: 'documentation_fields',
+    contentId: options?.contentId,
+    targetLanguage,
+    model: translated.modelUsed,
+    providerStatus: null,
+    stage: 'start',
+    responseShape: 'null',
+    candidateTextExists: false,
+    candidateTextLength: 0,
+    errorCategory: null,
+    errorMessageSafe: null,
+    elapsedMs: 0,
+  });
   if (translated.failure || !translated.fieldsOut) {
-    return { translatedFields: null, attemptId, failure: translated.failure };
+    return { translatedFields: null, attemptId, failure: translated.failure ? ({ stage: translated.failure.stage, safeMessage: translated.failure.safeMessage } as TranslationFailure) : null };
   }
   return {
     translatedFields: {
