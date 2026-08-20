@@ -268,7 +268,7 @@ function SmartAIDashboardCard() {
   }
 
   return (
-    <div className="col-span-1 lg:col-span-1 min-w-0 overflow-hidden rounded-[22px] border border-purple-200/60 dark:border-purple-400/20 bg-gradient-to-br from-purple-500 via-purple-600 to-indigo-600 text-white p-4 shadow-lg">
+    <div className="col-span-1 lg:col-span-1 min-w-0 overflow-hidden rounded-[22px] border border-purple-200/60 dark:border-purple-400/20 bg-gradient-to-br from-purple-500 via-purple-600 to-indigo-600 text-white p-4 lg:p-[1.1rem] shadow-lg">
       <div className="flex flex-col gap-0 min-w-0">
         <div className="flex flex-row items-start justify-between gap-2 min-w-0">
           <div className="min-w-0 flex-1 md:pr-0.5">
@@ -281,16 +281,16 @@ function SmartAIDashboardCard() {
           </div>
         </div>
         <div className="mt-3.5">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 min-w-0">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 lg:gap-3 min-w-0">
             <button
               type="button"
               onClick={() => openAI('smart_entry')}
-              className="rounded-2xl bg-white/10 hover:bg-white/15 p-2.5 transition-colors border border-white/10 backdrop-blur-sm cursor-pointer min-w-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+              className="rounded-2xl bg-white/10 hover:bg-white/15 p-3 transition-colors border border-white/10 backdrop-blur-sm cursor-pointer min-w-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
               aria-label={t('dashboardSections.smartAiTypeIt', 'Type it')}
             >
               <div className="flex flex-row sm:flex-col items-center sm:items-center justify-start sm:justify-center gap-2.5 sm:gap-1.5 min-w-0">
                 <MessageSquare size={16} className="flex-shrink-0" />
-                <span className="text-[11.5px] font-700 leading-tight min-w-0 truncate text-white">
+                <span className="text-[12px] font-700 leading-tight min-w-0 text-white whitespace-nowrap">
                   {t('dashboardSections.smartAiTypeIt', 'Type it')}
                 </span>
               </div>
@@ -298,12 +298,12 @@ function SmartAIDashboardCard() {
             <button
               type="button"
               onClick={() => openAI('voice_entry')}
-              className="rounded-2xl bg-white/10 hover:bg-white/15 p-2.5 transition-colors border border-white/10 backdrop-blur-sm cursor-pointer min-w-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+              className="rounded-2xl bg-white/10 hover:bg-white/15 p-3 transition-colors border border-white/10 backdrop-blur-sm cursor-pointer min-w-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
               aria-label={t('dashboardSections.smartAiSayIt', 'Say it')}
             >
               <div className="flex flex-row sm:flex-col items-center sm:items-center justify-start sm:justify-center gap-2.5 sm:gap-1.5 min-w-0">
                 <Mic size={16} className="flex-shrink-0" />
-                <span className="text-[11.5px] font-700 leading-tight min-w-0 truncate text-white">
+                <span className="text-[12px] font-700 leading-tight min-w-0 text-white whitespace-nowrap">
                   {t('dashboardSections.smartAiSayIt', 'Say it')}
                 </span>
               </div>
@@ -311,12 +311,12 @@ function SmartAIDashboardCard() {
             <button
               type="button"
               onClick={() => openAI('document_entry')}
-              className="rounded-2xl bg-white/10 hover:bg-white/15 p-2.5 transition-colors border border-white/10 backdrop-blur-sm cursor-pointer min-w-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+              className="rounded-2xl bg-white/10 hover:bg-white/15 p-3 transition-colors border border-white/10 backdrop-blur-sm cursor-pointer min-w-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
               aria-label={t('dashboardSections.smartAiUpload', 'Upload receipt')}
             >
               <div className="flex flex-row sm:flex-col items-center sm:items-center justify-start sm:justify-center gap-2.5 sm:gap-1.5 min-w-0">
                 <FileUp size={16} className="flex-shrink-0" />
-                <span className="text-[11.5px] font-700 leading-tight min-w-0 truncate text-white">
+                <span className="text-[12px] font-700 leading-tight min-w-0 text-white whitespace-nowrap">
                   {t('dashboardSections.smartAiUpload', 'Upload receipt')}
                 </span>
               </div>
@@ -814,14 +814,14 @@ export default function DashboardPage() {
           ) : (
           <div className="space-y-4 md:space-y-5 lg:space-y-5 max-[480px]:space-y-3">
             <SectionCardSkeleton lines={2} />
-            <div className="grid grid-cols-1 items-start gap-4 md:gap-5 md:grid-cols-12 xl:grid-cols-[minmax(0,8.35fr)_minmax(20rem,3.65fr)]">
+            <div className="grid grid-cols-1 items-start gap-4 md:gap-5 md:grid-cols-12 xl:grid-cols-[minmax(0,7.2fr)_minmax(0,4.8fr)]">
               <div className="grid grid-cols-2 gap-3 max-[340px]:grid-cols-1 md:col-span-12 md:grid-cols-4 lg:grid-cols-3 xl:col-[1]">
                 {Array.from({ length: 6 }).map((_, index) => (
                   <KPICardSkeleton key={`dashboard-kpi-skeleton-${index + 1}`} />
                 ))}
               </div>
               <div className="hidden md:col-span-12 md:block xl:col-[2] xl:row-span-2 xl:row-start-1 xl:self-start">
-                <div className="space-y-4 xl:w-[108%] xl:max-w-[23rem]">
+                <div className="space-y-4 xl:max-w-[30rem] xl:w-full">
                   <SectionCardSkeleton lines={3} className="h-full" />
                   <div className="hidden xl:block">
                     <SectionCardSkeleton lines={4} className="h-full" />
@@ -885,7 +885,7 @@ export default function DashboardPage() {
               </div>
             ) : isMdUp ? (
               <div className="space-y-3 md:space-y-3.5 lg:space-y-4 max-[480px]:space-y-3">
-                <div className="grid grid-cols-1 items-start gap-3 md:gap-3.5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+                <div className="grid grid-cols-1 items-start gap-3 md:gap-3.5 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
                   <div className="col-span-1 lg:col-span-1 min-w-0">
                     <DashboardMetrics activePeriod={readyActivePeriod!} hasConfigurationWarning={readyPeriodContext!.hasConfigurationWarning} hideSensitive={globalHideSensitive} onHideSensitiveChange={setGlobalHideSensitive} onPeriodNetByAccountIdChange={setPeriodNetByAccountId} />
                   </div>

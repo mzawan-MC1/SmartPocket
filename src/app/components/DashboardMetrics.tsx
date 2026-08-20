@@ -1397,7 +1397,7 @@ export default function DashboardMetrics({
                   }
                 )}
               </div>
-              <div className="mt-1.5 flex items-center gap-1.25">
+              <div className="mt-1.5 flex items-center gap-2.5">
                 {netCashFlowPositive ? (
                   <ArrowUp size={13.5} className="text-green-300 flex-shrink-0" />
                 ) : (
@@ -1414,7 +1414,7 @@ export default function DashboardMetrics({
                     }
                   )}
                 </div>
-                <span className="text-[11.5px] font-500 text-white/75">{balanceDeltaLabel}</span>
+                <span className="ms-2 text-[11.5px] font-500 text-white/75 whitespace-nowrap">{balanceDeltaLabel}</span>
               </div>
             </div>
 
