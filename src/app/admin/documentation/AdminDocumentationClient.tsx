@@ -16,6 +16,7 @@ import {
   Search,
   ShieldAlert,
   SlidersHorizontal,
+  Sparkles,
   Square,
   Tags,
   ToggleLeft,
@@ -1235,6 +1236,7 @@ function CategoryFormModal({
   const [displayOrder, setDisplayOrder] = React.useState<number>(0);
   const [isActive, setIsActive] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
+  const [isGeneratingAiTranslations, setIsGeneratingAiTranslations] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string | null>>({});
   const [editingLocale, setEditingLocale] = React.useState<SupportedLanguage>('en');
   const slugLockedRef = React.useRef(false);
@@ -1243,6 +1245,7 @@ function CategoryFormModal({
     if (!open) return;
     slugLockedRef.current = false;
     setEditingLocale('en');
+    setIsGeneratingAiTranslations(false);
     if (editing) {
       setName(editing.name);
       setSlug(editing.slug);
@@ -1299,6 +1302,122 @@ function CategoryFormModal({
       }
       return next;
     });
+  };
+
+  const handleGenerateAiTranslations = async () => {
+    const srcName = name.trim();
+    if (!srcName) {
+      toast.warning(
+        tp(
+          'adminDocumentation.categories.modal.aiTranslateEmptyName',
+          'Enter an English category name first so AI can generate accurate translations.'
+        )
+      );
+      return;
+    }
+    setIsGeneratingAiTranslations(true);
+    try {
+      const init = makeAdminFetchInit
+        ? makeAdminFetchInit(
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                name: srcName,
+                description: description.trim() || undefined,
+              }),
+            },
+            { timeoutMs: 120000 }
+          )
+        : {
+            method: 'POST' as const,
+            credentials: 'include' as RequestCredentials,
+            cache: 'no-store' as RequestCache,
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify({
+              name: srcName,
+              description: description.trim() || undefined,
+            }),
+          };
+      const res = await fetch('/api/admin/documentation/categories/translate', init);
+      const text = await res.text();
+      let json: any = null;
+      try {
+        json = text && text.trim() ? JSON.parse(text) : {};
+      } catch {
+        json = { error: tp('adminDocumentation.errors.aiTranslateInvalid', 'Invalid response from AI translation service.') };
+      }
+      if (!res.ok) {
+        const msg =
+          typeof json?.error === 'string' && json.error
+            ? json.error
+            : res.status === 502
+            ? tp(
+                'adminDocumentation.errors.aiTranslateProvider',
+                'Translation provider is temporarily unavailable. Please retry in a moment.'
+              )
+            : tp(
+                'adminDocumentation.errors.aiTranslate',
+                'Failed to generate AI translations. Please try again.'
+              );
+        throw new Error(msg);
+      }
+      const incoming = (json?.translations && typeof json.translations === 'object')
+        ? json.translations as Record<string, { name?: string; description?: string }>
+        : {};
+      if (Object.keys(incoming).length === 0) {
+        throw new Error(
+          tp(
+            'adminDocumentation.errors.aiTranslateEmpty',
+            'No translations were returned. Please retry or enter translations manually.'
+          )
+        );
+      }
+      setTranslations((prev) => {
+        const next: DocumentationCategoryTranslations = { ...prev };
+        for (const rawCode of Object.keys(incoming)) {
+          const code = rawCode as SupportedLanguage;
+          if (!(CONTENT_TRANSLATION_ENABLED_LANGS as readonly SupportedLanguage[]).includes(code)) continue;
+          const entry = incoming[rawCode];
+          if (!entry || typeof entry !== 'object') continue;
+          const prior = next[code] ?? {};
+          const rawName = typeof entry.name === 'string' ? entry.name.trim() : '';
+          const rawDescription = typeof entry.description === 'string' ? entry.description.trim() : '';
+          const merged: { name?: string; description?: string } = { ...prior };
+          if (rawName.length > 0) merged.name = rawName.slice(0, 120);
+          if (rawDescription.length > 0) merged.description = rawDescription.slice(0, 500);
+          const hasAny =
+            (typeof merged.name === 'string' && merged.name.length > 0) ||
+            (typeof merged.description === 'string' && merged.description.length > 0);
+          if (hasAny) {
+            next[code] = merged;
+          } else if (code in next) {
+            delete next[code];
+          }
+        }
+        return next;
+      });
+      const generated = Object.keys(incoming).filter((c) =>
+        (CONTENT_TRANSLATION_ENABLED_LANGS as readonly SupportedLanguage[]).includes(c as SupportedLanguage)
+      ).length;
+      toast.success(
+        tp(
+          'adminDocumentation.toasts.categoriesAiGenerated',
+          'AI generated {{count}} translations successfully.',
+          { count: String(generated) }
+        )
+      );
+    } catch (error: any) {
+      const timedOut = error?.name === 'TimeoutError' || /timeout/i.test(String(error?.message || ''));
+      toast.error(
+        timedOut
+          ? tp('adminDocumentation.errors.aiTranslateTimeout', 'AI translation timed out. Please retry.')
+          : (error?.message || tp('adminDocumentation.errors.aiTranslate', 'Failed to generate AI translations. Please try again.'))
+      );
+    } finally {
+      finalizeFetch?.();
+      setIsGeneratingAiTranslations(false);
+    }
   };
 
   const submit = async (event?: React.FormEvent) => {
@@ -1479,18 +1598,41 @@ function CategoryFormModal({
             )}
           </div>
           <div>
-            <div className="flex items-center justify-between mb-1.5">
+            <div className="flex items-center justify-between mb-1.5 gap-2 flex-wrap">
               <label className="block text-xs font-700 uppercase tracking-[0.12em] text-muted-foreground">
                 {tp('adminDocumentation.categories.modal.translations', 'Translations')}
               </label>
-              <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
-                <Languages size={12} />
-                <span className="tabular-nums">
-                  {Object.keys(translations).filter((k) => k !== 'en').length}
-                  {' / '}
-                  {CONTENT_TRANSLATION_ENABLED_LANGS.length}
+              <div className="flex items-center gap-2 flex-wrap justify-end">
+                <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                  <Languages size={12} />
+                  <span className="tabular-nums">
+                    {Object.keys(translations).filter((k) => k !== 'en').length}
+                    {' / '}
+                    {CONTENT_TRANSLATION_ENABLED_LANGS.length}
+                  </span>
                 </span>
-              </span>
+                <button
+                  type="button"
+                  onClick={() => void handleGenerateAiTranslations()}
+                  disabled={isGeneratingAiTranslations || saving}
+                  className="btn-primary inline-flex items-center gap-1 !h-8 !min-h-0 !rounded-xl !px-2.5 !text-[11px] shadow-[0_6px_16px_-6px_rgba(124,58,237,0.45)]"
+                  title={tp(
+                    'adminDocumentation.categories.modal.aiTranslateTitle',
+                    'Use AI to translate the English name + description into all 7 supported languages.'
+                  )}
+                >
+                  {isGeneratingAiTranslations ? (
+                    <Loader2 size={12} className="animate-spin" />
+                  ) : (
+                    <Sparkles size={12} />
+                  )}
+                  <span className="font-800 tracking-[0.02em]">
+                    {isGeneratingAiTranslations
+                      ? tp('adminDocumentation.categories.modal.aiTranslateLoading', 'AI Translating…')
+                      : tp('adminDocumentation.categories.modal.aiTranslate', 'Auto-Translate (AI)')}
+                  </span>
+                </button>
+              </div>
             </div>
             <div
               role="tablist"
