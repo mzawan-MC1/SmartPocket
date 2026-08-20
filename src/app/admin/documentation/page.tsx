@@ -5,8 +5,12 @@ import { requireAdminPageUser } from '@/lib/support-server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import AdminDocumentationClient from '@/app/admin/documentation/AdminDocumentationClient';
 import { loadDocumentationTranslationStatus } from '@/lib/documentation-translate-server';
+import {
+  adminGetAllDocumentationCategoriesWithCount,
+} from '@/lib/documentation-server';
 import type {
   DocumentationArticleRecord,
+  DocumentationCategoryWithCount,
 } from '@/lib/documentation';
 import type { DocumentationTranslationStatusResponse } from '@/lib/documentation-translate-server';
 
@@ -34,10 +38,18 @@ export default async function AdminDocumentationPage() {
     }
   }
 
+  let initialCategories: DocumentationCategoryWithCount[] = [];
+  try {
+    initialCategories = await adminGetAllDocumentationCategoriesWithCount(admin);
+  } catch {
+    /* swallow initial category load — client refetches */
+  }
+
   return (
     <AdminDocumentationClient
       initialArticles={articles}
       initialTranslationStatuses={initialStatuses}
+      initialCategories={initialCategories}
     />
   );
 }

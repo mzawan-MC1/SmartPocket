@@ -24,6 +24,7 @@ import DocumentationTipTapEditor, {
 import type {
   DocumentationArticleInput,
   DocumentationArticleRecord,
+  DocumentationCategoryRecord,
   DocumentationStatus,
   DocumentationTranslationStatusResponse,
 } from '@/lib/documentation';
@@ -133,6 +134,41 @@ export default function AdminDocumentationForm({
   const [insertImageAlt, setInsertImageAlt] = React.useState('');
   const [insertImageUploading, setInsertImageUploading] = React.useState(false);
   const editorRef = useRef<DocumentationTipTapEditorHandle>(null);
+  const [activeCategories, setActiveCategories] = React.useState<DocumentationCategoryRecord[]>([]);
+  const [categoriesLoaded, setCategoriesLoaded] = React.useState(false);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch('/api/admin/documentation/categories', { cache: 'no-store' });
+        if (!res.ok) return;
+        const json = await res.json();
+        const cats = Array.isArray(json?.categories) ? (json.categories as DocumentationCategoryRecord[]) : [];
+        if (!cancelled) {
+          setActiveCategories(cats.filter((c) => c.is_active !== false));
+          setCategoriesLoaded(true);
+        }
+      } catch {
+        if (!cancelled) setCategoriesLoaded(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  React.useEffect(() => {
+    if (!categoriesLoaded) return;
+    if (mode !== 'create') return;
+    if (activeCategories.length === 0) return;
+    const firstActiveSlug = activeCategories[0].slug;
+    setForm((cur) => {
+      if (cur.category && cur.category !== DOCUMENTATION_CATEGORIES[0]) return cur;
+      if (cur.category === firstActiveSlug) return cur;
+      return { ...cur, category: firstActiveSlug };
+    });
+  }, [categoriesLoaded, mode, activeCategories]);
 
   const providerDisabledMessage = React.useMemo(() => {
     if (!translation) return null;
@@ -159,12 +195,38 @@ export default function AdminDocumentationForm({
 
   const categoryLabels = React.useMemo(() => {
     const labels: Record<string, string> = {};
+    for (const cat of activeCategories) {
+      if (cat && cat.slug && cat.name) {
+        labels[cat.slug] = cat.name;
+      }
+    }
     for (const code of DOCUMENTATION_CATEGORIES) {
+      if (labels[code]) continue;
       const key = `adminDocumentation.categories.${code.replace(/-/g, '')}`;
       labels[code] = tp(key, code.charAt(0).toUpperCase() + code.slice(1).replace(/-/g, ' '));
     }
     return labels;
-  }, [tp]);
+  }, [activeCategories, tp]);
+
+  const categorySelectOptions = React.useMemo<Array<{ slug: string; label: string }>>(() => {
+    const seen = new Set<string>();
+    const result: Array<{ slug: string; label: string }> = [];
+    for (const cat of activeCategories) {
+      if (!cat || !cat.slug) continue;
+      if (seen.has(cat.slug)) continue;
+      seen.add(cat.slug);
+      result.push({ slug: cat.slug, label: categoryLabels[cat.slug] || cat.name || cat.slug });
+    }
+    for (const code of DOCUMENTATION_CATEGORIES) {
+      if (seen.has(code)) continue;
+      seen.add(code);
+      result.push({ slug: code, label: categoryLabels[code] || code });
+    }
+    if (form.category && !seen.has(form.category)) {
+      result.unshift({ slug: form.category, label: categoryLabels[form.category] || form.category });
+    }
+    return result;
+  }, [activeCategories, categoryLabels, form.category]);
 
   const slugLockedRef = React.useRef(false);
   const autoSlug = (value: string) => {
@@ -882,9 +944,9 @@ export default function AdminDocumentationForm({
                 onChange={(e) => updateField('category', e.target.value)}
                 className="input-base"
               >
-                {DOCUMENTATION_CATEGORIES.map((code) => (
-                  <option key={code} value={code}>
-                    {categoryLabels[code] || code}
+                {categorySelectOptions.map((opt) => (
+                  <option key={opt.slug} value={opt.slug}>
+                    {opt.label}
                   </option>
                 ))}
               </select>

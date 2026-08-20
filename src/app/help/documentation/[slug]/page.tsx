@@ -4,7 +4,9 @@ import { SUPPORTED_LANGUAGE_CODES } from '@/i18n/registry';
 import { getPlatformSettingsSnapshot } from '@/lib/platform-settings-server';
 import { resolveMetadataLanguage } from '@/lib/site-metadata';
 import PublicDocumentationDetailClient from '@/components/documentation/PublicDocumentationDetailClient';
+import type { DocumentationCategoryRecord } from '@/lib/documentation';
 import {
+  getPublicActiveDocumentationCategories,
   getPublicDocumentationDetail,
   getRelatedPublicDocumentationArticles,
 } from '@/lib/documentation-server';
@@ -21,9 +23,14 @@ export default async function DocumentationDetailPage({
   const settings = await getPlatformSettingsSnapshot();
   const metadataLanguage = await resolveMetadataLanguage(settings);
 
-  const detailResults = await Promise.all(
-    SUPPORTED_LANGUAGE_CODES.map((language) => getPublicDocumentationDetail(slug, language))
-  );
+  const [activeCategoriesResult, ...detailResults] = await Promise.all([
+    getPublicActiveDocumentationCategories(),
+    ...SUPPORTED_LANGUAGE_CODES.map((language) => getPublicDocumentationDetail(slug, language)),
+  ]);
+
+  const activeCategories: DocumentationCategoryRecord[] = Array.isArray(activeCategoriesResult)
+    ? activeCategoriesResult
+    : [];
 
   const detailByLanguage = SUPPORTED_LANGUAGE_CODES.reduce(
     (accumulator, language, index) => {
@@ -64,6 +71,7 @@ export default async function DocumentationDetailPage({
         <PublicDocumentationDetailClient
           dataByLanguage={detailByLanguage}
           relatedByLanguage={relatedByLanguage}
+          activeCategories={activeCategories}
         />
       </div>
     </PublicLayout>

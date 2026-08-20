@@ -38,6 +38,7 @@ import {
   documentationContentDir,
   isDocumentationContentRtl,
   normalizeDocumentationLanguage,
+  type DocumentationCategoryRecord,
   type DocumentationLanguageCode,
   type PublicDocumentationArticle,
 } from '@/lib/documentation';
@@ -133,12 +134,14 @@ function resolveCategoryVisual(category?: string): DocumentationCategoryTint {
 
 export default function PublicDocumentationClient({
   dataByLanguage,
+  activeCategories,
   supportHref,
 }: {
   dataByLanguage: Record<
     SupportedLanguage,
     { articles: PublicDocumentationArticle[]; effectiveLocale: DocumentationLanguageCode }
   >;
+  activeCategories?: DocumentationCategoryRecord[];
   supportHref: string;
 }) {
   const { t } = useTranslation('portal');
@@ -152,14 +155,30 @@ export default function PublicDocumentationClient({
   const articles = resolvedData.articles;
   const isRtl = dir === 'rtl';
 
+  const categoryNameMap = React.useMemo<Record<string, string>>(() => {
+    const map: Record<string, string> = {};
+    for (const cat of activeCategories || []) {
+      if (cat && cat.slug && cat.is_active !== false && cat.name) {
+        map[cat.slug] = cat.name;
+      }
+    }
+    return map;
+  }, [activeCategories]);
+
   const categories = React.useMemo(() => {
-    const map = new Map<string, number>();
+    const counts = new Map<string, number>();
     for (const article of articles) {
       const cat = article.category || 'general';
-      map.set(cat, (map.get(cat) || 0) + 1);
+      counts.set(cat, (counts.get(cat) || 0) + 1);
     }
-    return Array.from(map.entries()).map(([category, count]) => ({ category, count }));
-  }, [articles]);
+    for (const cat of activeCategories || []) {
+      if (!cat || cat.is_active === false) continue;
+      if (!counts.has(cat.slug)) {
+        counts.set(cat.slug, 0);
+      }
+    }
+    return Array.from(counts.entries()).map(([category, count]) => ({ category, count }));
+  }, [articles, activeCategories]);
 
   const filteredArticles = React.useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -181,6 +200,7 @@ export default function PublicDocumentationClient({
   const hasQuery = query.trim().length > 0 || categoryFilter !== 'all';
 
   const displayCategoryLabel = (category: string) => {
+    if (categoryNameMap[category]) return categoryNameMap[category];
     const key = `documentation.categories.${category.replace(/-/g, '')}`;
     const val = t(key, { ns: 'portal', defaultValue: '' });
     return val || category.charAt(0).toUpperCase() + category.slice(1).replace(/-/g, ' ');

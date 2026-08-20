@@ -32,6 +32,7 @@ import {
   documentationContentDir,
   isDocumentationContentRtl,
   normalizeDocumentationLanguage,
+  type DocumentationCategoryRecord,
   type DocumentationLanguageCode,
   type PublicDocumentationArticle,
 } from '@/lib/documentation';
@@ -128,6 +129,7 @@ function resolveCategoryVisual(category?: string): DocumentationCategoryTint {
 export default function PublicDocumentationDetailClient({
   dataByLanguage,
   relatedByLanguage,
+  activeCategories,
 }: {
   dataByLanguage: Record<
     SupportedLanguage,
@@ -140,6 +142,7 @@ export default function PublicDocumentationDetailClient({
     SupportedLanguage,
     { articles: PublicDocumentationArticle[] }
   >;
+  activeCategories?: DocumentationCategoryRecord[];
 }) {
   const { t } = useTranslation('portal');
   const router = useRouter();
@@ -161,7 +164,18 @@ export default function PublicDocumentationDetailClient({
     return null;
   }
 
+  const categoryNameMap = React.useMemo<Record<string, string>>(() => {
+    const map: Record<string, string> = {};
+    for (const cat of activeCategories || []) {
+      if (cat && cat.slug && cat.is_active !== false && cat.name) {
+        map[cat.slug] = cat.name;
+      }
+    }
+    return map;
+  }, [activeCategories]);
+
   const displayCategoryLabel = (category: string) => {
+    if (categoryNameMap[category]) return categoryNameMap[category];
     const key = `documentation.categories.${category.replace(/-/g, '')}`;
     const val = t(key, { ns: 'portal', defaultValue: '' });
     return val || category.charAt(0).toUpperCase() + category.slice(1).replace(/-/g, ' ');

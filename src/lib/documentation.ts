@@ -103,6 +103,31 @@ export type PublicDocumentationArticle = {
   updatedAt: string;
 };
 
+export type DocumentationCategoryRecord = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  display_order: number;
+  is_active: boolean;
+  created_by: string | null;
+  updated_by: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type DocumentationCategoryWithCount = DocumentationCategoryRecord & {
+  articles_count: number;
+};
+
+export type DocumentationCategoryInput = {
+  name: string;
+  slug: string;
+  description: string;
+  display_order: number;
+  is_active: boolean;
+};
+
 export type DocumentationTranslationStatusRow = {
   language: SupportedLanguage;
   status: DocumentationTranslationStatus;
@@ -248,4 +273,60 @@ export function normalizeDocumentationLanguage(
   }
 
   return isDocumentationLanguageCode(fallback) ? fallback : 'en';
+}
+
+export function sanitizeDocumentationCategorySingleLine(value: unknown, maxLength: number) {
+  if (typeof value !== 'string') {
+    return '';
+  }
+  return value.replace(/\s+/g, ' ').trim().slice(0, maxLength);
+}
+
+export function isDocumentationCategoryNameValid(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0 && value.trim().length <= 120;
+}
+
+export function normalizeDocumentationCategoryInput(
+  input: Partial<DocumentationCategoryInput>
+): DocumentationCategoryInput {
+  const rawName =
+    typeof input.name === 'string' && input.name.trim() ? input.name : '';
+  const rawSlug =
+    typeof input.slug === 'string' && input.slug.trim()
+      ? input.slug
+      : slugifyCmsPageSlug(rawName);
+  return {
+    name: sanitizeDocumentationCategorySingleLine(rawName, 120),
+    slug: normalizeDocumentationSlug(rawSlug),
+    description: sanitizeDocumentationMultilineText(input.description, 500),
+    display_order: normalizeDocumentationSortOrder(input.display_order),
+    is_active: input.is_active !== false,
+  };
+}
+
+export function validateDocumentationCategoryInput(input: DocumentationCategoryInput) {
+  const issues: Array<{
+    field: keyof DocumentationCategoryInput | null;
+    message: string;
+  }> = [];
+
+  if (!isDocumentationCategoryNameValid(input.name)) {
+    issues.push({
+      field: 'name',
+      message: 'Name is required (120 characters or fewer).',
+    });
+  }
+
+  if (!input.slug || !isValidDocumentationSlug(input.slug)) {
+    issues.push({
+      field: 'slug',
+      message:
+        'Enter a valid slug using lowercase letters, numbers, and hyphens only.',
+    });
+  }
+
+  return {
+    valid: issues.length === 0,
+    issues,
+  };
 }

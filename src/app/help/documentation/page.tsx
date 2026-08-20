@@ -1,7 +1,11 @@
 import type { SupportedLanguage } from '@/i18n/resources';
 import { SUPPORTED_LANGUAGE_CODES } from '@/i18n/registry';
 import PublicDocumentationClient from '@/components/documentation/PublicDocumentationClient';
-import { getPublicDocumentationList } from '@/lib/documentation-server';
+import {
+  getPublicActiveDocumentationCategories,
+  getPublicDocumentationList,
+} from '@/lib/documentation-server';
+import type { DocumentationCategoryRecord } from '@/lib/documentation';
 import PublicLayout from '@/app/(public)/layout';
 
 export const revalidate = 0;
@@ -9,9 +13,14 @@ export const revalidate = 0;
 type DocPageLanguageData = Awaited<ReturnType<typeof getPublicDocumentationList>>;
 
 export default async function DocumentationPage() {
-  const docPageDataResults = await Promise.all(
-    SUPPORTED_LANGUAGE_CODES.map((language) => getPublicDocumentationList(language))
-  );
+  const [activeCategoriesResult, ...docPageDataResults] = await Promise.all([
+    getPublicActiveDocumentationCategories(),
+    ...SUPPORTED_LANGUAGE_CODES.map((language) => getPublicDocumentationList(language)),
+  ]);
+
+  const activeCategories: DocumentationCategoryRecord[] = Array.isArray(activeCategoriesResult)
+    ? activeCategoriesResult
+    : [];
 
   const docDataByLanguage = SUPPORTED_LANGUAGE_CODES.reduce(
     (accumulator, language, index) => {
@@ -35,6 +44,7 @@ export default async function DocumentationPage() {
       <div className="page-section page-shell-readable pt-8 md:pt-10 lg:pt-12 pb-12 md:pb-16 lg:pb-20">
         <PublicDocumentationClient
           dataByLanguage={docDataByLanguage}
+          activeCategories={activeCategories}
           supportHref={supportHref}
         />
       </div>

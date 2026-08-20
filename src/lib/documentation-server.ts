@@ -3,6 +3,8 @@ import 'server-only';
 import { createServerComponentSupabaseClient } from '@/lib/supabase/server';
 import type {
   DocumentationArticleRecord,
+  DocumentationCategoryRecord,
+  DocumentationCategoryWithCount,
   DocumentationLanguageCode,
   DocumentationTranslationRecord,
   PublicDocumentationArticle,
@@ -10,6 +12,8 @@ import type {
 import { normalizeDocumentationLanguage } from '@/lib/documentation';
 import type { SupportedLanguage } from '@/i18n/resources';
 import { CONTENT_TRANSLATION_ENABLED_LANGS } from '@/lib/content-translate-server';
+
+type AdminSupabase = NonNullable<ReturnType<typeof import('@/lib/supabase/admin').createAdminClient>>;
 
 type PublicArticleRow = Pick<DocumentationArticleRecord,
   | 'id' | 'title' | 'slug' | 'summary' | 'content_html'
@@ -278,4 +282,77 @@ export async function getFeaturedPublicDocumentationArticles(
   );
 
   return { articles };
+}
+
+export async function adminGetAllDocumentationCategoriesWithCount(
+  admin: AdminSupabase
+): Promise<DocumentationCategoryWithCount[]> {
+  const { data: cats, error: catsErr } = await admin
+    .from('documentation_categories')
+    .select('*')
+    .order('display_order', { ascending: true })
+    .order('created_at', { ascending: false });
+
+  if (catsErr) throw catsErr;
+
+  const { count, error: countErr } = await admin
+    .from('documentation_articles')
+    .select('category', { count: 'exact', head: false });
+
+  if (countErr && !count) {
+    // count error is non-fatal; fall back to zero counts
+  }
+
+  const countsByCategory: Record<string, number> = {};
+  for (const row of (count as Array<{ category: string }> | null) || []) {
+    const c = String(row.category || '').trim();
+    if (c) countsByCategory[c] = (countsByCategory[c] || 0) + 1;
+  }
+
+  return ((cats || []) as DocumentationCategoryRecord[]).map((c) => ({
+    ...c,
+    articles_count: countsByCategory[c.slug] || 0,
+  }));
+}
+
+export async function getPublicActiveDocumentationCategories(
+  preferredLanguage?: SupportedLanguage
+): Promise<DocumentationCategoryRecord[]> {
+  const supabase = await createServerComponentSupabaseClient();
+  const { data, error } = await supabase
+    .from('documentation_categories')
+    .select('*')
+    .eq('is_active', true)
+    .order('display_order', { ascending: true })
+    .order('created_at', { ascending: false });
+
+  if (error || !data) {
+    return [];
+  }
+  return (data as DocumentationCategoryRecord[]) || [];
+}
+
+export async function adminGetDocumentationCategoryById(
+  admin: AdminSupabase,
+  id: string
+): Promise<DocumentationCategoryRecord | null> {
+  const { data, error } = await admin
+    .from('documentation_categories')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as DocumentationCategoryRecord | null) || null;
+}
+
+export async function adminDocumentationCategoryHasAssignedArticles(
+  admin: AdminSupabase,
+  slug: string
+): Promise<boolean> {
+  const { count, error } = await admin
+    .from('documentation_articles')
+    .select('*', { count: 'exact', head: true })
+    .eq('category', slug);
+  if (error) throw error;
+  return Number(count || 0) > 0;
 }
