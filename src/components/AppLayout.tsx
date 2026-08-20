@@ -202,7 +202,7 @@ export default function AppLayout({
 
               <main
                 data-route-scroll-container="true"
-                className="min-h-0 flex-1 overflow-x-hidden scrollbar-thin pt-[calc(var(--main-topbar-clear,var(--topbar-height,56px))+0.25rem)] md:pt-1 lg:h-full lg:overflow-y-auto lg:overscroll-contain lg:pt-2"
+                className="min-h-0 flex-1 overflow-x-hidden scrollbar-thin pt-[calc(var(--main-topbar-clear,var(--topbar-height,56px))+0.25rem)] max-[480px]:pt-[calc(var(--main-topbar-clear,var(--topbar-height,54px))+0px)] md:pt-1 lg:h-full lg:overflow-y-auto lg:overscroll-contain lg:pt-2"
                 style={mainPaddingOverrides}
               >
                 <div className="flex min-h-full flex-col">

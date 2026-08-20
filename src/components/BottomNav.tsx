@@ -1,7 +1,7 @@
 'use client';
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { LayoutDashboard, ArrowLeftRight, Plus, PieChart, MoreHorizontal, TrendingUp, TrendingDown, Repeat, Wallet, ArrowUpDown, Tag, BarChart3, Users, RotateCcw, DollarSign, Sparkles, Mic, Loader2, X, ShoppingBag, CreditCard, LifeBuoy, CircleHelp, Home, Lock } from 'lucide-react';
+import { LayoutDashboard, ArrowLeftRight, Plus, PieChart, MoreHorizontal, TrendingUp, TrendingDown, Repeat, Wallet, ArrowUpDown, Tag, BarChart3, Users, RotateCcw, DollarSign, Sparkles, Mic, Loader2, X, ShoppingBag, CreditCard, LifeBuoy, CircleHelp, Home, Lock, Target, RefreshCw, Calculator } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { usePendingNavigation } from '@/lib/pending-navigation';
 import { useQuickActions, type QuickActionId } from '@/components/quick-actions/QuickActionsContext';
@@ -31,6 +31,14 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
   const canUseManagedPeople = managedPeopleAccess === 'allowed';
   const canUseSharedSpaces = sharedSpacesAccess === 'allowed';
   const canUseStandardReports = standardReportsAccess === 'allowed';
+  const savingsAccess = getSubscriptionFeatureAccess(summary, subscriptionLoading, 'savings');
+  const investmentsAccess = getSubscriptionFeatureAccess(summary, subscriptionLoading, 'investments');
+  const exchangeRatesAccess = getSubscriptionFeatureAccess(summary, subscriptionLoading, 'exchange_rates');
+  const calculatorAccess = getSubscriptionFeatureAccess(summary, subscriptionLoading, 'calculator');
+  const canUseSavings = savingsAccess === 'allowed';
+  const canUseInvestments = investmentsAccess === 'allowed';
+  const canUseExchangeRates = exchangeRatesAccess === 'allowed';
+  const canUseCalculator = calculatorAccess === 'allowed';
   const shouldShowRestrictedUi = (state: SubscriptionFeatureAccessState) => state === 'restricted';
   const getRestrictionBadgeLabel = (badge: 'upgrade' | 'family') => (
     badge === 'family'
@@ -110,6 +118,20 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
       : []),
     { id: 'more-accounts', label: t('bottomNav.accounts', { ns: 'portal' }), icon: Wallet, href: '/financial-accounts' },
     {
+      id: 'more-savings',
+      label: t('sidebar.nav.savings', { ns: 'portal', defaultValue: 'Savings' }),
+      icon: Target,
+      href: '/savings',
+      restrictionBadge: shouldShowRestrictedUi(savingsAccess) ? 'upgrade' : undefined,
+    },
+    {
+      id: 'more-investments',
+      label: t('sidebar.nav.investments', { ns: 'portal', defaultValue: 'Investments' }),
+      icon: TrendingUp,
+      href: '/investments',
+      restrictionBadge: shouldShowRestrictedUi(investmentsAccess) ? 'upgrade' : undefined,
+    },
+    {
       id: 'more-ai-history',
       label: t('bottomNav.aiHistory', { ns: 'portal' }),
       icon: Sparkles,
@@ -130,10 +152,24 @@ export default function BottomNav({ activeRoute }: BottomNavProps) {
       href: '/spaces',
       restrictionBadge: shouldShowRestrictedUi(sharedSpacesAccess) ? 'family' : undefined,
     },
-    { id: 'more-faqs', label: t('bottomNav.faqs', { ns: 'portal', defaultValue: 'FAQs' }), icon: CircleHelp, href: '/faqs' },
-    { id: 'more-support', label: t('bottomNav.support', { ns: 'portal', defaultValue: 'Support' }), icon: LifeBuoy, href: '/support' },
     { id: 'more-reimbursements', label: t('bottomNav.reimbursements', { ns: 'portal' }), icon: RotateCcw, href: '/reimbursements' },
     { id: 'more-settlements', label: t('bottomNav.settlements', { ns: 'portal' }), icon: DollarSign, href: '/settlements' },
+    {
+      id: 'more-exchange-rates',
+      label: t('sidebar.nav.exchangeRates', { ns: 'portal', defaultValue: 'Exchange Rates' }),
+      icon: RefreshCw,
+      href: '/exchange-rates',
+      restrictionBadge: shouldShowRestrictedUi(exchangeRatesAccess) ? 'upgrade' : undefined,
+    },
+    {
+      id: 'more-calculator',
+      label: t('sidebar.nav.calculator', { ns: 'portal', defaultValue: 'Calculator' }),
+      icon: Calculator,
+      href: '/calculator',
+      restrictionBadge: shouldShowRestrictedUi(calculatorAccess) ? 'upgrade' : undefined,
+    },
+    { id: 'more-faqs', label: t('bottomNav.faqs', { ns: 'portal', defaultValue: 'FAQs' }), icon: CircleHelp, href: '/faqs' },
+    { id: 'more-support', label: t('bottomNav.support', { ns: 'portal', defaultValue: 'Support' }), icon: LifeBuoy, href: '/support' },
   ];
 
   useEffect(() => {

@@ -1081,9 +1081,9 @@
   :root {
     --page-padding-x: 16px;
     --page-padding-y: 20px;
-    --topbar-height: 68px;
+    --topbar-height: 58px;
     --bottom-nav-height: 74px;
-    --content-top-gap: 16px;
+    --content-top-gap: 6px;
   }
 
   .section-card-body {
@@ -1127,6 +1127,11 @@
 }
 
 @media (max-width: 480px) {
+  :root {
+    --topbar-height: 54px;
+    --content-top-gap: 0px;
+  }
+
   .page-header {
     gap: 0.75rem 1rem;
   }
