@@ -61,6 +61,7 @@ function getPayPeriodForOffset(context: UserFinancialPeriodContext, offset: numb
 export default function TransactionsTable({
   financialPeriodContext,
   isAddTransactionOpen,
+  addTransactionInitialType = 'expense',
   onOpenAddTransaction,
   onCloseAddTransaction,
   onRangeLabelChange,
@@ -68,7 +69,8 @@ export default function TransactionsTable({
 }: {
   financialPeriodContext: UserFinancialPeriodContext;
   isAddTransactionOpen: boolean;
-  onOpenAddTransaction: () => void;
+  addTransactionInitialType?: 'income' | 'expense';
+  onOpenAddTransaction: (type?: 'income' | 'expense') => void;
   onCloseAddTransaction: () => void;
   onRangeLabelChange: (label: string) => void;
   onExportReady: (handler: (() => void) | null) => void;
@@ -268,12 +270,12 @@ export default function TransactionsTable({
 
   const handleOpenNewTransaction = useCallback(() => {
     setEditingTxn(null);
-    onOpenAddTransaction();
+    onOpenAddTransaction('expense');
   }, [onOpenAddTransaction]);
 
   const openEdit = useCallback((txn: Transaction) => {
     setEditingTxn(txn);
-    onOpenAddTransaction();
+    onOpenAddTransaction(txn.transaction_type === 'income' ? 'income' : 'expense');
   }, [onOpenAddTransaction]);
 
   const handleDelete = async (txn: Transaction) => {
@@ -1296,6 +1298,7 @@ export default function TransactionsTable({
             setEditingTxn(null);
             onCloseAddTransaction();
           }}
+          initialTransactionType={addTransactionInitialType}
           editingTransaction={editingTxn}
           accounts={accounts}
           categories={categories}

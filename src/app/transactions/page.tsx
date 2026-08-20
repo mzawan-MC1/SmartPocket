@@ -13,9 +13,11 @@ export default function TransactionsPage() {
   const [periodContext, setPeriodContext] = React.useState<UserFinancialPeriodContext | null>(null);
   const [periodLoading, setPeriodLoading] = React.useState(true);
   const [isAddTransactionOpen, setIsAddTransactionOpen] = React.useState(false);
+  const [addTransactionInitialType, setAddTransactionInitialType] = React.useState<'income' | 'expense'>('expense');
   const [headerRangeLabel, setHeaderRangeLabel] = React.useState(() => t('shared.loadingPlanningPeriodTitle'));
   const [handleExport, setHandleExport] = React.useState<(() => void) | null>(null);
-  const openAddTransaction = React.useCallback(() => {
+  const openAddTransaction = React.useCallback((type: 'income' | 'expense' = 'expense') => {
+    setAddTransactionInitialType(type);
     setIsAddTransactionOpen(true);
   }, []);
   const closeAddTransaction = React.useCallback(() => {
@@ -58,6 +60,7 @@ export default function TransactionsPage() {
           <TransactionsTable
             financialPeriodContext={periodContext}
             isAddTransactionOpen={isAddTransactionOpen}
+            addTransactionInitialType={addTransactionInitialType}
             onOpenAddTransaction={openAddTransaction}
             onCloseAddTransaction={closeAddTransaction}
             onRangeLabelChange={setHeaderRangeLabel}
