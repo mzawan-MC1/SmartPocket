@@ -1,48 +1,87 @@
 import 'server-only';
 
 import { NextResponse } from 'next/server';
-import { requireAdminRouteUser } from '@/lib/support-server';
+import { requireAdminRouteUserViaJwt } from '@/lib/support-server';
 import { applySupabaseCookies } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import {
   normalizeDocumentationCategoryInput,
   validateDocumentationCategoryInput,
   type DocumentationCategoryInput,
   type DocumentationCategoryRecord,
 } from '@/lib/documentation';
-import {
-  adminDocumentationCategoryHasAssignedArticles,
-  adminGetDocumentationCategoryById,
-} from '@/lib/documentation-server';
+
+type AdminSupabase = NonNullable<ReturnType<typeof createAdminClient>>;
 
 async function ensureUniqueCategorySlug(
-  admin: NonNullable<ReturnType<typeof import('@/lib/supabase/admin').createAdminClient>>,
+  admin: AdminSupabase,
   slug: string,
   excludeId: string
 ) {
-  const { data, error } = await admin
-    .from('documentation_categories')
-    .select('id')
-    .eq('slug', slug);
+  try {
+    const { data, error } = await admin
+      .from('documentation_categories')
+      .select('id')
+      .eq('slug', slug);
 
-  if (error) throw error;
+    if (error) throw error;
+    const rows = ((data || []) as { id: string }[]);
+    return !rows.some((row) => row.id !== excludeId);
+  } catch (err: any) {
+    console.error('[categories/[id] ensureUniqueCategorySlug] error:', err?.message ?? err);
+    throw err;
+  }
+}
 
-  const rows = (data || []) as { id: string }[];
-  return !rows.some((row) => row.id !== excludeId);
+async function adminFastCategoryById(admin: AdminSupabase, id: string): Promise<DocumentationCategoryRecord | null> {
+  try {
+    const { data, error } = await admin
+      .from('documentation_categories')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return null;
+    return {
+      ...(data as DocumentationCategoryRecord),
+      translations:
+        (data as DocumentationCategoryRecord).translations &&
+        typeof (data as DocumentationCategoryRecord).translations === 'object'
+          ? (data as DocumentationCategoryRecord).translations
+          : {},
+    };
+  } catch (err: any) {
+    console.error('[categories/[id] adminFastCategoryById] error:', err?.message ?? err);
+    throw err;
+  }
+}
+
+async function adminFastCategoryHasArticlesAssigned(admin: AdminSupabase, slug: string): Promise<boolean> {
+  try {
+    const { count, error } = await admin
+      .from('documentation_articles')
+      .select('*', { count: 'exact', head: true })
+      .eq('category', slug);
+    if (error) throw error;
+    return Number(count || 0) > 0;
+  } catch (err: any) {
+    console.error('[categories/[id] adminFastCategoryHasArticlesAssigned] error:', err?.message ?? err);
+    throw err;
+  }
 }
 
 export async function PATCH(
   request: Request,
   segment: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAdminRouteUser();
+  const auth = await requireAdminRouteUserViaJwt();
   if (!auth.ok) return auth.response;
 
-  const { admin, cookieMutations, user } = auth;
-  const userId = user.id;
+  const { admin, cookieMutations, userId } = auth;
   const { id } = await segment.params;
 
   try {
-    const existing = await adminGetDocumentationCategoryById(admin, id);
+    const existing = await adminFastCategoryById(admin, id);
     if (!existing) {
       return applySupabaseCookies(
         NextResponse.json(
@@ -62,7 +101,7 @@ export async function PATCH(
     const isQuickToggle = !!quickToggleKey && quickToggleKeys.includes(quickToggleKey);
 
     if (isQuickToggle) {
-      let updatePayload: Partial<DocumentationCategoryRecord> = {
+      const updatePayload: Partial<DocumentationCategoryRecord> = {
         updated_by: userId,
       };
       if ('is_active' in body) {
@@ -81,7 +120,7 @@ export async function PATCH(
       if (error) throw error;
       return applySupabaseCookies(
         NextResponse.json(
-          { category: data as DocumentationCategoryRecord },
+          { category: (data as DocumentationCategoryRecord) ?? null },
           { status: 200 }
         ),
         cookieMutations
@@ -141,12 +180,13 @@ export async function PATCH(
 
     return applySupabaseCookies(
       NextResponse.json(
-        { category: data as DocumentationCategoryRecord },
+        { category: (data as DocumentationCategoryRecord) ?? null },
         { status: 200 }
       ),
       cookieMutations
     );
   } catch (error: any) {
+    console.error('[PATCH /api/admin/documentation/categories/[id]] unexpected error:', error?.message ?? error);
     return applySupabaseCookies(
       NextResponse.json(
         { error: error?.message || 'Failed to update documentation category.' },
@@ -161,14 +201,14 @@ export async function DELETE(
   _request: Request,
   segment: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAdminRouteUser();
+  const auth = await requireAdminRouteUserViaJwt();
   if (!auth.ok) return auth.response;
 
   const { admin, cookieMutations } = auth;
   const { id } = await segment.params;
 
   try {
-    const existing = await adminGetDocumentationCategoryById(admin, id);
+    const existing = await adminFastCategoryById(admin, id);
     if (!existing) {
       return applySupabaseCookies(
         NextResponse.json(
@@ -179,7 +219,7 @@ export async function DELETE(
       );
     }
 
-    const hasAssigned = await adminDocumentationCategoryHasAssignedArticles(admin, existing.slug);
+    const hasAssigned = await adminFastCategoryHasArticlesAssigned(admin, existing.slug);
     if (hasAssigned) {
       return applySupabaseCookies(
         NextResponse.json(
@@ -204,6 +244,7 @@ export async function DELETE(
       cookieMutations
     );
   } catch (error: any) {
+    console.error('[DELETE /api/admin/documentation/categories/[id]] unexpected error:', error?.message ?? error);
     return applySupabaseCookies(
       NextResponse.json(
         { error: error?.message || 'Failed to delete documentation category.' },

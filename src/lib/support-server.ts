@@ -198,6 +198,131 @@ export async function requireAdminRouteUser() {
   };
 }
 
+/**
+ * Fast admin guard that verifies the JWT `app_metadata.role` claim without
+ * issuing any `auth.users` or `user_profiles` table queries. Prevents slow
+ * admin lookups from triggering 504 gateway timeouts on high-frequency
+ * endpoints (e.g. admin documentation category listings).
+ */
+export async function requireAdminRouteUserViaJwt() {
+  const { supabase, cookieMutations } = await createRouteHandlerSupabaseClient();
+  try {
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
+    if (sessionError || !session || !session.access_token) {
+      return {
+        ok: false as const,
+        response: applySupabaseCookies(
+          NextResponse.json({ error: 'Unauthorized' }, { status: 401 }),
+          cookieMutations
+        ),
+      };
+    }
+
+    const token = session.access_token;
+    const payload = (() => {
+      try {
+        const parts = token.split('.');
+        if (parts.length !== 3) return null;
+        const base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+        const ascii = typeof Buffer !== 'undefined'
+          ? Buffer.from(base64, 'base64').toString('utf-8')
+          : decodeURIComponent(
+              atob(base64)
+                .split('')
+                .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+                .join('')
+            );
+        return JSON.parse(ascii) as unknown;
+      } catch {
+        return null;
+      }
+    })();
+
+    if (!payload || typeof payload !== 'object') {
+      return {
+        ok: false as const,
+        response: applySupabaseCookies(
+          NextResponse.json({ error: 'Unauthorized' }, { status: 401 }),
+          cookieMutations
+        ),
+      };
+    }
+
+    const p = payload as Record<string, unknown>;
+    const exp = typeof p.exp === 'number' ? p.exp : null;
+    if (typeof exp === 'number' && exp > 0) {
+      const nowSeconds = Math.floor(Date.now() / 1000);
+      if (nowSeconds >= exp) {
+        return {
+          ok: false as const,
+          response: applySupabaseCookies(
+            NextResponse.json({ error: 'Unauthorized' }, { status: 401 }),
+            cookieMutations
+          ),
+        };
+      }
+    }
+
+    const sub = typeof p.sub === 'string' ? p.sub : null;
+    if (!sub) {
+      return {
+        ok: false as const,
+        response: applySupabaseCookies(
+          NextResponse.json({ error: 'Unauthorized' }, { status: 401 }),
+          cookieMutations
+        ),
+      };
+    }
+
+    const appMetadata = (p.app_metadata && typeof p.app_metadata === 'object')
+      ? p.app_metadata as Record<string, unknown>
+      : null;
+    const role = appMetadata && typeof appMetadata.role === 'string' ? appMetadata.role : null;
+    const isAdmin = role === 'admin';
+
+    if (!isAdmin) {
+      return {
+        ok: false as const,
+        response: applySupabaseCookies(
+          NextResponse.json({ error: 'Forbidden' }, { status: 403 }),
+          cookieMutations
+        ),
+      };
+    }
+
+    const admin = createAdminClient();
+    if (!admin) {
+      return {
+        ok: false as const,
+        response: applySupabaseCookies(
+          NextResponse.json({ error: 'Supabase service role is not configured.' }, { status: 500 }),
+          cookieMutations
+        ),
+      };
+    }
+
+    return {
+      ok: true as const,
+      userId: sub,
+      admin,
+      supabase,
+      cookieMutations,
+    };
+  } catch (error: any) {
+    console.error('[requireAdminRouteUserViaJwt] unexpected guard error:', error?.message ?? error);
+    return {
+      ok: false as const,
+      response: applySupabaseCookies(
+        NextResponse.json({ error: 'Unauthorized' }, { status: 401 }),
+        cookieMutations
+      ),
+    };
+  }
+}
+
 export async function requireAuthenticatedPageUser() {
   const supabase = await createServerComponentSupabaseClient();
   const {

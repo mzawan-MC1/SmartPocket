@@ -401,16 +401,76 @@ export default function AdminDocumentationClient({
   };
 
   // ====== CATEGORIES LOGIC ======
+  const categoriesFetchTimeoutRef = React.useRef<number | null>(null);
+
+  const makeAdminCategoriesFetchInit = (
+    init?: RequestInit,
+    options?: { timeoutMs?: number }
+  ): RequestInit => {
+    const timeoutMs = options?.timeoutMs ?? 15000;
+    const controller =
+      typeof AbortController !== 'undefined' ? new AbortController() : undefined;
+    if (controller && typeof window !== 'undefined') {
+      if (categoriesFetchTimeoutRef.current !== null) {
+        window.clearTimeout(categoriesFetchTimeoutRef.current);
+      }
+      categoriesFetchTimeoutRef.current = window.setTimeout(() => {
+        try { controller?.abort(new DOMException('Categories API request timed out.', 'TimeoutError')); } catch { /* no-op */ }
+      }, timeoutMs) as unknown as number;
+    }
+    return {
+      credentials: 'include',
+      cache: 'no-store',
+      ...(init || {}),
+      headers: {
+        Accept: 'application/json',
+        ...((init?.headers) || {}),
+      },
+      ...(controller ? { signal: controller.signal } : {}),
+    };
+  };
+
+  const finalizeCategoriesFetch = () => {
+    if (categoriesFetchTimeoutRef.current !== null && typeof window !== 'undefined') {
+      window.clearTimeout(categoriesFetchTimeoutRef.current);
+      categoriesFetchTimeoutRef.current = null;
+    }
+  };
+
   const reloadCategories = React.useCallback(async () => {
     setIsCategoriesRefreshing(true);
     try {
-      const res = await fetch('/api/admin/documentation/categories', { cache: 'no-store' });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json?.error || tp('adminDocumentation.errors.categoriesLoad', 'Failed to load categories.'));
-      setCategories((json?.categories || []) as DocumentationCategoryWithCount[]);
+      const res = await fetch('/api/admin/documentation/categories', makeAdminCategoriesFetchInit());
+      const text = await res.text();
+      let json: any = null;
+      try {
+        json = text && text.trim() ? JSON.parse(text) : {};
+      } catch {
+        json = { error: tp('adminDocumentation.errors.categoriesInvalidResponse', 'Invalid categories response from server.') };
+      }
+      if (!res.ok) {
+        const msg = (res.status === 401)
+          ? tp('adminDocumentation.errors.categoriesUnauthorized', 'Your session expired. Please sign in again and retry.')
+          : res.status === 403
+          ? tp('adminDocumentation.errors.categoriesForbidden', 'You do not have permission to manage categories.')
+          : res.status === 504
+          ? tp('adminDocumentation.errors.categoriesTimeout', 'Categories server timed out. Please retry in a moment.')
+          : (typeof json?.error === 'string' && json.error) || tp('adminDocumentation.errors.categoriesLoad', 'Failed to load categories.');
+        throw new Error(msg);
+      }
+      setCategories(Array.isArray(json?.categories) ? (json.categories as DocumentationCategoryWithCount[]) : []);
     } catch (error: any) {
-      toast.error(error?.message || tp('adminDocumentation.errors.categoriesRefresh', 'Failed to refresh categories.'));
+      const timedOut = error?.name === 'TimeoutError' || error?.code === 'TIMEOUT' || /timeout/i.test(String(error?.message || ''));
+      const unauthorized = /401|unauthorized/i.test(String(error?.message || '')) || error?.status === 401;
+      toast.error(
+        timedOut
+          ? tp('adminDocumentation.errors.categoriesTimeout', 'Categories server timed out. Please retry in a moment.')
+          : unauthorized
+          ? tp('adminDocumentation.errors.categoriesUnauthorized', 'Your session expired. Please sign in again and retry.')
+          : (error?.message || tp('adminDocumentation.errors.categoriesRefresh', 'Failed to refresh categories.'))
+      );
     } finally {
+      finalizeCategoriesFetch();
       setIsCategoriesRefreshing(false);
     }
   }, [tp]);
@@ -438,12 +498,13 @@ export default function AdminDocumentationClient({
   const toggleCategoryActive = async (cat: DocumentationCategoryWithCount) => {
     setIsCategoriesSaving(true);
     try {
-      const res = await fetch(`/api/admin/documentation/categories/${cat.id}`, {
+      const res = await fetch(`/api/admin/documentation/categories/${cat.id}`, makeAdminCategoriesFetchInit({
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ is_active: !cat.is_active }),
-      });
-      const json = await res.json();
+      }, { timeoutMs: 20000 }));
+      const text = await res.text();
+      const json = text && text.trim() ? JSON.parse(text) : {};
       if (!res.ok) throw new Error(json?.error || tp('adminDocumentation.errors.categoryToggle', 'Failed to toggle status.'));
       toast.success(
         cat.is_active
@@ -452,8 +513,14 @@ export default function AdminDocumentationClient({
       );
       await reloadCategories();
     } catch (error: any) {
-      toast.error(error?.message || tp('adminDocumentation.errors.categoryToggle', 'Failed to toggle status.'));
+      const timedOut = error?.name === 'TimeoutError' || /timeout/i.test(String(error?.message || ''));
+      toast.error(
+        timedOut
+          ? tp('adminDocumentation.errors.categoriesTimeout', 'Categories server timed out. Please retry in a moment.')
+          : (error?.message || tp('adminDocumentation.errors.categoryToggle', 'Failed to toggle status.'))
+      );
     } finally {
+      finalizeCategoriesFetch();
       setIsCategoriesSaving(false);
     }
   };
@@ -466,17 +533,24 @@ export default function AdminDocumentationClient({
     if (!deleteCategoryState) return;
     setIsCategoriesSaving(true);
     try {
-      const res = await fetch(`/api/admin/documentation/categories/${deleteCategoryState.id}`, {
+      const res = await fetch(`/api/admin/documentation/categories/${deleteCategoryState.id}`, makeAdminCategoriesFetchInit({
         method: 'DELETE',
-      });
-      const json = await res.json();
+      }, { timeoutMs: 20000 }));
+      const text = await res.text();
+      const json = text && text.trim() ? JSON.parse(text) : {};
       if (!res.ok) throw new Error(json?.error || tp('adminDocumentation.errors.categoryDelete', 'Failed to delete category.'));
       toast.success(tp('adminDocumentation.toasts.categoryDeleted', 'Category deleted.'));
       setDeleteCategoryState(null);
       await reloadCategories();
     } catch (error: any) {
-      toast.error(error?.message || tp('adminDocumentation.errors.categoryDelete', 'Failed to delete category.'));
+      const timedOut = error?.name === 'TimeoutError' || /timeout/i.test(String(error?.message || ''));
+      toast.error(
+        timedOut
+          ? tp('adminDocumentation.errors.categoriesTimeout', 'Categories server timed out. Please retry in a moment.')
+          : (error?.message || tp('adminDocumentation.errors.categoryDelete', 'Failed to delete category.'))
+      );
     } finally {
+      finalizeCategoriesFetch();
       setIsCategoriesSaving(false);
     }
   };
@@ -939,6 +1013,8 @@ export default function AdminDocumentationClient({
           void reloadCategories();
         }}
         tp={tp}
+        makeAdminFetchInit={makeAdminCategoriesFetchInit}
+        finalizeFetch={finalizeCategoriesFetch}
       />
 
       <ConfirmationModal
@@ -1140,12 +1216,16 @@ function CategoryFormModal({
   onClose,
   onSaved,
   tp,
+  makeAdminFetchInit,
+  finalizeFetch,
 }: {
   open: boolean;
   editing: DocumentationCategoryRecord | null;
   onClose: () => void;
   onSaved: () => void;
   tp: (key: string, defaultValue: string, options?: Record<string, unknown>) => string;
+  makeAdminFetchInit?: (init?: RequestInit, options?: { timeoutMs?: number }) => RequestInit;
+  finalizeFetch?: () => void;
 }) {
   const isEditing = Boolean(editing);
   const [name, setName] = React.useState('');
@@ -1262,12 +1342,25 @@ function CategoryFormModal({
       const url = isEditing
         ? `/api/admin/documentation/categories/${editing!.id}`
         : '/api/admin/documentation/categories';
-      const res = await fetch(url, {
-        method: isEditing ? 'PATCH' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const json = await res.json();
+      const init = makeAdminFetchInit
+        ? makeAdminFetchInit(
+            {
+              method: isEditing ? 'PATCH' : 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+            },
+            { timeoutMs: 25000 }
+          )
+        : {
+            method: isEditing ? 'PATCH' : 'POST',
+            credentials: 'include' as RequestCredentials,
+            cache: 'no-store' as RequestCache,
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+            body: JSON.stringify(payload),
+          };
+      const res = await fetch(url, init);
+      const text = await res.text();
+      const json = text && text.trim() ? JSON.parse(text) : {};
       if (!res.ok) throw new Error(json?.error || (isEditing ? 'Failed to update category.' : 'Failed to create category.'));
       toast.success(
         isEditing
@@ -1276,8 +1369,14 @@ function CategoryFormModal({
       );
       onSaved();
     } catch (error: any) {
-      toast.error(error?.message || (isEditing ? 'Failed to save category.' : 'Failed to create category.'));
+      const timedOut = error?.name === 'TimeoutError' || /timeout/i.test(String(error?.message || ''));
+      toast.error(
+        timedOut
+          ? tp('adminDocumentation.errors.categoriesTimeout', 'Categories server timed out. Please retry in a moment.')
+          : (error?.message || (isEditing ? 'Failed to save category.' : 'Failed to create category.'))
+      );
     } finally {
+      finalizeFetch?.();
       setSaving(false);
     }
   };
