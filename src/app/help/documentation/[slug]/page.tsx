@@ -60,7 +60,7 @@ export default async function DocumentationDetailPage({
 
   return (
     <PublicLayout>
-      <div className="page-section page-shell-readable">
+      <div className="page-section page-shell-readable pt-8 md:pt-10 lg:pt-12 pb-12 md:pb-16 lg:pb-20">
         <PublicDocumentationDetailClient
           dataByLanguage={detailByLanguage}
           relatedByLanguage={relatedByLanguage}

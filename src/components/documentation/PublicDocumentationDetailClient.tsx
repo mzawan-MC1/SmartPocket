@@ -3,7 +3,27 @@
 import React from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, BookOpen, LifeBuoy } from 'lucide-react';
+import {
+  ArrowLeft,
+  ArrowUpDown,
+  BookOpen,
+  Building2,
+  Calculator,
+  CalendarClock,
+  ChevronRight,
+  CreditCard,
+  HandCoins,
+  LifeBuoy,
+  PiggyBank,
+  PieChart,
+  Rocket,
+  ShieldCheck,
+  Sliders,
+  Sparkles,
+  Target,
+  Users,
+  Wallet,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useLanguage } from '@/contexts/LanguageContext';
 import Badge from '@/components/ui/Badge';
@@ -16,6 +36,94 @@ import {
   type PublicDocumentationArticle,
 } from '@/lib/documentation';
 import type { SupportedLanguage } from '@/i18n/resources';
+
+type DocumentationCategoryTint = {
+  icon: React.ComponentType<{ size?: number | string; className?: string }>;
+  badgeBg: string;
+  badgeText: string;
+  ring: string;
+};
+
+const CATEGORY_TINT: Record<string, DocumentationCategoryTint> = {
+  'getting-started': {
+    icon: Rocket,
+    badgeBg: 'bg-emerald-50',
+    badgeText: 'text-emerald-600',
+    ring: 'ring-emerald-500/15',
+  },
+  'ai-smart-entry': {
+    icon: Sparkles,
+    badgeBg: 'bg-fuchsia-50',
+    badgeText: 'text-fuchsia-600',
+    ring: 'ring-fuchsia-500/15',
+  },
+  'accounts-wallets': {
+    icon: Wallet,
+    badgeBg: 'bg-amber-50',
+    badgeText: 'text-amber-600',
+    ring: 'ring-amber-500/15',
+  },
+  'budgets': {
+    icon: PieChart,
+    badgeBg: 'bg-teal-50',
+    badgeText: 'text-teal-600',
+    ring: 'ring-teal-500/15',
+  },
+  'transactions': {
+    icon: ArrowUpDown,
+    badgeBg: 'bg-blue-50',
+    badgeText: 'text-blue-600',
+    ring: 'ring-blue-500/15',
+  },
+  'subscriptions-payments': {
+    icon: CreditCard,
+    badgeBg: 'bg-violet-50',
+    badgeText: 'text-violet-600',
+    ring: 'ring-violet-500/15',
+  },
+  'spaces-shared': {
+    icon: Users,
+    badgeBg: 'bg-indigo-50',
+    badgeText: 'text-indigo-600',
+    ring: 'ring-indigo-500/15',
+  },
+  'savings-tools': {
+    icon: PiggyBank,
+    badgeBg: 'bg-cyan-50',
+    badgeText: 'text-cyan-600',
+    ring: 'ring-cyan-500/15',
+  },
+  'general': {
+    icon: ShieldCheck,
+    badgeBg: 'bg-sky-50',
+    badgeText: 'text-sky-600',
+    ring: 'ring-sky-500/15',
+  },
+};
+
+const CATEGORY_KEYWORD_HINTS: Array<{ keywords: string[]; key: string }> = [
+  { keywords: ['getting', 'start', 'welcome', 'setup', 'onboard', 'quick'], key: 'getting-started' },
+  { keywords: ['ai', 'smart', 'receipt', 'ocr', 'bot', 'spark', 'parse', 'voice', 'transcribe'], key: 'ai-smart-entry' },
+  { keywords: ['account', 'wallet', 'bank', 'card', 'building'], key: 'accounts-wallets' },
+  { keywords: ['budget', 'target', 'pie', 'limit', 'spending', 'plan'], key: 'budgets' },
+  { keywords: ['transaction', 'cash', 'flow', 'expense', 'income', 'transfer', 'money in', 'money out'], key: 'transactions' },
+  { keywords: ['subscription', 'payment', 'billing', 'plan', 'invoice', 'recurring'], key: 'subscriptions-payments' },
+  { keywords: ['space', 'shared', 'team', 'family', 'users', 'group', 'coins'], key: 'spaces-shared' },
+  { keywords: ['saving', 'goal', 'piggy', 'invest', 'tool', 'calculator', 'exchange', 'rate'], key: 'savings-tools' },
+];
+
+function resolveCategoryVisual(category?: string): DocumentationCategoryTint {
+  const normalized = (category || 'general').trim().toLowerCase();
+  if (CATEGORY_TINT[normalized]) {
+    return CATEGORY_TINT[normalized];
+  }
+  for (const hint of CATEGORY_KEYWORD_HINTS) {
+    if (hint.keywords.some((word) => normalized.includes(word))) {
+      return CATEGORY_TINT[hint.key];
+    }
+  }
+  return CATEGORY_TINT.general;
+}
 
 export default function PublicDocumentationDetailClient({
   dataByLanguage,
@@ -72,6 +180,9 @@ export default function PublicDocumentationDetailClient({
     }
   };
 
+  const heroVisual = resolveCategoryVisual(article.category);
+  const HeroIcon = heroVisual.icon;
+
   return (
     <div className="space-y-6" dir={dir}>
       <nav className="flex items-center gap-2">
@@ -84,8 +195,8 @@ export default function PublicDocumentationDetailClient({
         </Link>
       </nav>
 
-      <article dir={contentDir} className="mx-auto max-w-4xl overflow-hidden rounded-[28px] border border-border bg-card shadow-card-sm">
-        <header className="border-b border-border px-5 py-6 sm:px-8 sm:py-8">
+      <article dir={contentDir} className="mx-auto max-w-4xl overflow-hidden rounded-[28px] border border-border/85 bg-gradient-to-b from-white to-slate-50/60 shadow-card-sm">
+        <header className="border-b border-border/70 px-5 py-6 sm:px-8 sm:py-8">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
@@ -105,8 +216,8 @@ export default function PublicDocumentationDetailClient({
                 {article.summary}
               </p>
             </div>
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-accent/10 text-accent sm:h-14 sm:w-14">
-              <BookOpen size={22} />
+            <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ring-1 sm:h-14 sm:w-14 ${heroVisual.badgeBg} ${heroVisual.badgeText} ${heroVisual.ring}`}>
+              <HeroIcon size={22} />
             </div>
           </div>
         </header>
@@ -160,29 +271,34 @@ export default function PublicDocumentationDetailClient({
             {relatedArticles.slice(0, 4).map((relatedArticle) => {
               const cardDir = documentationContentDir(relatedArticle.localeCode);
               const cardIsRtl = isDocumentationContentRtl(relatedArticle.localeCode);
+              const visual = resolveCategoryVisual(relatedArticle.category);
+              const Icon = visual.icon;
               return (
                 <Link
                   key={relatedArticle.id}
                   href={`/help/documentation/${relatedArticle.slug}`}
                   dir={cardDir}
-                  className={`card-elevated group flex h-full flex-col p-5 transition-shadow hover:shadow-card-md ${cardIsRtl ? 'text-right' : 'text-left'}`}
+                  className={`group relative flex h-full flex-col overflow-hidden rounded-[22px] border border-border/80 bg-gradient-to-b from-white to-slate-50/60 p-5 shadow-card-sm transition-all duration-200 hover:-translate-y-1 hover:border-primary/40 hover:shadow-card-md ${cardIsRtl ? 'text-right' : 'text-left'}`}
                 >
-                  <div className={`mb-2 inline-flex items-center gap-2 text-[11px] font-700 uppercase tracking-[0.12em] text-accent ${cardIsRtl ? 'mr-auto' : 'ml-auto'}`}>
+                  <div className={`mb-2 inline-flex items-center gap-2 text-[11px] font-700 uppercase tracking-[0.12em] ${cardIsRtl ? 'mr-auto' : 'ml-auto'}`}>
                     {relatedArticle.category ? (
-                      <span className="inline-flex items-center rounded-full bg-accent/8 px-2 py-0.5">
+                      <span className={`inline-flex items-center rounded-full ring-1 ${visual.badgeBg} ${visual.badgeText} ${visual.ring} px-2 py-0.5 tracking-normal`}>
                         {displayCategoryLabel(relatedArticle.category)}
                       </span>
                     ) : null}
                   </div>
-                  <h3 className={`text-base font-800 text-foreground ${cardIsRtl ? 'text-right' : 'text-left'}`}>
+                  <div className="mb-3 flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-accent/10 text-accent">
+                    <Icon size={18} />
+                  </div>
+                  <h3 className={`text-base font-800 text-foreground transition-colors duration-200 group-hover:text-accent ${cardIsRtl ? 'text-right' : 'text-left'}`}>
                     {relatedArticle.title}
                   </h3>
                   <p className={`mt-2 line-clamp-3 text-sm leading-6 text-muted-foreground ${cardIsRtl ? 'text-right' : 'text-left'}`}>
                     {relatedArticle.summary}
                   </p>
-                  <div className={`mt-5 inline-flex items-center gap-1.5 text-sm font-700 text-accent ${cardIsRtl ? 'ml-auto flex-row-reverse' : 'mr-auto'}`}>
-                    {t('documentation.readGuide', { ns: 'portal', defaultValue: 'Read guide' })}
-                    <ArrowLeft size={14} className={cardIsRtl ? 'rotate-180' : ''} />
+                  <div className={`mt-5 inline-flex w-full items-center justify-between text-sm font-700 text-accent`}>
+                    <span>{t('documentation.readGuide', { ns: 'portal', defaultValue: 'Read guide' })}</span>
+                    <ChevronRight size={15} className="shrink-0 transition-transform duration-200 group-hover:translate-x-1 rtl:group-hover:-translate-x-1" />
                   </div>
                 </Link>
               );
@@ -198,7 +314,7 @@ export default function PublicDocumentationDetailClient({
               {t('documentation.supportCtaTitle', { ns: 'portal', defaultValue: "Still need help?" })}
             </h2>
             <p className="mt-1 text-sm leading-6 text-muted-foreground">
-              {t('documentation.supportCtaDescription', { ns: 'portal', defaultValue: 'If this guide didn\'t answer your question, open a support ticket and our team will help you.' })}
+              {t('documentation.supportCtaDescription', { ns: 'portal', defaultValue: "If this guide didn't answer your question, open a support ticket and our team will help you." })}
             </p>
           </div>
           <Link href="/support/new" className="btn-primary inline-flex min-h-11 items-center justify-center gap-2">

@@ -32,7 +32,7 @@ export default async function DocumentationPage() {
 
   return (
     <PublicLayout>
-      <div className="page-section page-shell-readable">
+      <div className="page-section page-shell-readable pt-8 md:pt-10 lg:pt-12 pb-12 md:pb-16 lg:pb-20">
         <PublicDocumentationClient
           dataByLanguage={docDataByLanguage}
           supportHref={supportHref}
