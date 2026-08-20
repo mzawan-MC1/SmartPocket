@@ -181,8 +181,8 @@ export async function GET() {
     console.error('[GET /api/admin/documentation/categories] unexpected error:', error?.message ?? error);
     return applySupabaseCookies(
       NextResponse.json(
-        { categories: [], error: error?.message || 'Failed to load documentation categories.' },
-        { status: 200 }
+        { error: error?.message || 'Failed to load documentation categories.' },
+        { status: 500 }
       ),
       cookieMutations
     );
@@ -224,7 +224,7 @@ export async function POST(request: Request) {
       name: payload.name,
       slug: payload.slug,
       description: payload.description,
-      translations: payload.translations && Object.keys(payload.translations).length > 0
+      translations: (payload.translations && typeof payload.translations === 'object')
         ? payload.translations
         : {},
       display_order: payload.display_order,

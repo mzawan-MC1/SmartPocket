@@ -40,7 +40,7 @@ export type TranslationAttemptStage =
 
 export type TranslationAttemptLog = {
   attemptId: string;
-  contentType: 'blog_fields' | 'faq_category_fields' | 'faq_item_fields' | 'documentation_fields';
+  contentType: 'blog_fields' | 'faq_category_fields' | 'faq_item_fields' | 'documentation_fields' | 'documentation_category_fields';
   contentId?: string;
   targetLanguage: string;
   model: string;
@@ -1113,6 +1113,47 @@ export async function translateDocumentationFields(
       summary: translated.fieldsOut.summary || english.summary,
       content_html: translated.fieldsOut.content_html || english.content_html,
       category: translated.fieldsOut.category || english.category,
+    },
+    attemptId,
+    failure: null,
+  };
+}
+
+export async function translateDocumentationCategoryFields(
+  targetLanguage: SupportedLanguage,
+  english: { name: string; description: string },
+  options?: { contentId?: string }
+): Promise<TranslateFieldsResult<{ name: string; description: string }>> {
+  const attemptId = newAttemptId();
+  const startTs = Date.now();
+  const translated = await callStructuredContentTranslation(
+    { attemptId, contentType: 'documentation_category_fields', contentId: options?.contentId, startTs },
+    targetLanguage,
+    { name: english.name, description: english.description },
+    TRANSLATION_PROVIDER_TIMEOUT_MS
+  );
+  writeAttemptLog({
+    attemptId,
+    contentType: 'documentation_category_fields',
+    contentId: options?.contentId,
+    targetLanguage,
+    model: translated.modelUsed,
+    providerStatus: null,
+    stage: 'start',
+    responseShape: 'null',
+    candidateTextExists: false,
+    candidateTextLength: 0,
+    errorCategory: null,
+    errorMessageSafe: null,
+    elapsedMs: 0,
+  });
+  if (translated.failure || !translated.fieldsOut) {
+    return { translatedFields: null, attemptId, failure: translated.failure ? ({ stage: translated.failure.stage, safeMessage: translated.failure.safeMessage } as TranslationFailure) : null };
+  }
+  return {
+    translatedFields: {
+      name: translated.fieldsOut.name || english.name,
+      description: translated.fieldsOut.description || english.description,
     },
     attemptId,
     failure: null,

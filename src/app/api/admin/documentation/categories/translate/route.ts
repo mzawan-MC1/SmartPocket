@@ -6,12 +6,12 @@ import { applySupabaseCookies } from '@/lib/supabase/server';
 import { LANGUAGE_REGISTRY } from '@/i18n/registry';
 import {
   CONTENT_TRANSLATION_ENABLED_LANGS,
-  callStructuredContentTranslation,
+  TRANSLATION_PROVIDER_TIMEOUT_MS,
   translateAllLanguages,
+  translateDocumentationCategoryFields,
 } from '@/lib/content-translate-server';
 import type { SupportedLanguage } from '@/i18n/registry';
 import type { DocumentationCategoryTranslations } from '@/lib/documentation';
-import { randomUUID } from 'node:crypto';
 
 type CategoriesTranslateRequestBody = {
   name?: unknown;
@@ -74,54 +74,54 @@ export async function POST(request: Request) {
     const targetLanguages = resolveTargetLanguages(parsed.targetLanguages);
 
     const startTs = Date.now();
-    const baseAttemptId = randomUUID();
 
     const perLangResults = await translateAllLanguages(
       targetLanguages,
       { name, description },
       async (targetLang, { name: srcName, description: srcDescription }) => {
         const reg = LANGUAGE_REGISTRY[targetLang];
-        const fields: Record<string, string> = {
-          name: srcName,
-          description: srcDescription,
-        };
 
-        const rtlContext = reg?.rtl
-          ? `EXTRA CONTEXT: The target language is ${reg.nativeName} (${targetLang}), which is a RIGHT-TO-LEFT (RTL) script. Translate naturally for Arabic RTL typography; use correct RTL numerals, currency formatting, and native diacritics. Preserve Smart Pocket brand name untranslated.`
-          : '';
+        // Mirror exact article/blog helper calling signature:
+        // TRANSLATION_PROVIDER_TIMEOUT_MS = 50s (same as translateBlogFields / translateDocumentationFields default)
+        // SSoT translateDocumentationCategoryFields internally calls:
+        //   callStructuredContentTranslation with documentation_category_fields contentType
+        //   writeAttemptLog for consistency
+        // On RTL (ar only), append contextual RTL prompt to description as source hint so
+        // Gemini produces native Arabic RTL typography / numerals / diacritics — matching
+        // the articles architecture that preserves brand + domain context.
+        const rtlContextExtra =
+          reg?.rtl === true
+            ? ` — ${reg.nativeName} (${targetLang}) RIGHT-TO-LEFT (RTL) SCRIPT CONTEXT: Translate naturally for Arabic RTL typography; use correct RTL numerals, currency formatting, and native diacritics. Preserve "Smart Pocket" brand name untranslated.`
+            : '';
+        const descriptionWithContext = rtlContextExtra
+          ? `${srcDescription}${srcDescription ? ' ' : ''}${rtlContextExtra}`
+          : srcDescription;
 
-        const timeoutMs = 25000;
-        const { fieldsOut, failure, providerUsed, modelUsed, providerFallback } =
-          await callStructuredContentTranslation(
-            {
-              attemptId: `${baseAttemptId}-${targetLang}`,
-              contentType: 'documentation_fields',
-              contentId: undefined,
-              startTs,
-            },
-            targetLang,
-            fields,
-            timeoutMs
-          );
+        const { translatedFields, failure, attemptId } = await translateDocumentationCategoryFields(
+          targetLang,
+          { name: srcName, description: descriptionWithContext },
+          { contentId: undefined }
+        );
 
-        if (!fieldsOut || typeof fieldsOut.name !== 'string' || !fieldsOut.name.trim()) {
+        if (!translatedFields || typeof translatedFields.name !== 'string' || !translatedFields.name.trim()) {
           console.warn(
-            `[POST /api/admin/documentation/categories/translate] ${targetLang} returned empty name`,
-            { providerUsed, providerFallback, modelUsed, failureReason: failure?.safeMessage }
+            `[POST /api/admin/documentation/categories/translate] ${targetLang} returned empty name (attempt=${attemptId})`,
+            { failureReason: failure?.safeMessage }
           );
           return null;
         }
 
-        const outName = String(fieldsOut.name || '').trim().slice(0, 120);
-        const outDescriptionRaw = typeof fieldsOut.description === 'string' ? fieldsOut.description : '';
-        const outDescription = outDescriptionRaw.trim().slice(0, 500);
+        const outName = String(translatedFields.name || '').trim().slice(0, 120);
+        const outDescriptionRaw = typeof translatedFields.description === 'string'
+          ? translatedFields.description
+          : '';
+        const outDescription = rtlContextExtra
+          ? outDescriptionRaw.replace(rtlContextExtra.trim(), '').trim().slice(0, 500)
+          : outDescriptionRaw.trim().slice(0, 500);
 
         return {
           name: outName,
           description: outDescription,
-          providerUsed,
-          providerFallback,
-          modelUsed,
         };
       }
     );
@@ -166,6 +166,7 @@ export async function POST(request: Request) {
             requested: targetLanguages.length,
             generated: succeeded,
             durationMs: Date.now() - startTs,
+            providerTimeoutMs: TRANSLATION_PROVIDER_TIMEOUT_MS,
           },
         },
         { status: 200 }

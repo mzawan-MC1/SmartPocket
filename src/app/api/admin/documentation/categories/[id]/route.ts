@@ -162,7 +162,7 @@ export async function PATCH(
       name: payload.name,
       slug: payload.slug,
       description: payload.description,
-      translations: payload.translations && Object.keys(payload.translations).length > 0
+      translations: (payload.translations && typeof payload.translations === 'object')
         ? payload.translations
         : {},
       display_order: payload.display_order,
