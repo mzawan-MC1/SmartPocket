@@ -13,6 +13,7 @@ export interface GeminiModelConfig {
   multimodal: string;
   multimodalFallback: string;
   translation: string;
+  voice: string;
 }
 
 export interface AIProviderConfig {
@@ -119,12 +120,15 @@ export function resolveAIProviderConfig(): AIProviderConfig {
       apiKey: readEnv('GEMINI_API_KEY'),
       baseUrl: readEnv('GEMINI_BASE_URL'),
       models: {
-        fast: (readEnv('GEMINI_TEXT_MODEL') || readEnv('GEMINI_FAST_MODEL', 'gemini-3.5-flash-lite')) as string,
+        fast: (readEnv('GEMINI_TEXT_MODEL') || readEnv('GEMINI_FAST_MODEL', 'gemini-2.5-flash-lite')) as string,
         reasoning: readEnv('GEMINI_REASONING_MODEL', 'gemini-3.5-flash') as string,
         multimodal: readEnv('GEMINI_MULTIMODAL_MODEL', 'gemini-3.5-flash-lite') as string,
         multimodalFallback: readEnv('GEMINI_MULTIMODAL_FALLBACK_MODEL', 'gemini-3.1-flash-lite') as string,
         translation: (readEnv('GEMINI_TRANSLATION_MODEL') ||
           readEnv('GEMINI_TEXT_MODEL') ||
+          readEnv('GEMINI_FAST_MODEL', 'gemini-3.5-flash-lite')) as string,
+        voice: (readEnv('GEMINI_VOICE_MODEL') ||
+          readEnv('GEMINI_MULTIMODAL_MODEL') ||
           readEnv('GEMINI_FAST_MODEL', 'gemini-3.5-flash-lite')) as string,
       },
     },
@@ -179,6 +183,54 @@ export function isOpenRouterEnabled(): boolean {
 export function getGeminiModels(): GeminiModelConfig {
   return getAIConfig().gemini.models;
 }
+// ─── Dedicated per-usage Gemini model selectors (Hybrid Routing) ──────────────
+// Each helper reads its dedicated environment variable first, then falls back to
+// the documented default. This guarantees predictable hybrid routing:
+//   • Smart-Entry text parsing     → GEMINI_TEXT_MODEL         (default gemini-2.5-flash-lite)
+//   • Content translation (Articles/Blogs/Categories/FAQs) → GEMINI_TRANSLATION_MODEL (default gemini-3.5-flash-lite)
+//   • Receipt OCR / Document upload → GEMINI_MULTIMODAL_MODEL (default gemini-3.5-flash-lite)
+//   • Voice transcription           → GEMINI_VOICE_MODEL       (default gemini-3.5-flash-lite)
+export function getGeminiTextModel(): string {
+  return normalizeGeminiModel(getAIConfig().gemini.models.fast || 'gemini-2.5-flash-lite') || 'gemini-2.5-flash-lite';
+}
+export function getGeminiTranslationModel(): string {
+  const cfg = getAIConfig();
+  const explicit = normalizeGeminiModel(cfg.gemini.models.translation || '');
+  const textFallback = normalizeGeminiModel(cfg.gemini.models.fast || '');
+  const multimodalFallback = normalizeGeminiModel(cfg.gemini.models.multimodal || '');
+  if (explicit) return explicit;
+  if (textFallback) return textFallback;
+  if (multimodalFallback) return multimodalFallback;
+  return 'gemini-3.5-flash-lite';
+}
+export function getGeminiMultimodalModel(): string {
+  const cfg = getAIConfig();
+  const explicit = normalizeGeminiModel(cfg.gemini.models.multimodal || '');
+  const fallback = normalizeGeminiModel(cfg.gemini.models.multimodalFallback || '');
+  const textFallback = normalizeGeminiModel(cfg.gemini.models.fast || '');
+  if (explicit) return explicit;
+  if (fallback) return fallback;
+  if (textFallback) return textFallback;
+  return 'gemini-3.5-flash-lite';
+}
+export function getGeminiMultimodalFallbackModel(): string {
+  const cfg = getAIConfig();
+  const fallback = normalizeGeminiModel(cfg.gemini.models.multimodalFallback || '');
+  const explicit = normalizeGeminiModel(cfg.gemini.models.multimodal || '');
+  if (fallback) return fallback;
+  if (explicit) return explicit;
+  return 'gemini-3.1-flash-lite';
+}
+export function getGeminiVoiceModel(): string {
+  const cfg = getAIConfig();
+  const explicit = normalizeGeminiModel(cfg.gemini.models.voice || '');
+  const multimodalFallback = normalizeGeminiModel(cfg.gemini.models.multimodal || '');
+  const multimodalAlt = normalizeGeminiModel(cfg.gemini.models.multimodalFallback || '');
+  if (explicit) return explicit;
+  if (multimodalFallback) return multimodalFallback;
+  if (multimodalAlt) return multimodalAlt;
+  return 'gemini-3.5-flash-lite';
+}
 export function isGeminiConfiguredForContentTranslation(): boolean {
   const cfg = getAIConfig();
   return Boolean(cfg.gemini.apiKey && cfg.gemini.apiKey.length > 0 && cfg.runtime.enabled);
@@ -192,16 +244,7 @@ export function normalizeGeminiModel(rawModel: string): string {
   return s;
 }
 export function resolveGeminiTranslationModel(): string {
-  const cfg = getAIConfig();
-  const explicit = normalizeGeminiModel(cfg.gemini.models.translation || '');
-  const textModel = normalizeGeminiModel(cfg.gemini.models.fast || '');
-  const reasoningModel = normalizeGeminiModel(cfg.gemini.models.reasoning || '');
-  const multimodalModel = normalizeGeminiModel(cfg.gemini.models.multimodal || '');
-  if (explicit) return explicit;
-  if (textModel) return textModel;
-  if (reasoningModel) return reasoningModel;
-  if (multimodalModel) return multimodalModel;
-  return 'gemini-3.5-flash-lite';
+  return getGeminiTranslationModel();
 }
 export type ContentTranslationProviderName = 'gemini' | 'openrouter';
 export function resolveContentTranslationProvider(): ContentTranslationProviderName {

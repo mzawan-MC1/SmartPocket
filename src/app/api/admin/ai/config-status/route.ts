@@ -1,13 +1,21 @@
 import { NextResponse } from 'next/server';
 import { applySupabaseCookies, createRouteHandlerSupabaseClient } from '@/lib/supabase/server';
 import { loadVoiceTranscriptionStatus } from '@/lib/voice-ai-server';
-import { resolveAIProviderConfig } from '@/lib/ai-provider-config';
+import {
+  getGeminiMultimodalModel,
+  getGeminiTextModel,
+  getGeminiTranslationModel,
+  getGeminiVoiceModel,
+  resolveAIProviderConfig,
+} from '@/lib/ai-provider-config';
 
 type AIConfigStatusResponse = {
   provider: 'gemini' | 'openrouter' | 'vps_ai' | 'mock';
   geminiApiKeyConfigured: boolean;
   geminiTextModel: string;
+  geminiTranslationModel: string;
   geminiMultimodalModel: string;
+  geminiVoiceModel: string;
   geminiConfigured: boolean;
   openrouterConfigured: boolean;
   openrouterBaseUrlConfigured: boolean;
@@ -72,6 +80,11 @@ export async function GET() {
       ? aiModeRaw
       : 'cloud_only';
 
+  const textModel = getGeminiTextModel();
+  const translationModel = getGeminiTranslationModel();
+  const multimodalModel = getGeminiMultimodalModel();
+  const voiceModel = getGeminiVoiceModel();
+
   const model = openrouterModel || 'openai/gpt-4.1-mini';
   const voiceTranscription = await loadVoiceTranscriptionStatus();
   const vpsConfigured = Boolean(
@@ -81,9 +94,11 @@ export async function GET() {
   const body: AIConfigStatusResponse = {
     provider: aiCfg.language.primary,
     geminiApiKeyConfigured: Boolean(aiCfg.gemini.apiKey),
-    geminiTextModel: aiCfg.gemini.models.fast || '',
-    geminiMultimodalModel: aiCfg.gemini.models.multimodal || '',
-    geminiConfigured: Boolean(aiCfg.gemini.apiKey) && Boolean(aiCfg.gemini.models.fast) && Boolean(aiCfg.gemini.models.multimodal),
+    geminiTextModel: textModel || '',
+    geminiTranslationModel: translationModel || '',
+    geminiMultimodalModel: multimodalModel || '',
+    geminiVoiceModel: voiceModel || '',
+    geminiConfigured: Boolean(aiCfg.gemini.apiKey) && Boolean(textModel) && Boolean(multimodalModel),
     openrouterConfigured: Boolean(openrouterApiKey),
     openrouterBaseUrlConfigured: Boolean(openrouterBaseUrl || 'https://openrouter.ai/api/v1'),
     supabaseServiceConfigured: Boolean(supabaseServiceRoleKey),
@@ -120,7 +135,7 @@ export async function GET() {
         AI_MODE: Boolean(aiModeRaw),
         AI_MOCK_MODE: Boolean(aiMockModeRaw),
       },
-      active: { mode, model, aiEnabled: body.aiEnabled },
+      active: { mode, model, aiEnabled: body.aiEnabled, hybridModels: { text: textModel, translation: translationModel, multimodal: multimodalModel, voice: voiceModel } },
     });
   }
 

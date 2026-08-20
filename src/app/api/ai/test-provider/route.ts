@@ -7,7 +7,7 @@ import {
   runVoiceTranscriptionHealthCheck,
   type VoiceProviderHealthCheckResult,
 } from '@/lib/voice-ai-server';
-import { resolveAIProviderConfig } from '@/lib/ai-provider-config';
+import { getGeminiTextModel, resolveAIProviderConfig } from '@/lib/ai-provider-config';
 import type { ProviderHealthResult } from '@/lib/ai-types';
 
 const ALLOWED_PROVIDERS = new Set(['openrouter', 'vps_ai', 'openrouter_voice', 'gemini', 'gemini_voice']);
@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
         result = await langProvider.healthCheck();
       }
     } else if (provider === 'gemini') {
-      if (!(aiCfg.gemini.apiKey && aiCfg.gemini.models.fast)) {
+      if (!(aiCfg.gemini.apiKey && getGeminiTextModel())) {
         const checkedAt = new Date().toISOString();
         result = {
           provider: 'gemini',

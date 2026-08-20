@@ -8,7 +8,13 @@ import {
   type VoiceAiGateway,
 } from '@/lib/voice-ai';
 import { getOpenRouterBaseUrl, extractGeminiCandidateText, VOICE_SMART_ENTRY_RESPONSE_JSON_SCHEMA } from '@/lib/ai-gateway';
-import { getAIConfig, isOpenRouterEnabled } from '@/lib/ai-provider-config';
+import {
+  getAIConfig,
+  getGeminiMultimodalFallbackModel,
+  getGeminiMultimodalModel,
+  getGeminiVoiceModel,
+  isOpenRouterEnabled,
+} from '@/lib/ai-provider-config';
 import { getGeminiClient } from '@/lib/gemini-client';
 
 type AISettingsRow = {
@@ -52,7 +58,7 @@ export interface VoiceTranscriptionStatusSnapshot {
   code: VoiceTranscriptionHealthCode;
   gateway: VoiceAiGateway;
   model: string | null;
-  modelSource: 'voice_model' | 'openrouter_model' | 'env' | 'none';
+  modelSource: 'voice_model' | 'openrouter_model' | 'env' | 'env_voice_model' | 'env_multimodal_model' | 'none';
   modelAudioCapable: boolean | null;
   maxAudioSeconds: number;
   maxAudioBytes: number;
@@ -312,11 +318,14 @@ function inferPersistedAudioCapability(row: ProviderHealthRow | null) {
 }
 
 function resolveSelectedVoiceModel(settings: AISettingsRow | null) {
-  const aiConfig = getAIConfig();
+  const dedicatedEnv = firstNonEmpty(getGeminiVoiceModel());
+  if (dedicatedEnv) {
+    return { model: dedicatedEnv, source: 'env_voice_model' as const };
+  }
 
-  const geminiMultimodal = firstNonEmpty(aiConfig.gemini.models.multimodal);
+  const geminiMultimodal = firstNonEmpty(getGeminiMultimodalModel());
   if (geminiMultimodal) {
-    return { model: geminiMultimodal, source: 'env' as const };
+    return { model: geminiMultimodal, source: 'env_multimodal_model' as const };
   }
 
   const voiceModel = firstNonEmpty(settings?.voice_model);
@@ -356,17 +365,17 @@ function resolveVoiceConfig(settings: AISettingsRow | null, healthRow: ProviderH
   let attemptedGemini = false;
 
   const geminiApiOk = Boolean(aiConfig.gemini.apiKey);
-  const multimodalOk = Boolean(aiConfig.gemini.models.multimodal);
+  const voiceModelOk = Boolean(getGeminiVoiceModel());
   if (primaryProvider === 'gemini' || (typeof aiConfig.gemini.apiKey === 'string' && aiConfig.gemini.apiKey.trim() !== '')) {
     attemptedGemini = true;
     gateway = 'gemini';
-    model = aiConfig.gemini.models.multimodal || null;
-    modelSource = 'env';
+    model = getGeminiVoiceModel() || null;
+    modelSource = 'env_voice_model';
     if (!geminiApiOk) {
       code = 'gemini_api_key_missing';
       baseUrl = '';
       apiKey = '';
-    } else if (!multimodalOk) {
+    } else if (!voiceModelOk) {
       code = 'gemini_model_missing';
       baseUrl = '';
       apiKey = aiConfig.gemini.apiKey || '';
@@ -419,7 +428,7 @@ function resolveVoiceConfig(settings: AISettingsRow | null, healthRow: ProviderH
 
   const configurationReady = code === 'ready';
   const inferredAudioCapable = (() => {
-    if (configurationReady && gateway === 'gemini' && multimodalOk) {
+    if (configurationReady && gateway === 'gemini' && voiceModelOk) {
       return true;
     }
     return inferPersistedAudioCapability(healthRow);
@@ -601,9 +610,9 @@ export async function runVoiceTranscriptionHealthCheck(): Promise<VoiceProviderH
     try {
       const geminiHandle = getGeminiClient();
       const client = geminiHandle.requireClient('voice health check');
-      const modelName = aiConfig.gemini.models.multimodal;
+      const modelName = getGeminiVoiceModel();
       const primaryModel = modelName;
-      const fallbackModel = aiConfig.gemini.models.multimodalFallback;
+      const fallbackModel = getGeminiMultimodalFallbackModel();
 
       const wav = buildTinySilentWavBase64();
       const healthSystemPrompt =
@@ -772,7 +781,7 @@ export async function runVoiceTranscriptionHealthCheck(): Promise<VoiceProviderH
       const classified = classifyGeminiError(err, msg);
       const requestId: string | null =
         (errAny && (errAny.requestId || errAny['x-request-id'])) as string | null || null;
-      const primaryModel = aiConfig.gemini.models.multimodal;
+      const primaryModel = getGeminiVoiceModel();
       const healthResult: VoiceProviderHealthCheckResult = {
         provider: VOICE_GEMINI_PROVIDER_KEY,
         code: classified.code,

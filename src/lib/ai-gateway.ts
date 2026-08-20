@@ -19,7 +19,15 @@ import {
   type TransactionDocumentExtraction,
 } from './transaction-documents';
 import { getGeminiClient } from './gemini-client';
-import { getAIConfig, isOpenRouterEnabled, type GeminiModelConfig } from './ai-provider-config';
+import {
+  getAIConfig,
+  getGeminiMultimodalFallbackModel,
+  getGeminiMultimodalModel,
+  getGeminiTextModel,
+  getGeminiVoiceModel,
+  isOpenRouterEnabled,
+  type GeminiModelConfig,
+} from './ai-provider-config';
 
 export interface TransactionDocumentAIRequest {
   fileName: string;
@@ -2157,16 +2165,13 @@ class GeminiLanguageProvider implements LanguageProvider {
   }
 
   private getTextModelName(): string {
-    const foundation = getAIConfig();
-    return foundation.gemini.models.fast;
+    return getGeminiTextModel();
   }
   private getMultimodalModelName(): string {
-    const foundation = getAIConfig();
-    return foundation.gemini.models.multimodal;
+    return getGeminiMultimodalModel();
   }
   private getMultimodalFallbackModelName(): string {
-    const foundation = getAIConfig();
-    return foundation.gemini.models.multimodalFallback;
+    return getGeminiMultimodalFallbackModel();
   }
 
   private extractCandidateText(result: unknown): string {
@@ -3455,7 +3460,7 @@ export async function processAIRequest(
       errorCategory: categorizeError(msg) || (isAuth ? 'auth_error' : isTimeout ? 'timeout' : 'technical'),
       errorCode: errorCode as any,
       providerUsed: isGemini ? 'gemini' : undefined,
-      modelUsed: isGemini ? (request.type === 'voice' ? (getAIConfig().gemini.models.multimodal) : (getAIConfig().gemini.models.fast)) : undefined,
+      modelUsed: isGemini ? (request.type === 'voice' ? getGeminiVoiceModel() : getGeminiTextModel()) : undefined,
       durationMs: Date.now() - startTime,
     };
   }

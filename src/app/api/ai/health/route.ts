@@ -2,7 +2,13 @@ import { NextResponse } from 'next/server';
 import { applySupabaseCookies, createRouteHandlerSupabaseClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createLanguageProvider } from '@/lib/ai-gateway';
-import { resolveAIProviderConfig } from '@/lib/ai-provider-config';
+import {
+  getGeminiMultimodalFallbackModel,
+  getGeminiTextModel,
+  getGeminiTranslationModel,
+  getGeminiVoiceModel,
+  resolveAIProviderConfig,
+} from '@/lib/ai-provider-config';
 import {
   runVoiceTranscriptionHealthCheck,
   persistVoiceTranscriptionHealth,
@@ -39,21 +45,24 @@ export async function GET() {
   const persistedRows: { provider: string; persisted: boolean }[] = [];
 
   const isCloudOnly = aiCfg.runtime.mode === 'cloud_only';
-  const runGeminiText = Boolean(aiCfg.gemini.apiKey && aiCfg.gemini.models.fast);
+  const runGeminiText = Boolean(aiCfg.gemini.apiKey && getGeminiTextModel());
   const geminiVoiceConfigured = Boolean(
     aiCfg.gemini.apiKey
-    && aiCfg.gemini.models.multimodal
+    && getGeminiVoiceModel()
   );
+  const geminiTranslationConfigured = Boolean(aiCfg.gemini.apiKey && getGeminiTranslationModel());
   const results: ProviderHealthResult[] = [];
 
   const configurationReadiness = {
     gemini: {
       textConfigured: runGeminiText,
+      translationConfigured: geminiTranslationConfigured,
       voiceConfigured: geminiVoiceConfigured,
       apiKeyPresent: Boolean(aiCfg.gemini.apiKey),
-      fastModel: aiCfg.gemini.models.fast || null,
-      voicePrimaryModel: aiCfg.gemini.models.multimodal || null,
-      voiceFallbackModel: aiCfg.gemini.models.multimodalFallback || null,
+      fastModel: getGeminiTextModel() || null,
+      translationModel: getGeminiTranslationModel() || null,
+      voicePrimaryModel: getGeminiVoiceModel() || null,
+      voiceFallbackModel: getGeminiMultimodalFallbackModel() || null,
     },
     openrouter: {
       enabled: aiCfg.openrouter.enabled,

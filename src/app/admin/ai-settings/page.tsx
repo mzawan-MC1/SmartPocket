@@ -59,7 +59,9 @@ interface ServerAIConfigStatus {
   provider: 'gemini' | 'openrouter' | 'vps_ai' | 'mock';
   geminiApiKeyConfigured: boolean;
   geminiTextModel: string;
+  geminiTranslationModel: string;
   geminiMultimodalModel: string;
+  geminiVoiceModel: string;
   geminiConfigured: boolean;
   openrouterConfigured: boolean;
   openrouterBaseUrlConfigured: boolean;
@@ -258,11 +260,35 @@ function ConfigStatusPanel({
         Configuration Status
       </h3>
       {serverConfig && (
-        <div className="mb-3 text-xs text-muted-foreground">
-          Mode: <span className="text-foreground font-600">{serverConfig.mode}</span> · Primary:{' '}
-          <span className="text-foreground font-600">{capitalize(serverConfig.provider)}</span> · Text:{' '}
-          <span className="text-foreground font-600">{serverConfig.geminiTextModel || 'Not set'}</span> · Multimodal:{' '}
-          <span className="text-foreground font-600">{serverConfig.geminiMultimodalModel || 'Not set'}</span>
+        <div className="mb-3 text-xs text-muted-foreground space-y-1">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span>
+              Mode: <span className="text-foreground font-600">{serverConfig.mode}</span>
+            </span>
+            <span>·</span>
+            <span>
+              Primary:{' '}
+              <span className="text-foreground font-600">{capitalize(serverConfig.provider)}</span>
+            </span>
+          </div>
+          <div className="grid gap-x-4 gap-y-1 sm:grid-cols-2">
+            <div>
+              Text (Smart Entry):{' '}
+              <span className="text-foreground font-600">{serverConfig.geminiTextModel || 'Not set'}</span>
+            </div>
+            <div>
+              Translation (Articles/Blogs/Categories):{' '}
+              <span className="text-foreground font-600">{serverConfig.geminiTranslationModel || 'Not set'}</span>
+            </div>
+            <div>
+              Multimodal (Receipt OCR / Docs):{' '}
+              <span className="text-foreground font-600">{serverConfig.geminiMultimodalModel || 'Not set'}</span>
+            </div>
+            <div>
+              Voice (Transcription):{' '}
+              <span className="text-foreground font-600">{serverConfig.geminiVoiceModel || 'Not set'}</span>
+            </div>
+          </div>
         </div>
       )}
       {serverConfig?.voiceTranscription && (
@@ -617,7 +643,9 @@ export default function AdminAISettingsPage() {
     { id: 'supabase', label: 'Supabase Service Role Key Configured', done: Boolean(serverConfig?.supabaseServiceConfigured) },
     { id: 'gemini-key', label: 'Gemini API Key Configured', done: Boolean(serverConfig?.geminiApiKeyConfigured) },
     { id: 'gemini-text', label: 'Gemini Text Model Configured', done: Boolean(serverConfig?.geminiTextModel) },
+    { id: 'gemini-translation', label: 'Gemini Translation Model Configured', done: Boolean(serverConfig?.geminiTranslationModel) },
     { id: 'gemini-multimodal', label: 'Gemini Multimodal Model Configured', done: Boolean(serverConfig?.geminiMultimodalModel) },
+    { id: 'gemini-voice', label: 'Gemini Voice Model Configured', done: Boolean(serverConfig?.geminiVoiceModel) },
     { id: 'gemini-connection', label: 'Gemini Connection Verified', done: geminiHealth?.status === 'healthy', unverified: !geminiHealth || geminiHealth.status === 'not_configured' },
     { id: 'voice-ready', label: voiceLabel, done: Boolean(serverConfig?.voiceTranscription.configurationReady) },
     { id: 'voice-health', label: voiceHealthLabel, done: (voiceGateway === 'gemini' ? geminiVoiceHealth?.status : openrouterVoiceHealth?.status) === 'healthy', unverified: !(voiceGateway === 'gemini' ? geminiVoiceHealth : openrouterVoiceHealth) },
@@ -884,7 +912,10 @@ export default function AdminAISettingsPage() {
                   <StatusBadge status={serverConfig?.provider === 'gemini' ? 'ready' : 'info'} label={serverConfig?.provider === 'gemini' ? 'Primary' : capitalize(serverConfig?.provider || '')} />
                 </div>
                 <div>
-                  Text Model: <span className="font-700 text-foreground">{serverConfig?.geminiTextModel || 'Not configured'}</span>
+                  Text Model (GEMINI_TEXT_MODEL): <span className="font-700 text-foreground">{serverConfig?.geminiTextModel || 'Not configured (default gemini-2.5-flash-lite)'}</span>
+                </div>
+                <div>
+                  Translation Model (GEMINI_TRANSLATION_MODEL): <span className="font-700 text-foreground">{serverConfig?.geminiTranslationModel || 'Not configured (default gemini-3.5-flash-lite)'}</span>
                 </div>
                 <div>
                   API Key: <span className="font-700 text-foreground">{serverConfig?.geminiApiKeyConfigured ? 'Configured' : 'Missing'}</span>
@@ -946,13 +977,21 @@ export default function AdminAISettingsPage() {
                   Gateway: <span className="font-700 text-foreground">{voiceGateway ? capitalize(voiceGateway) : 'Not set'}</span>
                 </div>
                 <div>
-                  Multimodal Model: <span className="font-700 text-foreground">{serverConfig?.geminiMultimodalModel || 'Missing'}</span>
+                  Multimodal Model (GEMINI_MULTIMODAL_MODEL):{' '}
+                  <span className="font-700 text-foreground">{serverConfig?.geminiMultimodalModel || 'Missing (default gemini-3.5-flash-lite)'}</span>
+                </div>
+                <div>
+                  Voice Model (GEMINI_VOICE_MODEL):{' '}
+                  <span className="font-700 text-foreground">{serverConfig?.geminiVoiceModel || 'Missing (default gemini-3.5-flash-lite)'}</span>
                 </div>
                 <div>
                   Gemini API Key: <span className="font-700 text-foreground">{serverConfig?.geminiApiKeyConfigured ? 'Configured' : 'Missing'}</span>
                 </div>
-                <div>
-                  Voice model: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.model || 'Missing'}</span>
+                <div className="sm:col-span-2">
+                  Resolved Voice Runtime Model: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.model || 'Missing'}</span>{' '}
+                  <span className="text-muted-foreground/80">
+                    (source: {serverConfig?.voiceTranscription.modelSource || 'unknown'})
+                  </span>
                 </div>
                 <div>
                   Audio Capable: <span className="font-700 text-foreground">{serverConfig?.voiceTranscription.modelAudioCapable === null ? 'Unknown' : serverConfig?.voiceTranscription.modelAudioCapable ? 'Yes' : 'No'}</span>
