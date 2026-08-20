@@ -32,6 +32,7 @@ import type {
   DocumentationArticleRecord,
   DocumentationCategoryInput,
   DocumentationCategoryRecord,
+  DocumentationCategoryTranslations,
   DocumentationCategoryWithCount,
   DocumentationTranslationStatusResponse,
 } from '@/lib/documentation';
@@ -41,6 +42,9 @@ import {
   validateDocumentationCategoryInput,
 } from '@/lib/documentation';
 import { slugifyCmsPageSlug } from '@/lib/cms-pages';
+import { SUPPORTED_LANGUAGE_CODES } from '@/i18n/registry';
+import type { SupportedLanguage } from '@/i18n/resources';
+import { LANGUAGE_REGISTRY } from '@/i18n/registry';
 import { CONTENT_TRANSLATION_ENABLED_LANGS } from '@/i18n/registry';
 
 type StatusFilter = 'all' | 'draft' | 'published';
@@ -805,9 +809,48 @@ export default function AdminDocumentationClient({
               <tbody className="divide-y divide-border">
                 {filteredCategories.map((cat) => (
                   <tr key={cat.id} className="align-top">
-                    <td className="px-3 py-3 min-w-[180px]">
+                    <td className="px-3 py-3 min-w-[200px]">
                       <div>
-                        <p className="text-sm font-700 text-foreground">{cat.name}</p>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <p className="text-sm font-700 text-foreground">{cat.name}</p>
+                          {(() => {
+                            const totalLangs = CONTENT_TRANSLATION_ENABLED_LANGS.length;
+                            let translated = 0;
+                            if (cat.translations && typeof cat.translations === 'object') {
+                              for (const code of CONTENT_TRANSLATION_ENABLED_LANGS) {
+                                const e = (cat.translations as Record<string, unknown>)[code];
+                                if (!e || typeof e !== 'object') continue;
+                                const entry = e as { name?: string; description?: string };
+                                if (
+                                  (typeof entry.name === 'string' && entry.name.trim().length > 0) ||
+                                  (typeof entry.description === 'string' && entry.description.trim().length > 0)
+                                ) {
+                                  translated += 1;
+                                }
+                              }
+                            }
+                            const isComplete = translated >= totalLangs;
+                            return (
+                              <span
+                                title={tp(
+                                  'adminDocumentation.categories.tooltips.translationCoverage',
+                                  '{{done}} of {{total}} additional languages have translations.',
+                                  { done: String(translated), total: String(totalLangs) }
+                                )}
+                                className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-700 uppercase tracking-[0.1em] ${
+                                  isComplete
+                                    ? 'bg-positive-soft text-positive'
+                                    : translated > 0
+                                    ? 'bg-warning-soft text-warning-foreground'
+                                    : 'bg-muted text-muted-foreground'
+                                }`}
+                              >
+                                <Languages size={10} />
+                                <span className="tabular-nums">{translated}/{totalLangs}</span>
+                              </span>
+                            );
+                          })()}
+                        </div>
                         {cat.description ? (
                           <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">{cat.description}</p>
                         ) : null}
@@ -1108,19 +1151,35 @@ function CategoryFormModal({
   const [name, setName] = React.useState('');
   const [slug, setSlug] = React.useState('');
   const [description, setDescription] = React.useState('');
+  const [translations, setTranslations] = React.useState<DocumentationCategoryTranslations>({});
   const [displayOrder, setDisplayOrder] = React.useState<number>(0);
   const [isActive, setIsActive] = React.useState(true);
   const [saving, setSaving] = React.useState(false);
   const [errors, setErrors] = React.useState<Record<string, string | null>>({});
+  const [editingLocale, setEditingLocale] = React.useState<SupportedLanguage>('en');
   const slugLockedRef = React.useRef(false);
 
   React.useEffect(() => {
     if (!open) return;
     slugLockedRef.current = false;
+    setEditingLocale('en');
     if (editing) {
       setName(editing.name);
       setSlug(editing.slug);
       setDescription(editing.description);
+      const t = (editing.translations && typeof editing.translations === 'object')
+        ? { ...editing.translations }
+        : {};
+      for (const code of SUPPORTED_LANGUAGE_CODES) {
+        const e = t[code];
+        if (!e || typeof e !== 'object') continue;
+        const hasName = typeof e.name === 'string';
+        const hasDescription = typeof e.description === 'string';
+        if (!hasName && !hasDescription) {
+          delete t[code];
+        }
+      }
+      setTranslations(t);
       setDisplayOrder(Number(editing.display_order) || 0);
       setIsActive(editing.is_active !== false);
       slugLockedRef.current = true;
@@ -1128,6 +1187,7 @@ function CategoryFormModal({
       setName('');
       setSlug('');
       setDescription('');
+      setTranslations({});
       setDisplayOrder(0);
       setIsActive(true);
     }
@@ -1139,12 +1199,51 @@ function CategoryFormModal({
     setSlug(slugifyCmsPageSlug(value));
   };
 
+  const setLocaleTranslation = (
+    locale: SupportedLanguage,
+    patch: Partial<{ name: string; description: string }>
+  ) => {
+    setTranslations((prev) => {
+      const existing = prev[locale] ?? {};
+      const next: DocumentationCategoryTranslations = { ...prev };
+      const merged = { ...existing, ...patch };
+      const hasName = typeof merged.name === 'string' && merged.name.trim().length > 0;
+      const hasDescription = typeof merged.description === 'string' && merged.description.trim().length > 0;
+      if (hasName || hasDescription) {
+        next[locale] = {
+          ...(hasName ? { name: merged.name!.trim().slice(0, 120) } : {}),
+          ...(hasDescription ? { description: merged.description!.trim().slice(0, 500) } : {}),
+        };
+      } else if (locale in next) {
+        delete next[locale];
+      }
+      return next;
+    });
+  };
+
   const submit = async (event?: React.FormEvent) => {
     event?.preventDefault();
+    const translationsPayload = (() => {
+      const out: DocumentationCategoryTranslations = {};
+      for (const code of SUPPORTED_LANGUAGE_CODES) {
+        const e = translations[code];
+        if (!e || typeof e !== 'object') continue;
+        const hasName = typeof e.name === 'string' && e.name.trim().length > 0;
+        const hasDescription = typeof e.description === 'string' && e.description.trim().length > 0;
+        if (!hasName && !hasDescription) continue;
+        out[code] = {
+          ...(hasName ? { name: e.name!.trim().slice(0, 120) } : {}),
+          ...(hasDescription ? { description: e.description!.trim().slice(0, 500) } : {}),
+        };
+      }
+      return Object.keys(out).length > 0 ? out : undefined;
+    })();
+
     const payload = normalizeDocumentationCategoryInput({
       name,
       slug,
       description,
+      translations: translationsPayload,
       display_order: Number(displayOrder),
       is_active: isActive,
     });
@@ -1185,6 +1284,22 @@ function CategoryFormModal({
 
   if (!open) return null;
 
+  const localeBadge = (code: SupportedLanguage) => {
+    const entry = translations[code];
+    const translated = Boolean(
+      entry && ((typeof entry.name === 'string' && entry.name.trim().length > 0) ||
+        (typeof entry.description === 'string' && entry.description.trim().length > 0))
+    );
+    return translated ? (
+      <span className="absolute -top-0.5 -right-0.5 inline-flex h-2 w-2 rounded-full bg-positive shadow-[0_0_0_2px_var(--card-bg,white)]" />
+    ) : null;
+  };
+
+  const currentLocaleEntry = translations[editingLocale] ?? {};
+  const currentName = typeof currentLocaleEntry.name === 'string' ? currentLocaleEntry.name : '';
+  const currentDescription = typeof currentLocaleEntry.description === 'string' ? currentLocaleEntry.description : '';
+  const currentIsEnglish = editingLocale === 'en';
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center sm:items-center"
@@ -1196,7 +1311,7 @@ function CategoryFormModal({
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
       />
-      <div className="relative z-10 w-full max-w-lg overflow-hidden rounded-t-[22px] border border-border bg-card shadow-card-md sm:rounded-[24px]">
+      <div className="relative z-10 w-full max-w-xl overflow-hidden rounded-t-[22px] border border-border bg-card shadow-card-md sm:rounded-[24px]">
         <div className="flex items-start justify-between gap-3 border-b border-border px-5 py-4">
           <div>
             <h3 className="text-lg font-800 text-foreground">
@@ -1265,11 +1380,105 @@ function CategoryFormModal({
             )}
           </div>
           <div>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="block text-xs font-700 uppercase tracking-[0.12em] text-muted-foreground">
+                {tp('adminDocumentation.categories.modal.translations', 'Translations')}
+              </label>
+              <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                <Languages size={12} />
+                <span className="tabular-nums">
+                  {Object.keys(translations).filter((k) => k !== 'en').length}
+                  {' / '}
+                  {CONTENT_TRANSLATION_ENABLED_LANGS.length}
+                </span>
+              </span>
+            </div>
+            <div
+              role="tablist"
+              aria-label="Category translation languages"
+              className="grid grid-cols-4 sm:grid-cols-8 gap-1 rounded-xl bg-muted/50 p-1 mb-3"
+            >
+              {SUPPORTED_LANGUAGE_CODES.map((code) => {
+                const reg = LANGUAGE_REGISTRY[code];
+                const isActive = editingLocale === code;
+                return (
+                  <button
+                    key={code}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    onClick={() => setEditingLocale(code)}
+                    className={`relative inline-flex items-center justify-center gap-1 rounded-lg px-1.5 py-1.5 text-[11px] font-700 transition-colors ${
+                      isActive
+                        ? 'bg-card text-foreground shadow-sm ring-1 ring-border'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    <span>{reg?.flag ?? code.toUpperCase().slice(0, 2)}</span>
+                    <span className="uppercase tracking-[0.08em]">{code}</span>
+                    {localeBadge(code)}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="space-y-3 rounded-xl border border-border bg-muted/20 p-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-800 uppercase tracking-[0.14em] text-muted-foreground">
+                  {currentIsEnglish
+                    ? tp('adminDocumentation.categories.modal.sourceLanguage', 'Source language (English)')
+                    : (LANGUAGE_REGISTRY[editingLocale]?.nativeName || editingLocale.toUpperCase())}
+                </span>
+                {currentIsEnglish ? (
+                  <span className="rounded-full bg-primary/10 text-primary px-2 py-0.5 text-[10px] font-800 uppercase tracking-[0.12em]">
+                    {tp('adminDocumentation.categories.modal.sourceBadge', 'Canonical')}
+                  </span>
+                ) : null}
+              </div>
+              <div>
+                <label className="block mb-1 text-[11px] font-700 uppercase tracking-[0.12em] text-muted-foreground">
+                  {tp('adminDocumentation.categories.modal.translatedName', 'Translated name')}
+                </label>
+                <input
+                  type="text"
+                  disabled={currentIsEnglish}
+                  value={currentIsEnglish ? name : currentName}
+                  onChange={(e) => setLocaleTranslation(editingLocale, { name: e.target.value })}
+                  maxLength={120}
+                  className="input-base disabled:bg-muted/40 disabled:text-muted-foreground disabled:cursor-not-allowed"
+                  placeholder={
+                    currentIsEnglish
+                      ? tp('adminDocumentation.categories.modal.sourceNameHint', 'Enter the canonical English name above.')
+                      : tp('adminDocumentation.categories.modal.namePlaceholder', 'e.g. AI Smart Entry')
+                  }
+                />
+              </div>
+              <div>
+                <label className="block mb-1 text-[11px] font-700 uppercase tracking-[0.12em] text-muted-foreground">
+                  {tp('adminDocumentation.categories.modal.translatedDescription', 'Translated description')}
+                </label>
+                <textarea
+                  rows={2}
+                  disabled={currentIsEnglish}
+                  value={currentIsEnglish ? description : currentDescription}
+                  onChange={(e) => setLocaleTranslation(editingLocale, { description: e.target.value })}
+                  maxLength={500}
+                  className="input-base resize-y disabled:bg-muted/40 disabled:text-muted-foreground disabled:cursor-not-allowed"
+                  placeholder={
+                    currentIsEnglish
+                      ? tp('adminDocumentation.categories.modal.sourceDescriptionHint', 'Enter the canonical English description above.')
+                      : tp('adminDocumentation.categories.modal.descriptionPlaceholder', 'Short description shown to admins (optional).')
+                  }
+                />
+              </div>
+            </div>
+          </div>
+          <div>
             <label className="block mb-1.5 text-xs font-700 uppercase tracking-[0.12em] text-muted-foreground">
               {tp('adminDocumentation.categories.modal.fieldDescription', 'Description')}
             </label>
             <textarea
-              rows={3}
+              rows={2}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               maxLength={500}

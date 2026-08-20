@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS public.documentation_categories (
   name TEXT NOT NULL DEFAULT '',
   slug TEXT NOT NULL DEFAULT '',
   description TEXT NOT NULL DEFAULT '',
+  translations JSONB NOT NULL DEFAULT '{}'::jsonb,
   display_order INTEGER NOT NULL DEFAULT 0,
   is_active BOOLEAN NOT NULL DEFAULT true,
   created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
@@ -37,6 +38,7 @@ ALTER TABLE public.documentation_categories ADD COLUMN IF NOT EXISTS id UUID PRI
 ALTER TABLE public.documentation_categories ADD COLUMN IF NOT EXISTS name TEXT NOT NULL DEFAULT '';
 ALTER TABLE public.documentation_categories ADD COLUMN IF NOT EXISTS slug TEXT NOT NULL DEFAULT '';
 ALTER TABLE public.documentation_categories ADD COLUMN IF NOT EXISTS description TEXT NOT NULL DEFAULT '';
+ALTER TABLE public.documentation_categories ADD COLUMN IF NOT EXISTS translations JSONB NOT NULL DEFAULT '{}'::jsonb;
 ALTER TABLE public.documentation_categories ADD COLUMN IF NOT EXISTS display_order INTEGER NOT NULL DEFAULT 0;
 ALTER TABLE public.documentation_categories ADD COLUMN IF NOT EXISTS is_active BOOLEAN NOT NULL DEFAULT true;
 ALTER TABLE public.documentation_categories ADD COLUMN IF NOT EXISTS created_by UUID REFERENCES auth.users(id) ON DELETE SET NULL;
@@ -93,20 +95,26 @@ WITH CHECK (public.is_admin());
 GRANT SELECT ON TABLE public.documentation_categories TO anon, authenticated, service_role;
 GRANT INSERT, UPDATE, DELETE ON TABLE public.documentation_categories TO authenticated, service_role;
 
--- == 2. Seed canonical 9 categories (slug-aliased where needed)
---     ON CONFLICT DO NOTHING so this migration can be re-run
---     safely on existing environments.
+-- == 2. Seed canonical 13 categories (matches DOCUMENTATION_CATEGORIES
+--     hardcoded array plus legacy slug aliases for accounts-wallets,
+--     accounts, savings-tools).  ON CONFLICT DO NOTHING for idempotency.
 
 INSERT INTO public.documentation_categories (name, slug, description, display_order, is_active) VALUES
-  ('Getting Started',                 'getting-started',        'Welcome, onboarding, and initial setup guides.',    1,  true),
-  ('AI Smart Entry',                  'ai-smart-entry',         'Receipt OCR, Smart AI parsing, and Voice Entry.',   2,  true),
-  ('Accounts & Wallets',              'accounts',               'Bank accounts, wallets, cards, and currencies.',    3,  true),
-  ('Budgets',                         'budgets',                'Spending limits, budgeting plans and targets.',     4,  true),
-  ('Transactions / Cash Flow',        'transactions',           'Expense, income, transfers and cash flow views.',   5,  true),
-  ('Personal Subscriptions',          'personal-subscriptions', 'Recurring bills, plan subscriptions and tracking.', 6,  true),
-  ('Shared Money & Spaces',           'people-spaces',          'Groups, shared money, invitations and settlements.',7,  true),
-  ('Savings & Financial Tools',       'savings-tools',          'Savings goals, investments, calculators, FX.',      8,  true),
-  ('General',                         'general',                'Platform settings, plans and troubleshooting.',     99, true)
+  ('Getting Started',          'getting-started',         'Welcome, onboarding, and initial setup guides.',                       1,  true),
+  ('AI Smart Entry',           'ai-smart-entry',          'Receipt OCR, Smart AI parsing, and Voice Entry.',                       2,  true),
+  ('Transactions',             'transactions',            'Expense, income, transfers and cash flow views.',                       3,  true),
+  ('Accounts & Wallets',       'accounts-wallets',        'Bank accounts, wallets, cards, and currencies.',                        4,  true),
+  ('Accounts & Wallets',       'accounts',                'Alias for Accounts & Wallets (legacy slug).',                           4,  true),
+  ('Personal Subscriptions',   'personal-subscriptions',  'Recurring bills, plan subscriptions and tracking.',                     5,  true),
+  ('Budgets',                  'budgets',                 'Spending limits, budgeting plans and targets.',                          6,  true),
+  ('Recurring Transactions',   'recurring-transactions',  'Scheduled and recurring income or expense rules.',                      7,  true),
+  ('Reimbursements',           'reimbursements',          'IOUs, reimbursements and money owed tracking.',                         8,  true),
+  ('Settlements',              'settlements',             'Split expense settlements and net balance closing.',                    9,  true),
+  ('People & Spaces',          'people-spaces',           'Groups, shared money, invitations and shared budgets.',                10, true),
+  ('Plans & Subscriptions',    'plans-subscriptions',     'Smart Pocket pricing, plans and subscription management.',             11, true),
+  ('Support & Troubleshooting','support-troubleshooting', 'Troubleshooting, support channels and error recovery.',                12, true),
+  ('Savings & Financial Tools','savings-tools',           'Savings goals, investments, calculators, FX tools.',                   13, true),
+  ('General',                  'general',                 'Platform settings, legal, and miscellaneous help articles.',           99, true)
 ON CONFLICT (slug) DO NOTHING;
 
 -- Reload PostgREST schema cache.

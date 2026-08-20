@@ -123,6 +123,9 @@ export async function PATCH(
       name: payload.name,
       slug: payload.slug,
       description: payload.description,
+      translations: payload.translations && Object.keys(payload.translations).length > 0
+        ? payload.translations
+        : {},
       display_order: payload.display_order,
       is_active: payload.is_active,
       updated_by: userId,

@@ -92,6 +92,9 @@ export async function POST(request: Request) {
       name: payload.name,
       slug: payload.slug,
       description: payload.description,
+      translations: payload.translations && Object.keys(payload.translations).length > 0
+        ? payload.translations
+        : {},
       display_order: payload.display_order,
       is_active: payload.is_active,
       created_by: userId,

@@ -2,6 +2,7 @@ import 'server-only';
 
 import { createServerComponentSupabaseClient } from '@/lib/supabase/server';
 import type {
+  CanonicalDocumentationCategorySpec,
   DocumentationArticleRecord,
   DocumentationCategoryRecord,
   DocumentationCategoryWithCount,
@@ -9,7 +10,11 @@ import type {
   DocumentationTranslationRecord,
   PublicDocumentationArticle,
 } from '@/lib/documentation';
-import { normalizeDocumentationLanguage } from '@/lib/documentation';
+import {
+  CANONICAL_DOCUMENTATION_CATEGORIES,
+  DOCUMENTATION_CATEGORIES,
+  normalizeDocumentationLanguage,
+} from '@/lib/documentation';
 import type { SupportedLanguage } from '@/i18n/resources';
 import { CONTENT_TRANSLATION_ENABLED_LANGS } from '@/lib/content-translate-server';
 
@@ -284,9 +289,105 @@ export async function getFeaturedPublicDocumentationArticles(
   return { articles };
 }
 
+export async function adminDocumentationCategoryHasAssignedArticles(
+  admin: AdminSupabase,
+  slug: string
+): Promise<boolean> {
+  const { count, error } = await admin
+    .from('documentation_articles')
+    .select('*', { count: 'exact', head: true })
+    .eq('category', slug);
+  if (error) throw error;
+  return Number(count || 0) > 0;
+}
+
+function documentationCategoryTranslationsFallbacksFor(row: DocumentationCategoryRecord | undefined) {
+  if (!row || !row.translations || typeof row.translations !== 'object') {
+    return {} as NonNullable<DocumentationCategoryRecord['translations']>;
+  }
+  return row.translations;
+}
+
+async function adminAutoSeedDocumentationCategories(admin: AdminSupabase) {
+  const { data: existingRows, error: existingErr } = await admin
+    .from('documentation_categories')
+    .select('id, slug, name, description, display_order, is_active, translations');
+  if (existingErr) {
+    return;
+  }
+  const existingBySlug = new Map<string, DocumentationCategoryRecord>();
+  for (const r of ((existingRows || []) as DocumentationCategoryRecord[])) {
+    existingBySlug.set(String(r.slug || '').trim(), r);
+  }
+
+  const discoveredFromArticles = new Set<string>();
+  try {
+    const { data: articleCatRows } = await admin
+      .from('documentation_articles')
+      .select('category');
+    for (const row of ((articleCatRows || []) as Array<{ category: string }>)) {
+      const c = String(row.category || '').trim();
+      if (!c) continue;
+      discoveredFromArticles.add(c);
+    }
+  } catch {
+    /* swallow */
+  }
+  for (const c of DOCUMENTATION_CATEGORIES) discoveredFromArticles.add(c);
+
+  const canonicalRows = new Map<string, CanonicalDocumentationCategorySpec>();
+  for (const spec of CANONICAL_DOCUMENTATION_CATEGORIES) {
+    canonicalRows.set(spec.slug, spec);
+    discoveredFromArticles.add(spec.slug);
+  }
+
+  const toInsert: Array<{
+    name: string; slug: string; description: string;
+    display_order: number; is_active: boolean;
+  }> = [];
+
+  for (const slug of Array.from(discoveredFromArticles)) {
+    if (existingBySlug.has(slug)) continue;
+    if (!slug || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) continue;
+    const canonical = canonicalRows.get(slug);
+    if (canonical) {
+      toInsert.push({
+        name: canonical.name,
+        slug: canonical.slug,
+        description: canonical.description,
+        display_order: canonical.display_order,
+        is_active: canonical.is_active !== false,
+      });
+    } else {
+      const label = slug
+        .split('-')
+        .map((p) => (p.length > 0 ? p.charAt(0).toUpperCase() + p.slice(1) : ''))
+        .join(' ')
+        .trim();
+      toInsert.push({
+        name: label || slug,
+        slug,
+        description: '',
+        display_order: 50,
+        is_active: true,
+      });
+    }
+  }
+
+  if (toInsert.length === 0) return;
+
+  try {
+    await admin.from('documentation_categories').insert(toInsert);
+  } catch {
+    /* ignore: concurrent auto-seed or migration not applied yet */
+  }
+}
+
 export async function adminGetAllDocumentationCategoriesWithCount(
   admin: AdminSupabase
 ): Promise<DocumentationCategoryWithCount[]> {
+  await adminAutoSeedDocumentationCategories(admin);
+
   const { data: cats, error: catsErr } = await admin
     .from('documentation_categories')
     .select('*')
@@ -311,6 +412,7 @@ export async function adminGetAllDocumentationCategoriesWithCount(
 
   return ((cats || []) as DocumentationCategoryRecord[]).map((c) => ({
     ...c,
+    translations: documentationCategoryTranslationsFallbacksFor(c),
     articles_count: countsByCategory[c.slug] || 0,
   }));
 }
@@ -329,7 +431,10 @@ export async function getPublicActiveDocumentationCategories(
   if (error || !data) {
     return [];
   }
-  return (data as DocumentationCategoryRecord[]) || [];
+  return ((data as DocumentationCategoryRecord[]) || []).map((c) => ({
+    ...c,
+    translations: documentationCategoryTranslationsFallbacksFor(c),
+  }));
 }
 
 export async function adminGetDocumentationCategoryById(
@@ -342,17 +447,11 @@ export async function adminGetDocumentationCategoryById(
     .eq('id', id)
     .maybeSingle();
   if (error) throw error;
-  return (data as DocumentationCategoryRecord | null) || null;
-}
-
-export async function adminDocumentationCategoryHasAssignedArticles(
-  admin: AdminSupabase,
-  slug: string
-): Promise<boolean> {
-  const { count, error } = await admin
-    .from('documentation_articles')
-    .select('*', { count: 'exact', head: true })
-    .eq('category', slug);
-  if (error) throw error;
-  return Number(count || 0) > 0;
+  if (!data) return null;
+  return {
+    ...(data as DocumentationCategoryRecord),
+    translations: documentationCategoryTranslationsFallbacksFor(
+      data as DocumentationCategoryRecord
+    ),
+  };
 }

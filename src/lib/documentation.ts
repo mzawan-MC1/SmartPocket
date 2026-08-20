@@ -103,11 +103,42 @@ export type PublicDocumentationArticle = {
   updatedAt: string;
 };
 
+export type DocumentationCategoryTranslation = { name?: string; description?: string };
+export type DocumentationCategoryTranslations = Partial<Record<SupportedLanguage, DocumentationCategoryTranslation>>;
+
+export type CanonicalDocumentationCategorySpec = {
+  slug: string;
+  name: string;
+  description: string;
+  display_order: number;
+  is_active?: boolean;
+  aliasOf?: string;
+};
+
+export const CANONICAL_DOCUMENTATION_CATEGORIES: CanonicalDocumentationCategorySpec[] = [
+  { slug: 'getting-started',         name: 'Getting Started',            description: 'Welcome, onboarding, and initial setup guides.',                        display_order: 1  },
+  { slug: 'ai-smart-entry',          name: 'AI Smart Entry',             description: 'Receipt OCR, Smart AI parsing, and Voice Entry.',                        display_order: 2  },
+  { slug: 'transactions',            name: 'Transactions',               description: 'Expense, income, transfers and cash flow views.',                        display_order: 3  },
+  { slug: 'accounts-wallets',        name: 'Accounts & Wallets',         description: 'Bank accounts, wallets, cards, and currencies.',                         display_order: 4  },
+  { slug: 'accounts',                name: 'Accounts & Wallets',         description: 'Alias for Accounts & Wallets (legacy slug).',                            display_order: 4, aliasOf: 'accounts-wallets' },
+  { slug: 'personal-subscriptions',  name: 'Personal Subscriptions',     description: 'Recurring bills, plan subscriptions and tracking.',                      display_order: 5  },
+  { slug: 'budgets',                 name: 'Budgets',                    description: 'Spending limits, budgeting plans and targets.',                          display_order: 6  },
+  { slug: 'recurring-transactions',  name: 'Recurring Transactions',     description: 'Scheduled and recurring income or expense rules.',                       display_order: 7  },
+  { slug: 'reimbursements',          name: 'Reimbursements',             description: 'IOUs, reimbursements and money owed tracking.',                          display_order: 8  },
+  { slug: 'settlements',             name: 'Settlements',                description: 'Split expense settlements and net balance closing.',                     display_order: 9  },
+  { slug: 'people-spaces',           name: 'People & Spaces',            description: 'Groups, shared money, invitations and shared budgets.',                  display_order: 10 },
+  { slug: 'plans-subscriptions',     name: 'Plans & Subscriptions',      description: 'Smart Pocket pricing, plans and subscription management.',               display_order: 11 },
+  { slug: 'support-troubleshooting', name: 'Support & Troubleshooting',  description: 'Troubleshooting, support channels and error recovery.',                  display_order: 12 },
+  { slug: 'savings-tools',           name: 'Savings & Financial Tools',  description: 'Savings goals, investments, calculators, FX tools.',                     display_order: 13 },
+  { slug: 'general',                 name: 'General',                    description: 'Platform settings, legal, and miscellaneous help articles.',            display_order: 99 },
+];
+
 export type DocumentationCategoryRecord = {
   id: string;
   name: string;
   slug: string;
   description: string;
+  translations: DocumentationCategoryTranslations;
   display_order: number;
   is_active: boolean;
   created_by: string | null;
@@ -124,6 +155,7 @@ export type DocumentationCategoryInput = {
   name: string;
   slug: string;
   description: string;
+  translations?: DocumentationCategoryTranslations;
   display_order: number;
   is_active: boolean;
 };
@@ -295,10 +327,32 @@ export function normalizeDocumentationCategoryInput(
     typeof input.slug === 'string' && input.slug.trim()
       ? input.slug
       : slugifyCmsPageSlug(rawName);
+
+  const rawTranslations = input.translations && typeof input.translations === 'object'
+    ? input.translations
+    : undefined;
+
+  const normalizedTranslations: DocumentationCategoryTranslations = {};
+  if (rawTranslations) {
+    for (const code of SUPPORTED_LANGUAGE_CODES) {
+      const entry = (rawTranslations as Record<string, unknown>)[code];
+      if (!entry || typeof entry !== 'object') continue;
+      const e = entry as Record<string, unknown>;
+      const hasName = typeof e.name === 'string' && e.name.trim().length > 0;
+      const hasDescription = typeof e.description === 'string' && e.description.trim().length > 0;
+      if (!hasName && !hasDescription) continue;
+      normalizedTranslations[code] = {
+        ...(hasName ? { name: sanitizeDocumentationCategorySingleLine(e.name, 120) } : {}),
+        ...(hasDescription ? { description: sanitizeDocumentationMultilineText(e.description, 500) } : {}),
+      };
+    }
+  }
+
   return {
     name: sanitizeDocumentationCategorySingleLine(rawName, 120),
     slug: normalizeDocumentationSlug(rawSlug),
     description: sanitizeDocumentationMultilineText(input.description, 500),
+    translations: Object.keys(normalizedTranslations).length > 0 ? normalizedTranslations : undefined,
     display_order: normalizeDocumentationSortOrder(input.display_order),
     is_active: input.is_active !== false,
   };

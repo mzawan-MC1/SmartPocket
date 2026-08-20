@@ -200,7 +200,25 @@ export default function PublicDocumentationClient({
   const hasQuery = query.trim().length > 0 || categoryFilter !== 'all';
 
   const displayCategoryLabel = (category: string) => {
-    if (categoryNameMap[category]) return categoryNameMap[category];
+    const match = (activeCategories || []).find(
+      (c) => c && typeof c.slug === 'string' && c.slug === category
+    );
+    if (match) {
+      const translations = match.translations && typeof match.translations === 'object'
+        ? match.translations
+        : undefined;
+      const curEntry = translations?.[language as SupportedLanguage];
+      if (curEntry && typeof curEntry.name === 'string' && curEntry.name.trim().length > 0) {
+        return curEntry.name;
+      }
+      const enEntry = translations?.en;
+      if (enEntry && typeof enEntry.name === 'string' && enEntry.name.trim().length > 0 && String(language).toLowerCase() !== 'en') {
+        return enEntry.name;
+      }
+      if (typeof match.name === 'string' && match.name.trim().length > 0) {
+        return match.name;
+      }
+    }
     const key = `documentation.categories.${category.replace(/-/g, '')}`;
     const val = t(key, { ns: 'portal', defaultValue: '' });
     return val || category.charAt(0).toUpperCase() + category.slice(1).replace(/-/g, ' ');
