@@ -2,14 +2,28 @@
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "identifier": "com.smartpocket.desktop",
   "app": {
+    "withGlobalTauri": false,
     "windows": [
       {
         "label": "main",
-        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) SmartPocketStore/1.0 Tauri/2"
+        "create": false,
+        "title": "Smart Pocket",
+        "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) SmartPocketStore/1.0 Tauri/2",
+        "width": 1280,
+        "height": 820,
+        "minWidth": 1024,
+        "minHeight": 700,
+        "resizable": true,
+        "center": true,
+        "focus": true,
+        "devtools": false
       }
     ],
     "security": {
       "freezePrototype": false,
+      "pattern": {
+        "use": "brownfield"
+      },
       "capabilities": [
         "no-ipc"
       ]

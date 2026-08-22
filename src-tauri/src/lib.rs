@@ -547,12 +547,27 @@ fn register_desktop_callback_handler<R: Runtime>(app: &AppHandle<R>) {
     }
 }
 
+fn is_webview2_runtime_error(message: &str) -> bool {
+    let lower = message.to_lowercase();
+    lower.contains("webview")
+        || lower.contains("webview2")
+        || lower.contains("webview2loader")
+        || lower.contains("could not create webview")
+        || lower.contains("failed to create webview")
+        || lower.contains("runtime not found")
+        || lower.contains("microsoft edge webview2")
+}
+
 fn show_startup_failure_dialog<R: Runtime>(app: Option<&AppHandle<R>>, message: &str) {
     let dialog_title = "Smart Pocket could not start";
-    let dialog_body = format!(
-        "{}\n\nIf this happens on a fresh Windows installation, please install the Microsoft Edge WebView2 Runtime from:\nhttps://developer.microsoft.com/microsoft-edge/webview2/",
-        message
-    );
+    let dialog_body = if is_webview2_runtime_error(message) {
+        format!(
+            "{}\n\nIf this happens on a fresh Windows installation, please install the Microsoft Edge WebView2 Runtime from:\nhttps://developer.microsoft.com/microsoft-edge/webview2/",
+            message
+        )
+    } else {
+        message.to_string()
+    };
     println!(
         "[SmartPocketDesktop] startup failure: {}",
         message.replace('\n', " | ")
@@ -634,15 +649,20 @@ fn install_startup_panic_hook() {
             "[SmartPocketDesktop] panic at startup: {}{}",
             payload, location
         );
-        let _ = native_msgbox(
-            "Smart Pocket could not start",
-            &format!(
-                "{}\n\nIf you just installed Smart Pocket, install the Microsoft Edge WebView2 Runtime from:\nhttps://developer.microsoft.com/microsoft-edge/webview2/\n\nError: {}{}",
-                "Smart Pocket requires Microsoft Edge WebView2 Runtime.",
+        let is_webview2 = is_webview2_runtime_error(payload);
+        let dialog_body = if is_webview2 {
+            format!(
+                "Smart Pocket requires Microsoft Edge WebView2 Runtime.\n\nIf you just installed Smart Pocket, install the Microsoft Edge WebView2 Runtime from:\nhttps://developer.microsoft.com/microsoft-edge/webview2/\n\nError: {}{}",
                 payload,
                 location
-            ),
-        );
+            )
+        } else {
+            format!(
+                "Smart Pocket encountered an unexpected error.\n\nError: {}{}",
+                payload, location
+            )
+        };
+        let _ = native_msgbox("Smart Pocket could not start", &dialog_body);
         previous(info);
     }));
 }
@@ -710,7 +730,7 @@ fn run_app() -> Result<(), Box<dyn std::error::Error>> {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(OpenerPluginBuilder::new().open_js_links_on_click(false).build())
         .setup(|app| {
-            let mut main_window = app
+            let main_window_config = app
                 .config()
                 .app
                 .windows
@@ -719,7 +739,6 @@ fn run_app() -> Result<(), Box<dyn std::error::Error>> {
                 .cloned()
                 .ok_or_else(|| "missing main window config".to_string())?;
 
-            main_window.url = main_window_url();
             println!(
                 "[SmartPocketDesktop] initial desktop URL: {}",
                 main_window_external_url()
@@ -729,7 +748,14 @@ fn run_app() -> Result<(), Box<dyn std::error::Error>> {
             let persisted_state = load_window_state(&app.handle().clone());
             let window_state_store = Arc::new(Mutex::new(persisted_state.clone()));
 
-            let builder = WebviewWindowBuilder::from_config(app, &main_window)
+            if let Some(duplicate) = app.get_webview_window(MAIN_WINDOW_LABEL) {
+                println!("[SmartPocketDesktop] removing duplicate main window created by config loader");
+                let _ = duplicate.destroy();
+            }
+
+            let mut configured = main_window_config;
+            configured.url = main_window_url();
+            let builder = WebviewWindowBuilder::from_config(app, &configured)
                 .map_err(|err| format!("main window builder failed: {}", err))?
                 .on_navigation(move |url| handle_navigation(&app_handle, url))
                 .inner_size(
