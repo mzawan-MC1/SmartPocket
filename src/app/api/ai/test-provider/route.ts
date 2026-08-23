@@ -8,6 +8,7 @@ import {
   type VoiceProviderHealthCheckResult,
 } from '@/lib/voice-ai-server';
 import { getGeminiTextModel, resolveAIProviderConfig } from '@/lib/ai-provider-config';
+import { getGeminiClient } from '@/lib/gemini-client';
 import type { ProviderHealthResult } from '@/lib/ai-types';
 
 const ALLOWED_PROVIDERS = new Set(['openrouter', 'vps_ai', 'openrouter_voice', 'gemini', 'gemini_voice']);
@@ -130,8 +131,46 @@ export async function POST(req: NextRequest) {
           errorCategory: 'gemini_not_configured',
         };
       } else {
-        const langProvider = createLanguageProvider('gemini', 10000);
-        result = await langProvider.healthCheck();
+        const handle = getGeminiClient();
+        const model = getGeminiTextModel();
+        const checkedAt = new Date().toISOString();
+        const start = Date.now();
+        try {
+          const client = handle.requireClient('gemini-health-check');
+          const timeout = AbortSignal.timeout(8000);
+          await client.models.generateContent({
+            model: model!,
+            contents: [{ role: 'user', parts: [{ text: 'ping' }] }],
+            config: { temperature: 0, maxOutputTokens: 1, candidateCount: 1, abortSignal: timeout },
+          });
+          result = {
+            provider: 'gemini',
+            status: 'healthy',
+            responseTimeMs: Date.now() - start,
+            modelUsed: model,
+            checkedAt,
+          } as ProviderHealthResult & { success: boolean; error?: string; modelAttempted?: string | null };
+        } catch (err) {
+          console.error('[Gemini Text Test Raw Error]:', err);
+          const rawErr = err as any;
+          const rawMsg = rawErr?.message ?? (typeof err === 'string' ? err : JSON.stringify(err ?? {}));
+          persistGate = 'not_required_vps';
+          result = {
+            provider: 'gemini',
+            status: 'offline',
+            responseTimeMs: Date.now() - start,
+            errorCategory: 'gemini_provider_unavailable',
+            checkedAt,
+            modelUsed: model,
+            success: false,
+            error: rawMsg,
+            modelAttempted: model,
+          } as unknown as ProviderHealthResult & {
+            success: boolean;
+            error: string;
+            modelAttempted: string | null;
+          };
+        }
       }
     } else if (provider === 'gemini_voice') {
       voiceResult = await runVoiceTranscriptionHealthCheck();
