@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Modal from '@/components/ui/Modal';
 import { createClientId } from '@/lib/uuid';
@@ -60,6 +60,7 @@ export default function ReportAIOutputDialog({
   const [reason, setReason] = useState<AIOutputReportReason>('inappropriate');
   const [userNote, setUserNote] = useState('');
   const [state, setState] = useState<SubmissionState>({ status: 'idle' });
+  const noteRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -228,18 +229,28 @@ export default function ReportAIOutputDialog({
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
             {AI_OUTPUT_REPORT_REASONS.map((opt) => {
               const isActive = opt === reason;
+              const isOther = opt === 'other';
               return (
                 <button
                   key={opt}
                   type="button"
-                  onClick={() => setReason(opt)}
-                  className={`min-h-10 rounded-xl border px-3 py-2 text-left text-sm transition-colors ${
+                  onClick={() => {
+                    setReason(opt);
+                    if (isOther) {
+                      const noteEl = noteRef.current;
+                      if (noteEl) {
+                        noteEl.focus({ preventScroll: false });
+                        try { noteEl.setSelectionRange(noteEl.value.length, noteEl.value.length); } catch { /* ignore */ }
+                      }
+                    }
+                  }}
+                  className={`flex min-h-10 items-center justify-center rounded-xl border px-3 py-2 text-center text-sm transition-colors ${
                     isActive
                       ? 'border-accent/40 bg-accent/10 text-accent'
                       : 'border-border bg-background text-foreground hover:bg-muted/70'
                   }`}
                 >
-                  <span className="font-600">{t(REASON_TKEYS[opt], { ns: 'portal' })}</span>
+                  <span className="font-600 text-center">{t(REASON_TKEYS[opt], { ns: 'portal' })}</span>
                 </button>
               );
             })}
@@ -258,9 +269,15 @@ export default function ReportAIOutputDialog({
           </label>
           <textarea
             id="ai-report-note"
+            ref={noteRef}
             value={userNote}
             onChange={(event) => setUserNote(event.target.value.slice(0, 1000))}
-            placeholder={t('aiReporting.notePlaceholder', { ns: 'portal' })}
+            placeholder={reason === 'other'
+              ? t('aiReporting.notePlaceholderOther', {
+                  ns: 'portal',
+                  defaultValue: 'Please describe the issue so we can investigate further.',
+                })
+              : t('aiReporting.notePlaceholder', { ns: 'portal' })}
             className="input-base min-h-[120px] w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground"
           />
           <p className="mt-1 text-right text-xs text-muted-foreground">

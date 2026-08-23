@@ -2736,17 +2736,18 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
           <button
             type="button"
             onClick={() => setReportDialogOpen(true)}
-            className="rounded-xl border border-border bg-background px-3 py-2.5 text-sm font-600 text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground"
+            className="flex min-h-[52px] flex-col items-center justify-center gap-0 rounded-xl border border-border bg-background px-2 py-1.5 text-xs font-600 leading-tight text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground w-full sm:w-auto sm:min-w-[96px]"
             aria-label={t('aiReporting.triggerLabel', { ns: 'portal' })}
             title={t('aiReporting.triggerLabel', { ns: 'portal' })}
           >
-            {t('aiReporting.triggerLabel', { ns: 'portal' })}
+            <span>{t('aiReporting.triggerPart1', { ns: 'portal', defaultValue: 'Report' })}</span>
+            <span>{t('aiReporting.triggerPart2', { ns: 'portal', defaultValue: 'AI output' })}</span>
           </button>
           <div className="ml-auto flex flex-1 gap-2 justify-end">
             <button
               onClick={handleConfirm}
               disabled={unresolvedReviewFields.length > 0}
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-positive px-4 py-2.5 text-sm font-700 text-white transition-colors hover:bg-positive/90 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none sm:min-w-[180px]"
+              className="flex min-h-[52px] flex-1 items-center justify-center gap-2 rounded-xl bg-positive px-4 py-2 text-sm font-700 text-white transition-colors hover:bg-positive/90 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none sm:min-w-[180px]"
             >
               <CheckCircle size={16} />
               {isSubscriptionFlow
@@ -2755,7 +2756,7 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
             </button>
             <button
               onClick={handleReset}
-              className="rounded-xl bg-muted px-3.5 py-2.5 text-sm font-600 text-foreground transition-colors hover:bg-muted/80"
+              className="flex min-h-[52px] items-center justify-center rounded-xl bg-muted px-3.5 py-2.5 text-sm font-600 text-foreground transition-colors hover:bg-muted/80 aspect-square"
               aria-label={t('actions.reset', { ns: 'common' })}
             >
               <RotateCcw size={16} />
@@ -2769,11 +2770,12 @@ export default function AIAssistantModal({ onClose, defaultMode = 'text' }: AIAs
             <button
               type="button"
               onClick={() => setReportDialogOpen(true)}
-              className="rounded-xl border border-border bg-background px-3 py-2.5 text-sm font-600 text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground"
+              className="flex min-h-[52px] flex-col items-center justify-center gap-0 rounded-xl border border-border bg-background px-2 py-1.5 text-xs font-600 leading-tight text-muted-foreground transition-colors hover:bg-muted/80 hover:text-foreground w-full sm:w-auto sm:min-w-[96px]"
               aria-label={t('aiReporting.triggerLabel', { ns: 'portal' })}
               title={t('aiReporting.triggerLabel', { ns: 'portal' })}
             >
-              {t('aiReporting.triggerLabel', { ns: 'portal' })}
+              <span>{t('aiReporting.triggerPart1', { ns: 'portal', defaultValue: 'Report' })}</span>
+              <span>{t('aiReporting.triggerPart2', { ns: 'portal', defaultValue: 'AI output' })}</span>
             </button>
             <div className="ml-auto flex flex-1 gap-2 justify-end">
               <button
