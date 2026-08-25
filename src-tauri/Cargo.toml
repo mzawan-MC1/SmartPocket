@@ -1,6 +1,6 @@
 [package]
 name = "smart-pocket-desktop"
-version = "0.1.3"
+version = "0.1.4"
 description = "Smart Pocket desktop shell powered by Tauri 2"
 authors = ["Smart Pocket"]
 license = "MIT"
