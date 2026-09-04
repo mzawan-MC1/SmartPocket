@@ -5,11 +5,13 @@ import {
   CheckCircle2,
   Clock3,
   Download,
+  ExternalLink,
   Monitor,
   RefreshCw,
   Bot,
   Receipt,
   ShieldCheck,
+  ShoppingBag,
   Sparkles,
   Workflow,
 } from 'lucide-react';
@@ -93,12 +95,16 @@ function DesktopActionButton({
   label,
   disabled = false,
   className,
+  kind = 'download',
 }: {
   href: string | null;
   label: string;
   disabled?: boolean;
   className: string;
+  kind?: 'download' | 'store';
 }) {
+  const IconEl = kind === 'store' ? ShoppingBag : Download;
+
   if (disabled || !href) {
     return (
       <span
@@ -118,8 +124,9 @@ function DesktopActionButton({
       rel="noopener noreferrer"
       className={className}
     >
-      <Download size={16} />
+      <IconEl size={16} />
       {label}
+      {kind === 'store' ? <ExternalLink size={14} className="opacity-70" /> : null}
     </a>
   );
 }
@@ -138,6 +145,7 @@ function DesktopDownloadCard({
   compact?: boolean;
 }) {
   const isWindows = platform.platform === 'windows';
+  const hasMicrosoftStore = isWindows && !!platform.microsoftStoreUrl;
   const isActive = isDesktopDownloadActive(platform);
   const availabilityLabel = readString(
     t(
@@ -146,10 +154,19 @@ function DesktopDownloadCard({
         : 'desktopAppPage.availability.comingSoon'
     )
   );
+  const windowsStoreBadge = readString(
+    t(
+      hasMicrosoftStore
+        ? 'desktopAppPage.availability.windowsVerifiedStore'
+        : 'desktopAppPage.availability.windowsEarlyAccess'
+    )
+  );
   const earlyAccessLabel = readString(
     t(
       isWindows
-        ? 'desktopAppPage.availability.windowsEarlyAccess'
+        ? hasMicrosoftStore
+          ? 'desktopAppPage.availability.windowsAvailableStore'
+          : 'desktopAppPage.availability.windowsEarlyAccess'
         : 'desktopAppPage.download.earlyAccessLabel'
     )
   );
@@ -177,13 +194,20 @@ function DesktopDownloadCard({
       { returnObjects: true }
     )
   );
-  const versionDateLine = readString(
-    t('desktopAppPage.download.versionDateLabel', {
-      version: platform.version,
-      date: formatDisplayDate(platform.releaseDate, language),
-      defaultValue: `Version ${platform.version} • Updated ${formatDisplayDate(platform.releaseDate, language)}`,
-    })
-  );
+  const versionDateLine = isWindows && hasMicrosoftStore
+    ? readString(
+        t('desktopAppPage.download.windowsStoreVersionLabel', {
+          version: platform.version,
+          defaultValue: `Microsoft Store version ${platform.version}`,
+        })
+      )
+    : readString(
+        t('desktopAppPage.download.versionDateLabel', {
+          version: platform.version,
+          date: formatDisplayDate(platform.releaseDate, language),
+          defaultValue: `Version ${platform.version} • Updated ${formatDisplayDate(platform.releaseDate, language)}`,
+        })
+      );
   const statusToneClass = isActive
     ? 'border-emerald-200/80 bg-emerald-50/90 text-emerald-800 shadow-[0_6px_14px_rgba(16,185,129,0.12)]'
     : 'border-slate-200 bg-slate-100/90 text-slate-700';
@@ -203,7 +227,9 @@ function DesktopDownloadCard({
 
   const normalizedStatusLabel = normalizeStatusLabel(readString(platform.statusLabel));
   let statusLabel = availabilityLabel;
-  if (normalizedStatusLabel.includes('early access')) {
+  if (hasMicrosoftStore) {
+    statusLabel = windowsStoreBadge || earlyAccessLabel || availabilityLabel;
+  } else if (normalizedStatusLabel.includes('early access')) {
     statusLabel = earlyAccessLabel || readString(platform.statusLabel);
   } else if (
     normalizedStatusLabel === 'available' ||
@@ -216,19 +242,22 @@ function DesktopDownloadCard({
     statusLabel = readString(platform.statusLabel);
   }
 
-  const isEarlyAccess = normalizeStatusLabel(statusLabel).includes(
+  const isEarlyAccess = !hasMicrosoftStore && normalizeStatusLabel(statusLabel).includes(
     normalizeStatusLabel(
       readString(t('desktopAppPage.download.earlyAccessLabel'))
     )
   );
 
   const note = isWindows
-    ? isEarlyAccess && platform.showSmartScreenNote
-      ? readString(t('desktopAppPage.download.windowsSmartScreenNote'))
-      : ''
+    ? ''
     : isActive && isEarlyAccess
       ? readString(t('desktopAppPage.download.macosNotNotarizedNote'))
       : '';
+
+  const actionHref = isWindows
+    ? platform.microsoftStoreUrl || platform.directDownloadUrl
+    : platform.directDownloadUrl;
+  const actionKind: 'download' | 'store' = isWindows && !!platform.microsoftStoreUrl ? 'store' : 'download';
 
   return (
     <article className={`relative flex flex-col overflow-hidden rounded-[2rem] border ${cardToneClass} shadow-[0_18px_36px_rgba(15,52,96,0.08)] ${compact ? 'p-5' : 'p-6 sm:p-[1.625rem]'}`}>
@@ -274,10 +303,11 @@ function DesktopDownloadCard({
 
         <div className="mt-5">
           <DesktopActionButton
-            href={platform.directDownloadUrl}
+            href={actionHref}
             disabled={!isActive}
             label={actionLabel}
-            className="btn-primary h-12 w-full justify-center rounded-2xl px-6 text-sm shadow-[0_14px_34px_rgba(13,148,136,0.22)] transition-shadow hover:shadow-[0_18px_40px_rgba(13,148,136,0.26)] focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:ring-offset-2"
+            kind={actionKind}
+            className="btn-primary h-12 w-full justify-center gap-2 rounded-2xl px-6 text-sm shadow-[0_14px_34px_rgba(13,148,136,0.22)] transition-shadow hover:shadow-[0_18px_40px_rgba(13,148,136,0.26)] focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:ring-offset-2"
           />
         </div>
 
@@ -579,6 +609,24 @@ export default function DesktopAppPageClient({
                 appName={appName}
                 compact
               />
+            </div>
+
+            <div className="mt-6 flex flex-col items-start gap-3 rounded-[1.5rem] border border-white/15 bg-white/5 px-5 py-4 text-slate-100 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+              <div>
+                <p className="text-sm font-800 tracking-tight text-white">
+                  {readString(t('desktopAppPage.hero.browserFallback.title'))}
+                </p>
+                <p className="mt-1 text-sm leading-6 text-slate-200/90">
+                  {readString(t('desktopAppPage.hero.browserFallback.description'))}
+                </p>
+              </div>
+              <a
+                href="/sign-up-login"
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-2.5 text-sm font-700 text-slate-950 shadow-[0_14px_34px_rgba(2,6,23,0.20)] transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-200 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-900 motion-reduce:transform-none"
+              >
+                <span>{readString(t('desktopAppPage.hero.browserFallback.cta'))}</span>
+                <ExternalLink size={14} />
+              </a>
             </div>
           </div>
         </div>

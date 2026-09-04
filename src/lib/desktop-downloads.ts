@@ -16,6 +16,7 @@ export type DesktopPlatformRelease = {
   installerType: string;
   systemRequirement: string;
   directDownloadUrl: string | null;
+  microsoftStoreUrl: string | null;
   statusLabel: string;
   showSmartScreenNote: boolean;
   version: string;
@@ -44,6 +45,7 @@ export const DESKTOP_APP_ROUTE = '/desktop-app';
 export const DESKTOP_APP_PROMO_IMAGE_PATH = '/assets/images/smart-pocket-desktop-app.png';
 export const DESKTOP_APP_PROMO_IMAGE_ALT =
   'Smart Pocket desktop app preview shown on a laptop with companion device and feature cards.';
+export const MICROSOFT_STORE_URL = 'https://apps.microsoft.com/detail/9NZPWHH4M7JJ';
 
 const DESKTOP_RELEASE_NOTES_PAGE_URL = 'https://github.com/mzawan-MC1/SmartPocket/releases';
 const DEFAULT_DESKTOP_RELEASE_DATE = '2026-08-03';
@@ -109,7 +111,16 @@ export function sanitizeDesktopUpdateNotes(value: unknown) {
 }
 
 export function isDesktopDownloadActive(platform: DesktopPlatformRelease) {
-  return platform.enabled && !!platform.directDownloadUrl && platform.availability === 'available';
+  if (!platform.enabled) {
+    return false;
+  }
+
+  if (platform.platform === 'windows') {
+    return (!!platform.directDownloadUrl || !!platform.microsoftStoreUrl)
+      && platform.availability === 'available';
+  }
+
+  return !!platform.directDownloadUrl && platform.availability === 'available';
 }
 
 const DESKTOP_RELEASE_FALLBACK: DesktopAppRelease = {
@@ -129,14 +140,15 @@ const DESKTOP_RELEASE_FALLBACK: DesktopAppRelease = {
   platforms: {
     windows: {
       platform: 'windows',
-      enabled: false,
-      availability: 'coming_soon',
-      installerType: 'EXE installer',
+      enabled: true,
+      availability: 'available',
+      installerType: 'Microsoft Store MSIX',
       systemRequirement: 'Windows 10 or later',
       directDownloadUrl: null,
-      statusLabel: '',
-      showSmartScreenNote: true,
-      version: packageJson.version,
+      microsoftStoreUrl: MICROSOFT_STORE_URL,
+      statusLabel: 'Verified on Microsoft Store',
+      showSmartScreenNote: false,
+      version: '0.1.4.0',
       releaseDate: DEFAULT_DESKTOP_RELEASE_DATE,
     },
     macos: {
@@ -146,6 +158,7 @@ const DESKTOP_RELEASE_FALLBACK: DesktopAppRelease = {
       installerType: 'Signed installer',
       systemRequirement: 'macOS 11 Big Sur or later',
       directDownloadUrl: null,
+      microsoftStoreUrl: null,
       statusLabel: '',
       showSmartScreenNote: false,
       version: packageJson.version,
@@ -161,19 +174,33 @@ function resolveDesktopPlatformRelease(
 ): DesktopPlatformRelease {
   const keyPrefix = platform === 'windows' ? 'desktop_windows' : 'desktop_macos';
   const enabled = sanitizeBoolean(raw[`${keyPrefix}_available`], fallback.enabled);
-  const directDownloadUrl = sanitizeHttpsUrl(raw[`${keyPrefix}_download_url`]) || null;
+  const cmsDirectDownload = sanitizeHttpsUrl(raw[`${keyPrefix}_download_url`]) || null;
+  const microsoftStoreUrl = platform === 'windows'
+    ? sanitizeHttpsUrl(raw.desktop_windows_store_url) || fallback.microsoftStoreUrl
+    : fallback.microsoftStoreUrl;
+  const directDownloadUrl = platform === 'windows'
+    ? null
+    : cmsDirectDownload;
   const version = readTrimmedString(raw[`${keyPrefix}_version`]) || fallback.version;
   const releaseDate = sanitizeIsoDate(raw[`${keyPrefix}_release_date`], fallback.releaseDate);
   const statusLabel = sanitizeDesktopStatusLabel(raw[`${keyPrefix}_status_label`]) || fallback.statusLabel;
+  const showSmartScreenNote = platform === 'windows'
+    ? false
+    : fallback.showSmartScreenNote;
+  const hasDownloadChannel = platform === 'windows'
+    ? !!microsoftStoreUrl || !!directDownloadUrl
+    : !!directDownloadUrl;
 
   return {
     ...fallback,
     enabled,
     directDownloadUrl,
+    microsoftStoreUrl,
     version,
     releaseDate,
     statusLabel,
-    availability: enabled && directDownloadUrl ? 'available' : 'coming_soon',
+    showSmartScreenNote,
+    availability: enabled && hasDownloadChannel ? 'available' : 'coming_soon',
   };
 }
 

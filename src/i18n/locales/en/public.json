@@ -760,7 +760,7 @@
   },
   "desktopAppPage": {
     "seoTitle": "Smart Pocket Desktop App",
-    "seoDescription": "Download Smart Pocket for Windows and manage expenses, budgets, subscriptions, receipts and everyday finances from your desktop. The macOS version is coming soon.",
+    "seoDescription": "Get Smart Pocket for Windows from the Microsoft Store and manage expenses, budgets, subscriptions, receipts and everyday finances from your desktop. The macOS version is coming soon.",
     "ogTitle": "Smart Pocket Desktop App",
     "ogDescription": "Manage expenses, budgets, subscriptions, receipts and everyday finances from your desktop with Smart Pocket.",
     "eyebrow": "Desktop App",
@@ -768,13 +768,18 @@
       "title": "Smart Pocket Desktop App",
       "description": "Manage expenses, budgets, subscriptions, receipts, and everyday finances with a focused Smart Pocket desktop experience.",
       "showcaseLabel": "{{appName}} Desktop App",
-      "windowsCta": "Download for Windows",
+      "windowsCta": "Get it from Microsoft Store",
       "macosCta": "Download for macOS",
       "trustBadges": [
-        "One-click download",
-        "Always up to date",
-        "Secure and reliable"
-      ]
+        "Verified Microsoft Store app",
+        "Safe install through Microsoft",
+        "Automatic Store updates"
+      ],
+      "browserFallback": {
+        "title": "Prefer the web version?",
+        "description": "You can continue using Smart Pocket directly in your browser.",
+        "cta": "Open in browser"
+      }
     },
     "platformLabels": {
       "windows": "Windows",
@@ -782,6 +787,8 @@
     },
     "availability": {
       "available": "Available now",
+      "windowsVerifiedStore": "Verified on Microsoft Store",
+      "windowsAvailableStore": "Available on Microsoft Store",
       "windowsEarlyAccess": "Windows Early Access",
       "comingSoon": "Coming soon"
     },
@@ -827,16 +834,17 @@
       "description": "Choose the desktop app that fits your computer.",
       "versionLabel": "Current version",
       "releaseDateLabel": "Release date",
-      "windowsDescription": "Install Smart Pocket on Windows for a faster, cleaner desktop finance experience.",
+      "windowsDescription": "Get Smart Pocket on Windows through Microsoft Store for a faster, cleaner desktop finance experience.",
       "macosDescription": "Use Smart Pocket on macOS with a focused desktop experience for daily money management.",
-      "windowsCta": "Download for Windows",
+      "windowsCta": "Get it from Microsoft Store",
       "macosCta": "Download for macOS",
       "earlyAccessLabel": "Early Access",
       "versionDateLabel": "Version {{version}} • Updated {{date}}",
+      "windowsStoreVersionLabel": "Microsoft Store version {{version}}",
       "windowsBenefits": [
-        "One-click installer",
-        "Automatic update support",
-        "Secure desktop experience"
+        "Verified Microsoft Store app",
+        "Safe install through Microsoft",
+        "Automatic Store updates"
       ],
       "macosBenefits": [
         "Simple DMG installation",
@@ -878,11 +886,11 @@
       "steps": [
         {
           "title": "Download the app for your device",
-          "description": "Choose the Windows installer from the official desktop release source."
+          "description": "Get Smart Pocket for Windows through Microsoft Store or prepare the macOS installer."
         },
         {
           "title": "Install Smart Pocket",
-          "description": "Open the installer and follow the quick setup steps."
+          "description": "Open Microsoft Store to install Smart Pocket on Windows, or open the macOS installer and follow the quick setup steps."
         },
         {
           "title": "Sign in to your account",
